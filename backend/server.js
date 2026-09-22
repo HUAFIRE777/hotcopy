@@ -336,10 +336,7 @@ app.post('/api/generate', authenticate, async (req, res) => {
   const { url, mode = 'rewrite' } = req.body;
   const user = req.user;
 
-  if (mode === 'rewrite' && user.plan === 'basic') {
-    return res.status(403).json({ error: 'AI 爆款改写仅向 Pro/高级版开放，普通版仅支持双语精翻与核心速读' });
-  }
-
+  // 所有付费套餐（Basic / Pro / Studio）均可使用 AI 爆款改写
   if (user.used_count >= user.monthly_limit) {
     return res.status(429).json({ error: '本月生成额度已用尽，请升级会员方案' });
   }
@@ -380,7 +377,7 @@ app.post('/api/generate', authenticate, async (req, res) => {
       }
     }
 
-    const cleanedInput = cleanRawTranscript(text.slice(0, 60000));
+    const cleanedInput = cleanRawTranscript(text.slice(0, 300000));
 
     if (mode === 'raw') {
       db.prepare('UPDATE users SET used_count = used_count + 1 WHERE id = ?').run(user.id);
