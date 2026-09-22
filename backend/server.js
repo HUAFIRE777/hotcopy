@@ -7,7 +7,7 @@ const cron = require('node-cron');
 const axios = require('axios');
 const FormData = require('form-data');
 const { YoutubeTranscript } = require('youtube-transcript');
-const { TECH_TRENDS, BUSINESS_TRENDS, LIFE_TRENDS } = require('./trends_data');
+const { TECH_TRENDS, BUSINESS_TRENDS, PODCAST_TRENDS, GROWTH_TRENDS, LIFESTYLE_TRENDS } = require('./trends_data');
 require('dotenv').config();
 
 const app = express();
@@ -84,7 +84,7 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-function extractYouTubeId(url) {
+function extractYouTubeId(url) { if (!url || typeof url !== "string") return null;
   const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
   return match ? match[1] : null;
 }
@@ -163,29 +163,98 @@ app.post('/api/auth/activate', authenticate, (req, res) => {
 
 // ---------------- 定时任务：2 小时同步全球热点 ----------------
 async function updateTrendsJob() {
+  db.prepare('DELETE FROM trends').run();
   const stmt = db.prepare(`
     INSERT OR REPLACE INTO trends (platform, category, video_id, title, title_cn, cover_url, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
 
+  const cacheStmt = db.prepare('INSERT OR REPLACE INTO copies_cache (video_id, mode, content, created_at) VALUES (?, ?, ?, ?)');
+
   const insertList = (list, cat) => {
     for (const item of list) {
-      const cover = `https://img.youtube.com/vi/${item.video_id}/hqdefault.jpg`;
+      const cover = item.cover_url || `https://img.youtube.com/vi/${item.video_id}/hqdefault.jpg`;
       stmt.run('youtube', cat, item.video_id, item.title, item.title_cn, cover, Date.now());
+      if (item.raw_content) {
+        cacheStmt.run(item.video_id, 'raw', item.raw_content, Date.now());
+      }
+      if (item.summary_content) {
+        cacheStmt.run(item.video_id, 'summary', item.summary_content, Date.now());
+      }
+      if (item.rewrite_content) {
+        cacheStmt.run(item.video_id, 'rewrite', item.rewrite_content, Date.now());
+      }
     }
   };
 
   insertList(TECH_TRENDS, 'tech');
   insertList(BUSINESS_TRENDS, 'business');
-  insertList(LIFE_TRENDS, 'life');
+  insertList(PODCAST_TRENDS, 'podcast');
+  insertList(GROWTH_TRENDS, 'growth');
+  insertList(LIFESTYLE_TRENDS, 'lifestyle');
 }
 cron.schedule('0 */2 * * *', updateTrendsJob);
 
 app.get('/api/trends', (req, res) => {
-  const category = req.query.category || 'tech';
-  const list = db.prepare('SELECT * FROM trends WHERE category = ? ORDER BY id ASC LIMIT 50').all(category);
+  const category = req.query.category || 'all';
+  let list;
+  if (category === 'all') {
+    list = db.prepare('SELECT * FROM trends ORDER BY id ASC LIMIT 60').all();
+  } else {
+    list = db.prepare('SELECT * FROM trends WHERE category = ? ORDER BY id ASC LIMIT 50').all(category);
+  }
   res.json(list);
 });
+
+
+// ---------------- YouTube 音频流提取与 Groq Whisper 听译 (无字幕自动回退) ----------------
+const { exec } = require('child_process');
+
+function fetchYouTubeWhisperTranscript(videoId) {
+  return new Promise((resolve, reject) => {
+    const audioPath = `/tmp/yt_${videoId}_${Date.now()}.mp3`;
+    const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+    console.log(`[Groq Whisper] 正在为 YouTube 视频 ${videoId} 提取音频流...`);
+    const cmd = `yt-dlp -f "ba[ext=m4a]/ba" --extract-audio --audio-format mp3 --max-filesize 24M -o "${audioPath}" "${videoUrl}"`;
+    
+    exec(cmd, async (err, stdout, stderr) => {
+      if (err) {
+        const errStr = (stderr || stdout || err.message || '').toString();
+        console.error(`[Groq Whisper] yt-dlp 提取音频失败: ${errStr}`);
+        if (errStr.includes('This video is unavailable') || errStr.includes('Video unavailable')) {
+          return reject(new Error('该视频在 YouTube 上不存在、已被作者删除或设为私密视频，请检查视频链接是否正确！'));
+        }
+        if (errStr.includes('Sign in to confirm your age')) {
+          return reject(new Error('该视频受 YouTube 年龄限制保护，无法公开提取音频！'));
+        }
+        return reject(new Error('无法提取该视频音频流: ' + errStr.slice(0, 100)));
+      }
+
+      try {
+        if (!fs.existsSync(audioPath)) {
+          return reject(new Error('音频下载完成但未生成有效文件'));
+        }
+        console.log(`[Groq Whisper] 音频提取成功，正在上传至 Groq Whisper-Large-V3 听译...`);
+        const form = new FormData();
+        form.append('file', fs.createReadStream(audioPath));
+        form.append('model', 'whisper-large-v3');
+        const res = await axios.post('https://api.groq.com/openai/v1/audio/transcriptions', form, {
+          headers: {
+            ...form.getHeaders(),
+            'Authorization': 'Bearer ' + process.env.GROQ_API_KEY
+          },
+          timeout: 60000
+        });
+        fs.unlink(audioPath, () => {});
+        console.log(`[Groq Whisper] 听译完成，提取到 ${res.data?.text?.length || 0} 字符`);
+        resolve(res.data?.text || '');
+      } catch (whisperErr) {
+        fs.unlink(audioPath, () => {});
+        reject(new Error('Groq Whisper 语音转录失败: ' + (whisperErr.response?.data?.error?.message || whisperErr.message)));
+      }
+    });
+  });
+}
 
 // ---------------- TikTok 音频提取与 Groq 转写 ----------------
 async function fetchTikTokTranscript(url) {
@@ -257,9 +326,18 @@ app.post('/api/generate', authenticate, async (req, res) => {
     if (isTikTok) {
       text = await fetchTikTokTranscript(url);
     } else {
-      const items = await YoutubeTranscript.fetchTranscript(videoId);
-      if (!items || items.length === 0) throw new Error('该视频未发现可用字幕轨');
-      text = items.map(i => i.text).join(' ');
+      try {
+        const items = await YoutubeTranscript.fetchTranscript(videoId);
+        if (items && items.length > 0) {
+          text = items.map(i => i.text).join(' ');
+        }
+      } catch (subErr) {
+        console.log(`[YouTube] 官方字幕不可用 (${subErr.message})，无缝切换至 Groq Whisper 深度听译...`);
+      }
+
+      if (!text || text.trim().length === 0) {
+        text = await fetchYouTubeWhisperTranscript(videoId);
+      }
     }
 
     const cleanedInput = cleanRawTranscript(text.slice(0, 10000));
@@ -332,8 +410,17 @@ app.post('/api/generate', authenticate, async (req, res) => {
 
     res.end();
   } catch (err) {
-    res.status(500).write(`生成中断: ${err.message}`);
-    res.end();
+    console.error('生成失败:', err.message);
+    let errMsg = err.message || '生成失败，请检查链接是否有效';
+    if (errMsg.includes('Transcript is disabled') || errMsg.includes('未发现可用字幕轨')) {
+      errMsg = '该视频原作者未开启公开字幕功能（或平台未生成字幕轨），建议换一个有字幕的视频或直接点击下方热点卡片！';
+    }
+    if (!res.headersSent) {
+      res.status(500).json({ error: errMsg });
+    } else {
+      res.write(`\n\n处理中断: ${errMsg}`);
+      res.end();
+    }
   }
 });
 
