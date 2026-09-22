@@ -210,12 +210,16 @@ app.post('/api/auth/activate', authenticate, (req, res) => {
   res.status(400).json({ error: '无效卡密，请检查输入或在上方购买' });
 });
 
+try {
+  db.prepare('ALTER TABLE trends ADD COLUMN hot_badge TEXT').run();
+} catch (e) {}
+
 // ---------------- 定时任务：2 小时同步全球热点 ----------------
 async function updateTrendsJob() {
   db.prepare('DELETE FROM trends').run();
   const stmt = db.prepare(`
-    INSERT OR REPLACE INTO trends (platform, category, video_id, title, title_cn, cover_url, updated_at, duration, intro)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT OR REPLACE INTO trends (platform, category, video_id, title, title_cn, cover_url, updated_at, duration, intro, hot_badge)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   pruneExcessCache();
@@ -223,7 +227,11 @@ async function updateTrendsJob() {
 
   const insertList = (list, cat) => {
     for (const item of list) {
-      const cover = item.cover_url || `https://img.youtube.com/vi/${item.video_id}/hqdefault.jpg`;
+      const platform = item.platform || 'youtube';
+      const cover = item.cover_url || (
+        platform === 'youtube' ? `https://img.youtube.com/vi/${item.video_id}/hqdefault.jpg` :
+        'https://images.unsplash.com/photo-1518770660439-4636190af475?w=640&q=80'
+      );
       
       // 为每个视频生成真实的自然时长与精准导读
       const techDurs = ["14:28", "18:45", "22:10", "12:35", "09:50", "27:14", "16:05", "31:20"];
@@ -232,20 +240,30 @@ async function updateTrendsJob() {
       const growDurs = ["13:25", "17:40", "08:55", "22:15", "15:30", "19:48", "11:05", "26:30"];
       const lifeDurs = ["09:40", "14:15", "11:50", "18:25", "07:35", "16:10", "13:05", "21:40"];
 
-      const durPool = cat === "podcast" ? podDurs : cat === "business" ? busiDurs : cat === "growth" ? growDurs : cat === "lifestyle" ? lifeDurs : techDurs;
+      const durPool = cat === "podcast" || platform === "podcast" || platform === "xiaoyuzhou" ? podDurs : cat === "business" ? busiDurs : cat === "growth" ? growDurs : cat === "lifestyle" ? lifeDurs : techDurs;
       let hash = 0;
-      for (let i = 0; i < item.video_id.length; i++) hash = (hash * 31 + item.video_id.charCodeAt(i)) >>> 0;
+      for (let i = 0; i < (item.video_id || '').length; i++) hash = (hash * 31 + item.video_id.charCodeAt(i)) >>> 0;
       const duration = item.duration || durPool[hash % durPool.length];
       
       const intro = item.intro || (
+        platform === "xiaoyuzhou" ? "聚焦前沿商业、独立开发与认知跃迁的深度中文播客对话，干货高密度输出。" :
+        platform === "bilibili" ? "B站硬核知识区精选长视频，深度拆解技术原理、商业本质与思维模型。" :
+        platform === "podcast" ? "全球顶级领袖与学者对谈实录，提炼底层认知、科学健康与前沿科技趋势。" :
         cat === "podcast" ? "深度长谈实录：拆解关于核心商业决策、底层技术范式与未来红利的深度思辨。" :
         cat === "business" ? "揭秘海外创作者从 0 到 10 万美金 MRR 的实战打法与商业变现闭环。" :
         cat === "growth" ? "解构顶级精英心智行为模型，掌握高确定性认知跃迁与自我进化体系。" :
         cat === "lifestyle" ? "分享数字游民高效自律工作流与极简高产出生活的日常落地指南。" :
-        "深度拆解海外顶级团队的 AI 工程化落地范式、全流程实战代码与核心逻辑。"
+        "深度拆解前沿团队的工程化落地范式、全流程实战代码与核心逻辑。"
       );
 
-      stmt.run('youtube', cat, item.video_id, item.title, item.title_cn, cover, Date.now(), duration, intro);
+      const hotBadge = item.hot_badge || (
+        platform === 'bilibili' ? '🔥 B站热门' :
+        platform === 'xiaoyuzhou' ? '⭐ 小宇宙热播' :
+        platform === 'podcast' ? '⭐ 播客精选' :
+        '🔥 热门精选'
+      );
+
+      stmt.run(platform, cat, item.video_id, item.title, item.title_cn, cover, Date.now(), duration, intro, hotBadge);
       if (item.raw_content) {
         cacheStmt.run(item.video_id, 'raw', item.raw_content, Date.now());
       }
@@ -268,12 +286,19 @@ cron.schedule('0 */2 * * *', updateTrendsJob);
 
 app.get('/api/trends', (req, res) => {
   const category = req.query.category || 'all';
-  let list;
-  if (category === 'all') {
-    list = db.prepare('SELECT * FROM trends ORDER BY id ASC LIMIT 60').all();
-  } else {
-    list = db.prepare('SELECT * FROM trends WHERE category = ? ORDER BY id ASC LIMIT 50').all(category);
+  const platform = req.query.platform || 'all';
+  let query = 'SELECT * FROM trends WHERE 1=1';
+  const params = [];
+  if (category !== 'all') {
+    query += ' AND category = ?';
+    params.push(category);
   }
+  if (platform !== 'all') {
+    query += ' AND platform = ?';
+    params.push(platform);
+  }
+  query += ' ORDER BY id ASC LIMIT 100';
+  const list = db.prepare(query).all(...params);
   res.json(list);
 });
 
