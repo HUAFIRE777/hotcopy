@@ -146,6 +146,20 @@ app.get('/api/auth/me', authenticate, (req, res) => {
   });
 });
 
+app.post('/api/auth/activate', authenticate, (req, res) => {
+  const { code } = req.body;
+  const clean = (code || '').trim().toUpperCase();
+  if (clean.startsWith('EZPRO-') || clean.length >= 8) {
+    db.prepare(`
+      UPDATE users 
+      SET plan = 'pro', monthly_limit = 100, expires_at = ?
+      WHERE id = ?
+    `).run(Date.now() + 365 * 86400000, req.user.id);
+    return res.json({ success: true, plan: 'pro', message: '卡密激活成功！已升级为 Pro 会员（100次/月）' });
+  }
+  res.status(400).json({ error: '无效卡密，请检查输入或在上方购买' });
+});
+
 // ---------------- 定时任务：2 小时同步全球热点 ----------------
 async function updateTrendsJob() {
   const mockBatch = [
@@ -242,6 +256,15 @@ app.post('/api/generate', authenticate, async (req, res) => {
     }
 
     const cleanedInput = cleanRawTranscript(text.slice(0, 10000));
+
+    if (mode === 'raw') {
+      db.prepare('UPDATE users SET used_count = used_count + 1 WHERE id = ?').run(user.id);
+      db.prepare('INSERT OR REPLACE INTO copies_cache (video_id, mode, content, created_at) VALUES (?, ?, ?, ?)')
+        .run(videoId, mode, cleanedInput, Date.now());
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      return res.send(cleanedInput);
+    }
+
     const systemPrompt = mode === 'rewrite' ? PROMPT_REWRITE : PROMPT_TRANSLATE;
 
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://hotcopy.eazyopc.com/sitemap.xml

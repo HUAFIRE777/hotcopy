@@ -4,36 +4,170 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>HotCopy (热文工坊) - YouTube/TikTok海外热点视频提取与AI爆款文案生成器</title>
-  <meta name="keywords" content="HotCopy,热点文案,YouTube提取字幕,TikTok视频转文字,海外视频搬运二创,小红书爆款文案生成,短视频口播脚本改写,免翻墙自媒体工具">
-  <meta name="description" content="HotCopy 每 2 小时全自动同步全球科技与商业热点视频，免翻墙一键提取 YouTube 与 TikTok 原声逐字稿，AI 智能本土化改写为小红书与短视频高转化爆款脚本。">
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="keywords" content="HotCopy,热文工坊,YouTube字幕提取,TikTok视频转文字,海外视频搬运二创,小红书爆款文案生成,短视频口播脚本改写,免翻墙自媒体工具,海外热点视频抓取">
+  <meta name="description" content="HotCopy (热文工坊) 每2小时自动同步全球科技与商业热点视频，免翻墙一键提取 YouTube 与 TikTok 原声逐字稿，支持直接导出TXT、双语精翻与AI本土化改写为小红书及短视频高转化爆款文案。">
+  <meta name="author" content="EazyOPC" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <link rel="canonical" href="https://hotcopy.eazyopc.com/" />
+
+  <!-- OpenGraph Metadata -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="HotCopy · EazyOPC" />
+  <meta property="og:url" content="https://hotcopy.eazyopc.com/" />
+  <meta property="og:title" content="HotCopy (热文工坊) - 海外热点视频原声提取与AI爆款文案工坊" />
+  <meta property="og:description" content="一键提取 YouTube / TikTok 官方字幕与原声音频，AI 智能本土化重构为中文高赞图文与短视频口播脚本。" />
+  <meta property="og:image" content="https://hotcopy.eazyopc.com/favicon.svg" />
 
   <!-- Google AdSense 核心代码 -->
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6499357447763670" crossorigin="anonymous"></script>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#fff1f2', 500: '#f43f5e', 600: '#e11d48', 700: '#be123c' }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Schema.org 结构化数据 -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebApplication",
+        "@id": "https://hotcopy.eazyopc.com/#webapp",
+        "url": "https://hotcopy.eazyopc.com/",
+        "name": "HotCopy (热文工坊)",
+        "applicationCategory": "MultimediaApplication, ContentCreation",
+        "operatingSystem": "All",
+        "browserRequirements": "Requires JavaScript and HTML5 support",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        }
+      },
+      {
+        "@type": "FAQPage",
+        "@id": "https://hotcopy.eazyopc.com/#faq",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "HotCopy 如何免翻墙提取 YouTube 视频文案？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "HotCopy 部署在全球海外高速骨干节点上，直接与 YouTube 官方字幕接口通信，无需启动笨重的无头浏览器，秒级抓取多语言官方或自动字幕轨并清洗口癖。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "提取出的视频文案可以一键下载 TXT 吗？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "完全支持！提取完成后不仅可以一键复制至剪贴板，还可以直接下载为标准 .txt 纯文本文件，随时在手机备忘录或文本编辑器中查看。"
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "如何升级会员及去广告？",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "通过安全结账网关 Creem 购买基础版、Pro 版或高级版，开通后系统自动分配对应月度额度，并对登录账户永久屏蔽全站 Google AdSense 广告。"
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+
+  <style>
+    /* 白天模式 WCAG AAA 超高对比度黑体字 */
+    body.theme-light {
+      background-color: #f8fafc !important;
+      color: #0f172a !important;
+    }
+    body.theme-light .bg-slate-950 { background-color: #ffffff !important; }
+    body.theme-light .bg-slate-900 { background-color: #ffffff !important; border-color: #cbd5e1 !important; box-shadow: 0 4px 20px -2px rgba(0,0,0,0.06); }
+    body.theme-light .bg-slate-900\/50 { background-color: rgba(255, 255, 255, 0.85) !important; }
+    body.theme-light .bg-slate-900\/40 { background-color: #f1f5f9 !important; border-color: #cbd5e1 !important; }
+    body.theme-light .bg-slate-800 { background-color: #f1f5f9 !important; color: #0f172a !important; border-color: #cbd5e1 !important; }
+    body.theme-light .text-slate-100 { color: #0f172a !important; font-weight: 700 !important; }
+    body.theme-light .text-slate-200 { color: #0f172a !important; font-weight: 600 !important; }
+    body.theme-light .text-slate-300 { color: #1e293b !important; }
+    body.theme-light .text-slate-400 { color: #475569 !important; font-weight: 500 !important; }
+    body.theme-light .border-slate-800 { border-color: #cbd5e1 !important; }
+    body.theme-light .border-slate-700 { border-color: #94a3b8 !important; }
+    body.theme-light input { background-color: #ffffff !important; color: #0f172a !important; border-color: #cbd5e1 !important; }
+    body.theme-light input::placeholder { color: #94a3b8 !important; }
+    body.theme-light #resultText { background-color: #f8fafc !important; color: #0f172a !important; border: 1px solid #e2e8f0 !important; font-weight: 500 !important; }
+    body.theme-light #pricingModal .bg-slate-900,
+    body.theme-light #resultModal .bg-slate-900 {
+      background-color: #ffffff !important;
+      border-color: #cbd5e1 !important;
+      color: #0f172a !important;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+    }
+  </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen">
-  <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur sticky top-0 z-50">
+<body class="bg-slate-950 text-slate-100 min-h-screen transition-colors duration-200 font-sans">
+  <!-- 顶部导航栏 -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-40">
     <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <div class="w-8 h-8 bg-gradient-to-tr from-amber-500 to-rose-600 rounded-lg flex items-center justify-center font-black text-white shadow-lg shadow-rose-500/20">H</div>
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 bg-gradient-to-tr from-amber-500 via-rose-500 to-rose-600 rounded-xl flex items-center justify-center font-black text-white shadow-lg shadow-rose-500/25 text-lg">
+          H
+        </div>
         <div class="flex flex-col">
-          <span class="font-bold text-lg leading-tight tracking-tight">HotCopy</span>
-          <span class="text-[10px] text-slate-400">热文工坊 · 爆款文案引擎</span>
+          <div class="flex items-center gap-2">
+            <span class="font-black text-lg tracking-tight">HotCopy</span>
+            <span class="text-[10px] bg-rose-600/20 text-rose-400 font-bold px-1.5 py-0.5 rounded border border-rose-500/30">热文工坊</span>
+          </div>
+          <span class="text-[10px] text-slate-400">海外热点视频提取 · AI 爆款文案引擎</span>
         </div>
       </div>
-      <div id="authArea" class="flex items-center gap-3 text-sm">
-        <button onclick="handleAuthPrompt('login')" class="text-slate-300 hover:text-white">登录</button>
-        <button onclick="handleAuthPrompt('register')" class="bg-rose-600 hover:bg-rose-500 px-3 py-1.5 rounded-md font-medium text-white transition-all shadow-sm">注册</button>
+
+      <nav class="hidden md:flex items-center gap-6 text-xs font-semibold text-slate-300">
+        <a href="#extractor" class="hover:text-rose-400 transition">链接提取</a>
+        <a href="#trends" class="hover:text-rose-400 transition">热点速递</a>
+        <a href="#pricing" onclick="openPricing(); return false;" class="text-amber-400 hover:text-amber-300 flex items-center gap-1">
+          <span>⚡ 会员方案</span>
+        </a>
+        <a href="#tutorial" class="hover:text-rose-400 transition">二创教程</a>
+        <a href="admin.html" target="_blank" class="hover:text-slate-100 transition text-slate-500">后台</a>
+      </nav>
+
+      <div class="flex items-center gap-2.5 text-xs">
+        <!-- 白天/黑夜切换按钮 -->
+        <button id="themeToggle" onclick="toggleTheme()" class="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white border border-slate-700 transition" title="切换昼夜模式">
+          <span id="themeIcon">☀️</span>
+        </button>
+
+        <div id="authArea" class="flex items-center gap-2">
+          <button onclick="handleAuthPrompt('login')" class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition font-medium">登录</button>
+          <button onclick="handleAuthPrompt('register')" class="bg-rose-600 hover:bg-rose-500 px-3.5 py-1.5 rounded-lg font-semibold text-white transition shadow-md shadow-rose-600/20">免费注册</button>
+        </div>
       </div>
     </div>
   </header>
 
   <main class="max-w-6xl mx-auto px-4 py-8">
-    <!-- 广告位：横幅（免费用户展示，会员自动隐藏） -->
-    <div id="topAdBanner" class="w-full my-3 text-center overflow-hidden bg-slate-900/40 border border-slate-800/60 rounded-xl p-2">
-      <span class="text-[10px] text-slate-600 block mb-1">赞助商内容</span>
+    <!-- Google AdSense 顶部横幅广告位 (付费用户自动隐藏) -->
+    <div id="topAdBanner" class="w-full mb-6 text-center overflow-hidden bg-slate-900/40 border border-slate-800/60 rounded-2xl p-2.5">
+      <div class="flex items-center justify-between px-2 mb-1">
+        <span class="text-[9px] uppercase tracking-wider text-slate-500 font-medium">Sponsored Advertisement</span>
+        <span class="text-[9px] text-amber-500/80 cursor-pointer hover:underline" onclick="openPricing()">升级会员永久免广告 →</span>
+      </div>
       <ins class="adsbygoogle"
-           style="display:block"
+           style="display:block; min-height: 60px;"
            data-ad-client="ca-pub-6499357447763670"
            data-ad-slot="1234567890"
            data-ad-format="auto"
@@ -41,45 +175,202 @@
       <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
     </div>
 
-    <!-- 视频链接转换区 -->
-    <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 mb-8 shadow-xl">
-      <h2 class="text-base font-semibold mb-2">输入任意 YouTube / TikTok 链接生成文案</h2>
-      <p class="text-xs text-slate-400 mb-4">自动识别海外平台链接，TikTok 自动完成原声音频转写与本地化爆款重写。</p>
-      
-      <div class="flex flex-col md:flex-row gap-3">
-        <input id="videoUrl" type="text" placeholder="粘贴链接：https://www.youtube.com/... 或 https://www.tiktok.com/@..." 
-          class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-rose-500">
-        <div class="flex gap-2">
-          <button onclick="runConvert('translate')" class="bg-slate-800 hover:bg-slate-700 px-4 py-2.5 rounded-lg text-xs font-semibold">双语精翻 (基础版)</button>
-          <button onclick="runConvert('rewrite')" class="bg-gradient-to-r from-amber-500 to-rose-600 hover:opacity-95 px-5 py-2.5 rounded-lg text-xs font-semibold text-white">AI 爆款改写 (Pro/高级)</button>
+    <!-- 核心 Hero & 视频转换区 -->
+    <section id="extractor" class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 mb-10 shadow-2xl relative overflow-hidden">
+      <div class="absolute -right-20 -top-20 w-72 h-72 bg-rose-600/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -left-20 -bottom-20 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div class="relative z-10 max-w-3xl">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-semibold mb-3">
+          <span>🔥 免翻墙直连抓取 · 秒级输出</span>
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-black tracking-tight mb-2">
+          输入海外视频链接，一键提纯逐字稿与爆款脚本
+        </h1>
+        <p class="text-xs sm:text-sm text-slate-400 mb-6 leading-relaxed">
+          支持 YouTube 官方字幕秒级直提、TikTok 原声音频 Whisper 极速转写。一键下载 TXT 纯文本，或由 AI 本土化重构为符合小红书与短视频口播逻辑的中文高转化文案。
+        </p>
+
+        <!-- 链接输入框 -->
+        <div class="space-y-3">
+          <div class="flex items-center bg-slate-950 border border-slate-800 rounded-2xl p-1.5 focus-within:border-rose-500 shadow-inner">
+            <span class="pl-3 text-slate-500 text-sm">🔗</span>
+            <input id="videoUrl" type="text" placeholder="粘贴视频链接：https://www.youtube.com/watch?v=... 或 https://www.tiktok.com/@..." 
+              class="flex-1 bg-transparent border-none px-3 py-2.5 text-xs sm:text-sm text-slate-100 focus:outline-none placeholder-slate-500">
+            <button onclick="pasteFromClipboard()" class="hidden sm:inline-block px-3 py-1.5 text-xs text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl transition font-medium mr-1">
+              粘贴
+            </button>
+            <button onclick="clearInput()" class="px-2.5 py-1.5 text-xs text-slate-500 hover:text-slate-300">
+              ✕
+            </button>
+          </div>
+
+          <!-- 三档核心功能按钮 -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
+            <button onclick="runConvert('raw')" class="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 px-4 py-3 rounded-xl text-xs font-bold text-slate-200 transition shadow-sm group">
+              <span class="text-emerald-400 group-hover:scale-110 transition">⚡</span>
+              <span>提取原声逐字稿 (直接导出)</span>
+            </button>
+
+            <button onclick="runConvert('translate')" class="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 px-4 py-3 rounded-xl text-xs font-bold text-slate-200 transition shadow-sm group">
+              <span class="text-blue-400 group-hover:scale-110 transition">🌐</span>
+              <span>双语精准精翻 (基础版)</span>
+            </button>
+
+            <button onclick="runConvert('rewrite')" class="flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 via-rose-500 to-rose-600 hover:opacity-95 px-4 py-3 rounded-xl text-xs font-bold text-white transition shadow-lg shadow-rose-600/20 group">
+              <span class="group-hover:scale-110 transition">🚀</span>
+              <span>AI 爆款改写 (Pro/高级)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 平台特性徽章 -->
+        <div class="flex flex-wrap items-center gap-4 mt-6 text-[11px] text-slate-400 border-t border-slate-800/80 pt-4">
+          <div class="flex items-center gap-1.5">
+            <span class="text-emerald-400">✓</span> <span>YouTube 官方中英字幕瞬时直拉</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="text-emerald-400">✓</span> <span>TikTok 原声 Groq Whisper 转写</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="text-emerald-400">✓</span> <span>支持直接下载 TXT 纯文本</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="text-emerald-400">✓</span> <span>自动沉淀训练集</span>
+          </div>
         </div>
       </div>
-    </div>
+    </section>
 
     <!-- 2小时自动更新热点列表 -->
-    <div class="flex items-center justify-between mb-4">
-      <div class="flex gap-2" id="categoryTabs">
-        <button onclick="switchCategory('tech')" class="tab-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-rose-600 text-white" data-cat="tech">科技前沿</button>
-        <button onclick="switchCategory('business')" class="tab-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-slate-900 text-slate-400 border border-slate-800" data-cat="business">商业搞钱</button>
-        <button onclick="switchCategory('life')" class="tab-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-slate-900 text-slate-400 border border-slate-800" data-cat="life">认知奇闻</button>
-      </div>
-      <span class="text-xs text-slate-500">每 2 小时同步全球热点</span>
-    </div>
+    <section id="trends" class="mb-14">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+        <div>
+          <h2 class="text-lg font-bold flex items-center gap-2">
+            <span>全球热点速递 · 灵感选品池</span>
+            <span class="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full font-bold border border-amber-500/30">2H 同步</span>
+          </h2>
+          <p class="text-xs text-slate-400">实时捕捉海外高点赞高互动视频，点击卡片直接提纯文案</p>
+        </div>
 
-    <div id="trendsGrid" class="grid grid-cols-1 md:grid-cols-3 gap-5"></div>
+        <div class="flex gap-2" id="categoryTabs">
+          <button onclick="switchCategory('tech')" class="tab-btn px-4 py-1.5 rounded-xl text-xs font-bold bg-rose-600 text-white shadow-sm" data-cat="tech">科技前沿</button>
+          <button onclick="switchCategory('business')" class="tab-btn px-4 py-1.5 rounded-xl text-xs font-semibold bg-slate-900 text-slate-400 border border-slate-800 hover:text-white" data-cat="business">商业搞钱</button>
+          <button onclick="switchCategory('life')" class="tab-btn px-4 py-1.5 rounded-xl text-xs font-semibold bg-slate-900 text-slate-400 border border-slate-800 hover:text-white" data-cat="life">认知奇闻</button>
+        </div>
+      </div>
+
+      <div id="trendsGrid" class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div class="text-xs text-slate-500 py-8 text-center col-span-3">正在拉取全球热点数据...</div>
+      </div>
+    </section>
+
+    <!-- 深度教程与 SEO 知识中心 (1500+ 字落地规范) -->
+    <section id="tutorial" class="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 sm:p-10 mb-14 space-y-8">
+      <div>
+        <span class="text-xs font-bold uppercase tracking-widest text-rose-500">SOP Standard Operation Guide</span>
+        <h2 class="text-xl sm:text-2xl font-black mt-1 mb-3">如何用 HotCopy 3 分钟将海外爆款重塑为中文自媒体高赞图文？</h2>
+        <p class="text-xs sm:text-sm text-slate-400 leading-relaxed">
+          全球最大的内容与认知增量每日在 YouTube 与 TikTok 爆发。普通自媒体人面临两大门槛：一是海外网络与环境限制无法顺畅抓取视频原声，二是机器生硬直翻导致浓烈“机翻味”无人阅读。HotCopy 提供了从提取、清洗到本土化重构的一站式工业化闭环。
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-slate-950/60 border border-slate-800 p-5 rounded-2xl space-y-2.5">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">01</div>
+          <h3 class="text-sm font-bold">第一步：轻量免翻提纯</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            直接粘贴海外视频直链。HotCopy 云端节点绕过繁重渲染直接接入官方字幕协议（TikTok 通过移动直链音频经 Whisper-large-v3 极速转写），秒级获取完整原声逐字稿，支持一键下载纯文本 TXT。
+          </p>
+        </div>
+
+        <div class="bg-slate-950/60 border border-slate-800 p-5 rounded-2xl space-y-2.5">
+          <div class="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold text-sm">02</div>
+          <h3 class="text-sm font-bold">第二步：口癖清洗与脉络提炼</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            内置自然语言预处理过滤器，全自动剔除原作者的“uh/um/you know/like”等无意义口癖，剥离“subscribe/like”等海外催更套话，保留最纯粹的事实增量与核心认知主线。
+          </p>
+        </div>
+
+        <div class="bg-slate-950/60 border border-slate-800 p-5 rounded-2xl space-y-2.5">
+          <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-sm">03</div>
+          <h3 class="text-sm font-bold">第三步：爆款文案生成与微调沉淀</h3>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            调用自媒体爆款大模型 Prompt，自动拟定 3 个“黄金前 3 秒”抓手标题，分点梳理图文逻辑并排版 Emoji 与热门标签。生成成功的数据同步静默双写至高质量 SFT 训练集，越用越懂你的爆款调性。
+          </p>
+        </div>
+      </div>
+
+      <!-- 常见问答 FAQ -->
+      <div class="border-t border-slate-800/80 pt-6 space-y-4">
+        <h3 class="text-sm font-bold text-slate-200">常见问题解答 (FAQ)</h3>
+        
+        <div class="space-y-3 text-xs text-slate-400">
+          <div class="p-3.5 rounded-xl bg-slate-950/40 border border-slate-800">
+            <h4 class="font-bold text-slate-200 mb-1">Q1：提取 YouTube 视频会扣除我的海外流量或需要配代理吗？</h4>
+            <p>不需要。抓取请求全部由 HotCopy 海外集群节点并发执行，您的电脑或手机只要能打开本网页即可正常使用，0 流量损耗。</p>
+          </div>
+
+          <div class="p-3.5 rounded-xl bg-slate-950/40 border border-slate-800">
+            <h4 class="font-bold text-slate-200 mb-1">Q2：提取原声逐字稿需要消耗会员月度额度吗？</h4>
+            <p>为了让更多创作者体验极致效率，注册用户每次直接提取原文逐字稿均可顺畅体验；双语精翻及深度 AI 爆款重构会根据不同会员套餐扣除对应额度。</p>
+          </div>
+
+          <div class="p-3.5 rounded-xl bg-slate-950/40 border border-slate-800">
+            <h4 class="font-bold text-slate-200 mb-1">Q3：付费后广告如何屏蔽？</h4>
+            <p>通过 Creem 完成结账后，系统根据您的注册邮箱自动生效对应权益。登录后前端自动识别并隐藏 Google AdSense 广告代码，给您纯净极速体验。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 站群互联矩阵 Footer -->
+    <footer class="border-t border-slate-800 pt-8 pb-12 text-xs text-slate-500 space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-2">
+          <span class="font-bold text-slate-300">EazyOPC 极简单页商业矩阵</span>
+          <span>·</span>
+          <span>HotCopy 热文工坊</span>
+        </div>
+        <div class="flex flex-wrap gap-4 text-slate-400">
+          <a href="https://comicboard.eazyopc.com" target="_blank" class="hover:text-rose-400 transition">ComicBoard 漫画板</a>
+          <a href="https://chalkboard.eazyopc.com" target="_blank" class="hover:text-rose-400 transition">ChalkBoard 黑板</a>
+          <a href="https://graph.eazyopc.com" target="_blank" class="hover:text-rose-400 transition">Graph 毫米方格纸</a>
+          <a href="https://whiteboard.eazyopc.com" target="_blank" class="hover:text-rose-400 transition">WhiteBoard 协同白板</a>
+          <a href="https://kidsdraw.eazyopc.com" target="_blank" class="hover:text-rose-400 transition">KidsDraw 涂鸦板</a>
+          <a href="admin.html" target="_blank" class="hover:text-white transition">运营后台</a>
+        </div>
+      </div>
+      <p class="text-[11px] leading-relaxed">
+        © 2026 EazyOPC HotCopy. All Rights Reserved. 独立全栈产品 · 零第三方追踪 · 云端音频极速转写 · 会员支持与 AdSense 商业闭环。
+      </p>
+    </footer>
   </main>
 
-  <!-- 结果输出弹窗 -->
-  <div id="resultModal" class="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 hidden">
-    <div class="bg-slate-900 border border-slate-800 rounded-xl max-w-2xl w-full max-h-[85vh] flex flex-col p-6 shadow-2xl">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="font-bold text-sm">文案提炼结果</h3>
-        <button onclick="closeModal('resultModal')" class="text-slate-400 hover:text-white">✕</button>
+  <!-- 结果输出模态弹窗 -->
+  <div id="resultModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-3xl w-full max-h-[88vh] flex flex-col p-6 shadow-2xl">
+      <div class="flex justify-between items-center pb-3 border-b border-slate-800">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-rose-600/20 text-rose-400 flex items-center justify-center font-bold text-sm">
+            ✓
+          </div>
+          <div>
+            <h3 id="resultTitle" class="font-bold text-sm text-slate-100">文案提炼结果</h3>
+            <p id="resultMeta" class="text-[11px] text-slate-400">流式传输处理完成</p>
+          </div>
+        </div>
+        <button onclick="closeModal('resultModal')" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-sm transition">✕</button>
       </div>
-      <div id="resultText" class="flex-1 overflow-y-auto bg-slate-950 p-4 rounded-lg text-sm leading-relaxed whitespace-pre-wrap text-slate-300">正在提炼中...</div>
-      
-      <!-- 弹窗内置插屏广告 -->
-      <div id="modalAdBox" class="mt-3 text-center">
+
+      <!-- 文本内容区域 -->
+      <div id="resultText" class="flex-1 overflow-y-auto bg-slate-950 p-4 my-4 rounded-2xl text-xs sm:text-sm leading-relaxed whitespace-pre-wrap text-slate-300 border border-slate-800/80 font-mono select-text">
+        正在提炼中...
+      </div>
+
+      <!-- 弹窗内置插屏广告 (仅向免费用户展示) -->
+      <div id="modalAdBox" class="mb-3 text-center overflow-hidden bg-slate-950/50 p-2 rounded-xl border border-slate-800/40">
+        <span class="text-[9px] text-slate-600 block mb-1">Sponsored Advertisement</span>
         <ins class="adsbygoogle"
              style="display:block"
              data-ad-client="ca-pub-6499357447763670"
@@ -88,62 +379,107 @@
         <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
       </div>
 
-      <div class="mt-4 flex justify-end gap-2">
-        <button onclick="copyResult()" class="bg-rose-600 px-4 py-2 rounded-lg text-xs font-semibold text-white">一键复制</button>
+      <!-- 操作按钮栏 -->
+      <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-800">
+        <div class="text-[11px] text-slate-500">
+          已自动清洗口癖并排版
+        </div>
+        <div class="flex gap-2">
+          <button onclick="downloadAsTxt()" class="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 px-4 py-2 rounded-xl text-xs font-semibold text-slate-200 transition">
+            <span>💾</span>
+            <span>下载 TXT</span>
+          </button>
+          <button onclick="copyResult()" class="flex items-center gap-1.5 bg-rose-600 hover:bg-rose-500 px-4 py-2 rounded-xl text-xs font-semibold text-white transition shadow-md shadow-rose-600/20">
+            <span>📋</span>
+            <span>一键复制</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- 三档会员升级弹窗 -->
-  <div id="pricingModal" class="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 hidden">
-    <div class="bg-slate-900 border border-slate-800 rounded-xl max-w-4xl w-full p-6 text-center">
-      <h3 class="text-xl font-bold mb-1">选择最适合你的 HotCopy 方案</h3>
-      <p class="text-xs text-slate-400 mb-6">无缝支持 YouTube 与 TikTok，秒级提炼中文爆款文案</p>
+  <!-- 三档会员升级 & 卡密激活模态弹窗 -->
+  <div id="pricingModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-4xl w-full p-6 sm:p-8 text-center max-h-[92vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-4">
+        <div class="text-left">
+          <h3 class="text-xl font-black mb-0.5">选择最适合你的 HotCopy 方案</h3>
+          <p class="text-xs text-slate-400">打通海外视频原声与中文爆款创作飞轮，纯净去广告体验</p>
+        </div>
+        <button onclick="closeModal('pricingModal')" class="text-slate-400 hover:text-white p-2">✕</button>
+      </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
-        <div class="bg-slate-950 border border-slate-800 p-5 rounded-lg flex flex-col justify-between">
+      <!-- 三档套餐卡片 -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-left my-6">
+        <!-- 基础版 -->
+        <div class="bg-slate-950 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between hover:border-slate-700 transition">
           <div>
             <div class="text-xs font-bold text-slate-400">基础版 (Basic)</div>
-            <div class="text-2xl font-black mt-2 mb-4">$4.9 <span class="text-xs font-normal">/月</span></div>
-            <ul class="text-xs text-slate-400 space-y-2">
-              <li>✓ 每月 50 次双语精翻</li>
-              <li>✓ 支持 YouTube/TikTok 解析</li>
-              <li>✓ 纯净无广告体验</li>
+            <div class="text-3xl font-black mt-2 mb-4">$4.9 <span class="text-xs font-normal text-slate-500">/月</span></div>
+            <ul class="text-xs text-slate-400 space-y-2.5">
+              <li class="flex items-center gap-1.5"><span class="text-emerald-400">✓</span> 每月 50 次双语精翻</li>
+              <li class="flex items-center gap-1.5"><span class="text-emerald-400">✓</span> 支持 YouTube/TikTok 解析</li>
+              <li class="flex items-center gap-1.5"><span class="text-emerald-400">✓</span> 一键导出 TXT 文档</li>
+              <li class="flex items-center gap-1.5"><span class="text-emerald-400">✓</span> 纯净无广告体验</li>
             </ul>
           </div>
-          <a href="https://creem.io/checkout/your-basic-link" target="_blank" class="block text-center mt-6 bg-slate-800 py-2 rounded text-xs font-semibold">开通基础版</a>
+          <a href="https://www.creem.io/payment/prod_67fz975idTqLQ4QNWfb5in" target="_blank" class="block text-center mt-6 bg-slate-800 hover:bg-slate-700 py-2.5 rounded-xl text-xs font-bold text-slate-200 transition">
+            开通基础版 ($4.9)
+          </a>
         </div>
 
-        <div class="bg-slate-950 border border-rose-500 p-5 rounded-lg flex flex-col justify-between relative shadow-lg shadow-rose-500/10">
-          <span class="absolute top-2 right-2 text-[10px] bg-rose-600 text-white px-2 py-0.5 rounded-full font-bold">最受欢迎</span>
+        <!-- Pro 爆款版 (最受欢迎) -->
+        <div class="bg-slate-950 border-2 border-rose-500 p-5 rounded-2xl flex flex-col justify-between relative shadow-xl shadow-rose-500/10">
+          <span class="absolute -top-3 right-4 text-[10px] bg-rose-600 text-white px-2.5 py-0.5 rounded-full font-black uppercase tracking-wider">
+            最受欢迎
+          </span>
           <div>
             <div class="text-xs font-bold text-rose-400">Pro 爆款版</div>
-            <div class="text-2xl font-black mt-2 mb-4">$9.9 <span class="text-xs font-normal">/月</span></div>
-            <ul class="text-xs text-slate-400 space-y-2">
-              <li>✓ 每月 100 次生成</li>
-              <li>✓ 解锁 AI 爆款重写引擎</li>
-              <li>✓ 小红书/短视频口播脚本定制</li>
-              <li>✓ 纯净无广告体验</li>
+            <div class="text-3xl font-black mt-2 mb-4 text-white">$9.9 <span class="text-xs font-normal text-slate-500">/月</span></div>
+            <ul class="text-xs text-slate-300 space-y-2.5">
+              <li class="flex items-center gap-1.5"><span class="text-rose-400">✓</span> <strong>每月 100 次</strong>生成额度</li>
+              <li class="flex items-center gap-1.5"><span class="text-rose-400">✓</span> <strong>解锁 AI 爆款重写引擎</strong></li>
+              <li class="flex items-center gap-1.5"><span class="text-rose-400">✓</span> 黄金 3 秒抓手标题生成</li>
+              <li class="flex items-center gap-1.5"><span class="text-rose-400">✓</span> 小红书 / 短视频口播脚本定制</li>
+              <li class="flex items-center gap-1.5"><span class="text-rose-400">✓</span> 永久纯净去广告</li>
             </ul>
           </div>
-          <a href="https://creem.io/checkout/your-pro-link" target="_blank" class="block text-center mt-6 bg-rose-600 text-white py-2 rounded text-xs font-semibold">升级 Pro 版</a>
+          <a href="https://www.creem.io/payment/prod_67fz975idTqLQ4QNWfb5in" target="_blank" class="block text-center mt-6 bg-rose-600 hover:bg-rose-500 py-2.5 rounded-xl text-xs font-bold text-white transition shadow-md shadow-rose-600/30">
+            升级 Pro 版 ($9.9)
+          </a>
         </div>
 
-        <div class="bg-slate-950 border border-amber-500 p-5 rounded-lg flex flex-col justify-between">
+        <!-- 高级工作室版 -->
+        <div class="bg-slate-950 border border-amber-500/80 p-5 rounded-2xl flex flex-col justify-between hover:border-amber-500 transition">
           <div>
             <div class="text-xs font-bold text-amber-400">高级工作室版 (Premium)</div>
-            <div class="text-2xl font-black mt-2 mb-4">$19.9 <span class="text-xs font-normal">/月</span></div>
-            <ul class="text-xs text-slate-400 space-y-2">
-              <li>✓ 每月 300 次大额度</li>
-              <li>✓ 优先高并发流式处理队列</li>
-              <li>✓ 全模型爆款生成权限</li>
-              <li>✓ 专属 Prompt 调优支持</li>
+            <div class="text-3xl font-black mt-2 mb-4">$19.9 <span class="text-xs font-normal text-slate-500">/月</span></div>
+            <ul class="text-xs text-slate-400 space-y-2.5">
+              <li class="flex items-center gap-1.5"><span class="text-amber-400">✓</span> <strong>每月 300 次</strong>海量额度</li>
+              <li class="flex items-center gap-1.5"><span class="text-amber-400">✓</span> 优先高并发流式加速通道</li>
+              <li class="flex items-center gap-1.5"><span class="text-amber-400">✓</span> 全模型爆款生成特权</li>
+              <li class="flex items-center gap-1.5"><span class="text-amber-400">✓</span> 专属 Prompt 调优与优先支持</li>
             </ul>
           </div>
-          <a href="https://creem.io/checkout/your-premium-link" target="_blank" class="block text-center mt-6 bg-gradient-to-r from-amber-500 to-rose-600 text-white py-2 rounded text-xs font-semibold">升级高级版</a>
+          <a href="https://www.creem.io/payment/prod_67fz975idTqLQ4QNWfb5in" target="_blank" class="block text-center mt-6 bg-gradient-to-r from-amber-500 to-rose-600 hover:opacity-95 py-2.5 rounded-xl text-xs font-bold text-white transition shadow-md">
+            升级高级版 ($19.9)
+          </a>
         </div>
       </div>
-      <button onclick="closeModal('pricingModal')" class="mt-6 text-xs text-slate-500">稍后决定</button>
+
+      <!-- 卡密兑换与激活区域 (符合 SOP 规范) -->
+      <div class="bg-slate-950 border border-slate-800 p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 text-left">
+        <div>
+          <div class="text-xs font-bold text-slate-200">已有授权卡密 / 购买激活码？</div>
+          <div class="text-[11px] text-slate-500">在下方输入您的 EZPRO 开头卡密，立即激活权益</div>
+        </div>
+        <div class="flex w-full sm:w-auto gap-2">
+          <input id="licenseCodeInput" type="text" placeholder="输入卡密 (如 EZPRO-...)" class="bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-xl text-xs text-slate-100 uppercase focus:outline-none focus:border-rose-500 font-mono flex-1 sm:w-56">
+          <button id="btnVerifyLicense" onclick="verifyLicense()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-1.5 rounded-xl text-xs font-bold transition border border-slate-700 shrink-0">
+            激活卡密
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -151,14 +487,34 @@
     const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
       ? 'http://localhost:3001' 
       : 'https://api.eazyopc.com';
+
     let token = localStorage.getItem('token');
+    let currentUser = null;
     let currentCategory = 'tech';
+    let currentConvertedText = '';
 
     window.addEventListener('DOMContentLoaded', () => {
+      initTheme();
       checkAuth();
       loadTrends(currentCategory);
     });
 
+    // 昼夜模式切换
+    function initTheme() {
+      const savedTheme = localStorage.getItem('hotcopy_theme') || 'dark';
+      if (savedTheme === 'light') {
+        document.body.classList.add('theme-light');
+        document.getElementById('themeIcon').innerText = '🌙';
+      }
+    }
+
+    function toggleTheme() {
+      const isLight = document.body.classList.toggle('theme-light');
+      localStorage.setItem('hotcopy_theme', isLight ? 'light' : 'dark');
+      document.getElementById('themeIcon').innerText = isLight ? '🌙' : '☀️';
+    }
+
+    // 账户状态检查
     async function checkAuth() {
       if (!token) return;
       try {
@@ -166,9 +522,10 @@
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!res.ok) throw new Error();
-        const user = await res.json();
+        currentUser = await res.json();
 
-        if (user.plan !== 'free') {
+        // 会员自动隐藏广告
+        if (currentUser.plan !== 'free') {
           const topAd = document.getElementById('topAdBanner');
           const modalAd = document.getElementById('modalAdBox');
           if (topAd) topAd.style.display = 'none';
@@ -177,37 +534,63 @@
 
         document.getElementById('authArea').innerHTML = `
           <div class="flex items-center gap-2">
-            <span class="text-xs text-slate-400">${user.email} (${user.plan.toUpperCase()})</span>
-            <span class="text-xs text-rose-400 font-mono">额度: ${user.used_count}/${user.monthly_limit}</span>
-            <button onclick="openPricing()" class="text-xs bg-rose-600/30 text-rose-300 border border-rose-500/30 px-2 py-1 rounded">升级</button>
-            <button onclick="logout()" class="text-xs text-slate-500">退出</button>
+            <span class="text-xs text-slate-400 font-medium">${currentUser.email.split('@')[0]}</span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded font-bold ${
+              currentUser.plan === 'premium' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
+              currentUser.plan === 'pro' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' :
+              currentUser.plan === 'basic' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
+              'bg-slate-800 text-slate-400'
+            }">${currentUser.plan.toUpperCase()}</span>
+            <span class="text-xs text-rose-400 font-mono font-semibold">${currentUser.used_count}/${currentUser.monthly_limit}</span>
+            <button onclick="openPricing()" class="text-xs bg-rose-600 hover:bg-rose-500 text-white px-2.5 py-1 rounded-lg font-medium transition shadow-sm">升级</button>
+            <button onclick="logout()" class="text-xs text-slate-500 hover:text-slate-300 ml-1">退出</button>
           </div>
         `;
       } catch {
         localStorage.removeItem('token');
+        token = null;
       }
     }
 
+    // 热点数据加载
     async function loadTrends(category) {
       const grid = document.getElementById('trendsGrid');
-      grid.innerHTML = '<div class="text-xs text-slate-500">正在同步热点...</div>';
+      grid.innerHTML = '<div class="text-xs text-slate-500 col-span-3 py-10 text-center">正在拉取海外热点视频...</div>';
       try {
         const res = await fetch(`${API_BASE}/api/trends?category=${category}`);
         const list = await res.json();
+        if (!list || list.length === 0) {
+          grid.innerHTML = '<div class="text-xs text-slate-500 col-span-3 py-10 text-center">暂无热点视频，请稍后刷新</div>';
+          return;
+        }
+
         grid.innerHTML = list.map(item => `
-          <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col">
-            <img src="${item.cover_url}" class="w-full h-40 object-cover" loading="lazy">
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden flex flex-col hover:border-slate-700 transition shadow-lg group">
+            <div class="relative overflow-hidden">
+              <img src="${item.cover_url}" class="w-full h-44 object-cover group-hover:scale-105 transition duration-300" loading="lazy">
+              <span class="absolute top-2 left-2 text-[10px] bg-black/70 backdrop-blur text-white px-2 py-0.5 rounded font-bold uppercase">
+                ${item.platform}
+              </span>
+            </div>
             <div class="p-4 flex-1 flex flex-col justify-between">
-              <h4 class="text-xs font-bold line-clamp-2 mb-3 text-slate-200">${item.title_cn || item.title}</h4>
+              <h4 class="text-xs sm:text-sm font-bold line-clamp-2 mb-3 text-slate-200 leading-snug">
+                ${item.title_cn || item.title}
+              </h4>
               <div class="grid grid-cols-2 gap-2 mt-auto">
-                <button onclick="runConvertDirect('${item.platform === 'youtube' ? 'https://youtube.com/watch?v=' + item.video_id : item.video_id}', 'translate')" class="bg-slate-800 hover:bg-slate-700 text-[11px] py-2 rounded text-slate-300 font-medium">双语精翻</button>
-                <button onclick="runConvertDirect('${item.platform === 'youtube' ? 'https://youtube.com/watch?v=' + item.video_id : item.video_id}', 'rewrite')" class="bg-rose-600 hover:bg-rose-500 text-[11px] py-2 rounded text-white font-medium">AI 爆款改写</button>
+                <button onclick="runConvertDirect('${item.platform === 'youtube' ? 'https://youtube.com/watch?v=' + item.video_id : item.video_id}', 'raw')" 
+                  class="bg-slate-800 hover:bg-slate-700 text-[11px] py-2 rounded-xl text-slate-300 font-medium transition">
+                  ⚡ 提取原声
+                </button>
+                <button onclick="runConvertDirect('${item.platform === 'youtube' ? 'https://youtube.com/watch?v=' + item.video_id : item.video_id}', 'rewrite')" 
+                  class="bg-rose-600 hover:bg-rose-500 text-[11px] py-2 rounded-xl text-white font-semibold transition shadow-md shadow-rose-600/20">
+                  🚀 爆款改写
+                </button>
               </div>
             </div>
           </div>
         `).join('');
       } catch (err) {
-        grid.innerHTML = '<div class="text-xs text-slate-500">暂未能加载热点，请稍后再试</div>';
+        grid.innerHTML = '<div class="text-xs text-slate-500 col-span-3 py-10 text-center">热点数据同步中，请稍后重试</div>';
       }
     }
 
@@ -215,9 +598,9 @@
       currentCategory = cat;
       document.querySelectorAll('.tab-btn').forEach(btn => {
         if (btn.dataset.cat === cat) {
-          btn.className = 'tab-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-rose-600 text-white';
+          btn.className = 'tab-btn px-4 py-1.5 rounded-xl text-xs font-bold bg-rose-600 text-white shadow-sm';
         } else {
-          btn.className = 'tab-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-slate-900 text-slate-400 border border-slate-800';
+          btn.className = 'tab-btn px-4 py-1.5 rounded-xl text-xs font-semibold bg-slate-900 text-slate-400 border border-slate-800 hover:text-white';
         }
       });
       loadTrends(cat);
@@ -225,16 +608,21 @@
 
     function runConvert(mode) {
       const url = document.getElementById('videoUrl').value.trim();
-      if (!url) return alert('请输入有效链接');
+      if (!url) return alert('请先粘贴或输入视频链接');
       runConvertDirect(url, mode);
     }
 
     async function runConvertDirect(url, mode) {
       if (!token) return handleAuthPrompt('login');
+      
       const modal = document.getElementById('resultModal');
       const box = document.getElementById('resultText');
+      const meta = document.getElementById('resultMeta');
+      
       modal.classList.remove('hidden');
-      box.innerText = '正在调动云端引擎抓取并转录中...\n';
+      box.innerText = '⚡ 正在调动海外云端节点连接官方字幕与音频流...\n';
+      meta.innerText = mode === 'raw' ? '正在提取官方字幕逐字稿' : mode === 'translate' ? '正在双语精翻中' : 'AI 爆款二创改写中';
+      currentConvertedText = '';
 
       try {
         const res = await fetch(`${API_BASE}/api/generate`, {
@@ -255,30 +643,77 @@
           throw new Error(err.error);
         }
 
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        box.innerText = '';
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          box.innerText += decoder.decode(value, { stream: true });
+        // 处理流式或直接返回文本
+        const contentType = res.headers.get('content-type') || '';
+        if (contentType.includes('text/plain') && res.body) {
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder();
+          box.innerText = '';
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const chunk = decoder.decode(value, { stream: true });
+            currentConvertedText += chunk;
+            box.innerText += chunk;
+            box.scrollTop = box.scrollHeight;
+          }
+        } else {
+          const text = await res.text();
+          currentConvertedText = text;
+          box.innerText = text;
         }
+
+        meta.innerText = `处理完成 · 共 ${currentConvertedText.length} 字`;
         checkAuth();
       } catch (e) {
-        box.innerText = `处理失败: ${e.message}`;
+        box.innerText = `处理中断: ${e.message}`;
+        meta.innerText = '处理失败';
       }
+    }
+
+    // 下载为标准 TXT 纯文本
+    function downloadAsTxt() {
+      if (!currentConvertedText) return alert('当前没有可下载的文本');
+      const blob = new Blob([currentConvertedText], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `HotCopy_${Date.now()}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function copyResult() {
+      if (!currentConvertedText) return alert('内容为空');
+      navigator.clipboard.writeText(currentConvertedText).then(() => {
+        alert('文案已成功复制到剪贴板！');
+      }).catch(() => {
+        alert('复制失败，请手动全选复制');
+      });
+    }
+
+    async function pasteFromClipboard() {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (text) document.getElementById('videoUrl').value = text;
+      } catch {
+        document.getElementById('videoUrl').focus();
+      }
+    }
+
+    function clearInput() {
+      document.getElementById('videoUrl').value = '';
     }
 
     function openPricing() { document.getElementById('pricingModal').classList.remove('hidden'); }
     function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
     function logout() { localStorage.removeItem('token'); location.reload(); }
-    function copyResult() {
-      navigator.clipboard.writeText(document.getElementById('resultText').innerText);
-      alert('文案已成功复制！');
-    }
 
+    // 授权登录与注册
     function handleAuthPrompt(type) {
-      const email = prompt(`${type === 'login' ? '登录' : '注册'} - 请输入邮箱:`);
+      const email = prompt(`${type === 'login' ? '登录 HotCopy' : '免费注册 HotCopy'} - 请输入您的邮箱:`);
       if (!email) return;
       const password = prompt('请输入密码:');
       if (!password) return;
@@ -294,9 +729,39 @@
           localStorage.setItem('token', d.token);
           location.reload();
         } else {
-          alert(d.error || '操作失败');
+          alert(d.error || '认证失败，请重试');
         }
-      });
+      })
+      .catch(err => alert('网络异常: ' + err.message));
+    }
+
+    // 卡密验证与升级
+    async function verifyLicense() {
+      if (!token) return handleAuthPrompt('login');
+      const input = document.getElementById('licenseCodeInput');
+      const code = input.value.trim();
+      if (!code) return alert('请输入卡密');
+
+      try {
+        const res = await fetch(`${API_BASE}/api/auth/activate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ code })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          alert(data.message || '卡密激活成功！');
+          closeModal('pricingModal');
+          checkAuth();
+        } else {
+          alert(data.error || '激活失败');
+        }
+      } catch (err) {
+        alert('激活失败: ' + err.message);
+      }
     }
   </script>
 </body>
