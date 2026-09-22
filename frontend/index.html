@@ -631,9 +631,11 @@
     let token = localStorage.getItem('token');
     let currentUser = null;
     let currentCategory = 'all';
+    let currentPlatform = 'all';
     let currentConvertedText = '';
+    let allTrendsList = [];
 
-    window.addEventListener('DOMContentLoaded', () => {
+    function init() {
       checkAuth();
       loadAllTrends();
 
@@ -645,7 +647,13 @@
         setTimeout(() => { checkAuth(); }, 1200);
         setTimeout(() => { checkAuth(); showToast('✨ 会员权益与额度已成功激活！'); }, 3500);
       }
-    });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
 
     async function checkAuth() {
       if (!token) return;
@@ -678,10 +686,6 @@
         token = null;
       }
     }
-
-    let allTrendsList = [];
-    let currentCategory = 'all';
-    let currentPlatform = 'all';
 
     function renderCardHtml(item) {
       let videoUrl = item.video_id || '';
@@ -815,9 +819,8 @@
         allTrendsList = list;
         filterAndRenderTrends();
       } catch (err) {
-        if (!grid.innerHTML.trim()) {
-          grid.innerHTML = '<div class="text-xs text-stone-400 col-span-3 py-12 text-center">热点数据加载异常，请稍后刷新</div>';
-        }
+        console.error('loadAllTrends error:', err);
+        grid.innerHTML = '<div class="text-xs text-stone-400 col-span-3 py-12 text-center">热点数据加载异常，请稍后刷新重试</div>';
       } finally {
         grid.style.opacity = '1';
         grid.style.pointerEvents = 'auto';
