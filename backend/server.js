@@ -277,40 +277,71 @@ app.get('/api/trends', (req, res) => {
 // ---------------- 音频转录底层与 Groq Whisper 重试机制 ----------------
 const { exec } = require('child_process');
 
-async function sendFileToWhisper(filePath, maxRetries = 2) {
+function getGroqApiKeys() {
+  const keysStr = process.env.GROQ_API_KEYS || process.env.GROQ_API_KEY || '';
+  return keysStr.split(',').map(k => k.trim()).filter(Boolean);
+}
+
+async function sendFileToWhisper(filePath, maxRetries = 1) {
+  const keys = getGroqApiKeys();
   const models = ['whisper-large-v3', 'whisper-large-v3-turbo'];
   let lastErr = null;
 
-  for (const model of models) {
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      try {
-        const form = new FormData();
-        form.append('file', fs.createReadStream(filePath));
-        form.append('model', model);
-        const res = await axios.post('https://api.groq.com/openai/v1/audio/transcriptions', form, {
-          headers: {
-            ...form.getHeaders(),
-            'Authorization': 'Bearer ' + process.env.GROQ_API_KEY
-          },
-          timeout: 120000
-        });
-        return res.data?.text || '';
-      } catch (err) {
-        lastErr = err;
-        const errMsg = err.response?.data?.error?.message || err.message;
-        console.warn(`[Groq Whisper - ${model}] 第 ${attempt + 1} 次尝试失败: ${errMsg}`);
-        if (errMsg.includes('Rate limit reached')) {
-          // 如果是模型级速率超限，立即跳出尝试下一个备用模型
-          break;
-        }
-        if (attempt < maxRetries) {
-          await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
+  for (const apiKey of keys) {
+    for (const model of models) {
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          const form = new FormData();
+          form.append('file', fs.createReadStream(filePath));
+          form.append('model', model);
+          const res = await axios.post('https://api.groq.com/openai/v1/audio/transcriptions', form, {
+            headers: {
+              ...form.getHeaders(),
+              'Authorization': 'Bearer ' + apiKey
+            },
+            timeout: 120000
+          });
+          return res.data?.text || '';
+        } catch (err) {
+          lastErr = err;
+          const errMsg = err.response?.data?.error?.message || err.message;
+          console.warn(`[Groq Whisper - ${model}] Key(..${apiKey.slice(-6)}) 第 ${attempt + 1} 次尝试失败: ${errMsg}`);
+          if (errMsg.includes('Rate limit reached')) {
+            break; // 触发配额上限，立即轮换下一个模型或下一个 Key
+          }
+          if (attempt < maxRetries) {
+            await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
+          }
         }
       }
     }
-    console.warn(`[Groq Whisper] 模型 ${model} 不可用，无缝切换至备用 Whisper 模型...`);
   }
-  throw new Error('Groq Whisper 转录失败: ' + (lastErr.response?.data?.error?.message || lastErr.message));
+
+  // 备用兜底：如果配置了 OPENAI_API_KEY，且所有 Groq Key 都达到上限，降级到 OpenAI Whisper 官方接口
+  if (process.env.OPENAI_API_KEY) {
+    try {
+      console.log('[Audio Engine] Groq 额度耗尽，启用 OpenAI Whisper 官方通道兜底...');
+      const form = new FormData();
+      form.append('file', fs.createReadStream(filePath));
+      form.append('model', 'whisper-1');
+      const res = await axios.post('https://api.openai.com/v1/audio/transcriptions', form, {
+        headers: {
+          ...form.getHeaders(),
+          'Authorization': 'Bearer ' + process.env.OPENAI_API_KEY
+        },
+        timeout: 120000
+      });
+      return res.data?.text || '';
+    } catch (oaErr) {
+      console.error('[OpenAI Whisper 兜底失败]:', oaErr.message);
+    }
+  }
+
+  const rawMsg = lastErr?.response?.data?.error?.message || lastErr?.message || '';
+  if (rawMsg.includes('Rate limit reached') || rawMsg.includes('seconds of audio per hour')) {
+    throw new Error('当前免费听写通道负载饱和（每小时转录时长已满，将在几分钟后自动恢复）。如需持续听写超长播客，可在后台配置多个 Groq 密钥或开通按量付费。');
+  }
+  throw new Error('语音转录失败: ' + rawMsg);
 }
 
 // ---------------- 工业级长音频处理管道 (自动轻量化压缩 + 超长分片保障) ----------------
