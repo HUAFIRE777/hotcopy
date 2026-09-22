@@ -819,39 +819,50 @@ app.post('/api/generate', authenticate, async (req, res) => {
   }
 
   try {
-    if (platform === 'youtube') {
-      try {
-        const items = await YoutubeTranscript.fetchTranscript(videoId);
-        if (items && items.length > 0) {
-          text = items.map(i => i.text).join(' ');
+    // 核心提速与降本：先检查是否已存在该音视频的底层 raw 原声逐字稿
+    const rawCached = db.prepare('SELECT content FROM copies_cache WHERE video_id = ? AND mode = "raw"').get(videoId);
+    if (rawCached && rawCached.content && rawCached.content.trim().length > 0) {
+      console.log(`[Cache Hit] 视频/音频 ${videoId} 命中底层原声逐字稿缓存，直接复用！`);
+      text = rawCached.content;
+    } else {
+      if (platform === 'youtube') {
+        try {
+          const items = await YoutubeTranscript.fetchTranscript(videoId);
+          if (items && items.length > 0) {
+            text = items.map(i => i.text).join(' ');
+          }
+        } catch (subErr) {
+          console.log(`[YouTube] 官方字幕不可用 (${subErr.message})，无缝切换至 Groq Whisper 深度听译...`);
         }
-      } catch (subErr) {
-        console.log(`[YouTube] 官方字幕不可用 (${subErr.message})，无缝切换至 Groq Whisper 深度听译...`);
+
+        if (!text || text.trim().length === 0) {
+          text = await fetchYouTubeWhisperTranscript(videoId);
+        }
+      } else if (platform === 'tiktok') {
+        text = await fetchTikTokTranscript(cleanUrl);
+      } else if (platform === 'bilibili') {
+        const biliRes = await fetchBilibiliTranscript(cleanUrl);
+        text = biliRes.text;
+      } else if (platform === 'podcast' || platform === 'audio_direct') {
+        const podRes = await fetchPodcastAudio(cleanUrl);
+        text = await transcribeLongAudio(podRes.audioUrl, podRes.id);
       }
 
       if (!text || text.trim().length === 0) {
-        text = await fetchYouTubeWhisperTranscript(videoId);
+        throw new Error('未获取到该音视频的有效文本或对白内容');
       }
-    } else if (platform === 'tiktok') {
-      text = await fetchTikTokTranscript(cleanUrl);
-    } else if (platform === 'bilibili') {
-      const biliRes = await fetchBilibiliTranscript(cleanUrl);
-      text = biliRes.text;
-    } else if (platform === 'podcast' || platform === 'audio_direct') {
-      const podRes = await fetchPodcastAudio(cleanUrl);
-      text = await transcribeLongAudio(podRes.audioUrl, podRes.id);
+
+      // 首次提取成功后，立即把清洗后的逐字稿永久存入 raw 模式缓存
+      const initialCleaned = cleanRawTranscript(text.slice(0, 300000));
+      db.prepare('INSERT OR REPLACE INTO copies_cache (video_id, mode, content, created_at) VALUES (?, "raw", ?, ?)')
+        .run(videoId, initialCleaned, Date.now());
+      text = initialCleaned;
     }
 
-    if (!text || text.trim().length === 0) {
-      throw new Error('未获取到该音视频的有效文本或对白内容');
-    }
-
-    const cleanedInput = cleanRawTranscript(text.slice(0, 300000));
+    const cleanedInput = text.startsWith('[') || text.length > 20 ? cleanRawTranscript(text.slice(0, 300000)) : text;
 
     if (mode === 'raw') {
       db.prepare('UPDATE users SET used_count = used_count + 1 WHERE id = ?').run(user.id);
-      db.prepare('INSERT OR REPLACE INTO copies_cache (video_id, mode, content, created_at) VALUES (?, ?, ?, ?)')
-        .run(videoId, mode, cleanedInput, Date.now());
       res.setHeader('Content-Type', 'text/plain; charset=utf-8');
       return res.send(cleanedInput);
     }
