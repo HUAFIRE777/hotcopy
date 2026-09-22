@@ -521,17 +521,27 @@ app.post('/api/webhook/creem', (req, res) => {
       const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
 
       if (isBooster) {
-        let addCredits = 20;
-        if (name.includes('50') || name.includes('pro')) addCredits = 50;
+        let addCredits = 50;
+        let boosterPlan = 'basic';
+        if (name.includes('100')) {
+          addCredits = 100;
+          boosterPlan = 'pro';
+        } else if (name.includes('50')) {
+          addCredits = 50;
+          boosterPlan = 'basic';
+        } else if (name.includes('20')) {
+          addCredits = 20;
+          boosterPlan = 'basic';
+        }
 
         if (!user) {
           db.prepare(`
             INSERT INTO users (email, password_hash, plan, monthly_limit, used_count, expires_at, created_at)
-            VALUES (?, '', 'basic', ?, 0, ?, ?)
-          `).run(email, addCredits, Date.now() + 365 * 86400000, Date.now());
+            VALUES (?, '', ?, ?, 0, ?, ?)
+          `).run(email, boosterPlan, addCredits, Date.now() + 365 * 86400000, Date.now());
         } else {
           const newLimit = (user.monthly_limit || 0) + addCredits;
-          const newPlan = user.plan === 'free' ? 'basic' : user.plan;
+          const newPlan = user.plan === 'free' ? boosterPlan : user.plan;
           const newExpire = Math.max(user.expires_at || 0, Date.now() + 365 * 86400000);
           db.prepare(`
             UPDATE users 
@@ -539,7 +549,7 @@ app.post('/api/webhook/creem', (req, res) => {
             WHERE email = ?
           `).run(newPlan, newLimit, newExpire, email);
         }
-        console.log(`[Creem Webhook] 成功为用户 ${email} 充值一次性加油包 +${addCredits} 次额度`);
+        console.log(`[Creem Webhook] 成功为用户 ${email} 充值一次性加油包 +${addCredits} 次额度 (套餐: ${boosterPlan})`);
       } else {
         // 月度订阅方案
         let plan = 'basic';
