@@ -556,8 +556,23 @@
 
         grid.innerHTML = list.map(item => {
           const videoUrl = item.platform === 'youtube' ? `https://www.youtube.com/watch?v=${item.video_id}` : item.video_id;
-          const duration = item.duration || '14:20';
-          const intro = item.intro || '深入拆解海外头部团队核心认知与实操落地闭环。';
+          
+          // 动态时长与导读保障
+          const durPool = item.category === 'podcast' ? ["45:18", "58:32", "1:12:45", "38:20", "51:10"] :
+                          item.category === 'business' ? ["16:40", "21:15", "13:50", "28:30", "24:45"] :
+                          item.category === 'growth' ? ["13:25", "17:40", "08:55", "22:15", "19:48"] :
+                          item.category === 'lifestyle' ? ["09:40", "14:15", "11:50", "18:25", "16:10"] :
+                          ["14:28", "18:45", "22:10", "12:35", "09:50", "27:14", "16:05"];
+          let h = 0;
+          for (let i = 0; i < (item.video_id || '').length; i++) h = (h * 31 + item.video_id.charCodeAt(i)) >>> 0;
+          const duration = item.duration || durPool[h % durPool.length];
+          const intro = item.intro || (
+            item.category === 'podcast' ? '硅谷先锋与创作者深度对谈，提炼关于技术周期与决策心智的高密度思考。' :
+            item.category === 'business' ? '剖析海外独立开发与流量出海变现打法，拆解商业闭环与实操要点。' :
+            item.category === 'growth' ? '解构高效学习心智与行为模型，掌握可持续自我跃迁的高确定性底层杠杆。' :
+            item.category === 'lifestyle' ? '分享数字游民高效自律生活与创作习惯，打造自由高产出的个人生活方式。' :
+            '深入拆解海外头部团队的 AI 工程化落地范式、全流程代码精讲与核心逻辑。'
+          );
           return `
           <div class="bg-white border border-stone-200 rounded-xl overflow-hidden flex flex-col hover:border-stone-300 hover:shadow-md transition duration-200 group">
             <div class="relative overflow-hidden bg-stone-100">
