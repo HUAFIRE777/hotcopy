@@ -603,12 +603,19 @@
         });
 
         if (!res.ok) {
-          const err = await res.json().catch(() => ({ error: '请求异常' }));
+          let errorMsg = '请求异常';
+          try {
+            const errJson = await res.json();
+            errorMsg = errJson.error || errorMsg;
+          } catch {
+            const textErr = await res.text().catch(() => '');
+            if (textErr) errorMsg = textErr.replace(/^生成中断:\s*/, '');
+          }
           if (res.status === 429 || res.status === 403) {
             closeModal('resultModal');
             openPricing();
           }
-          throw new Error(err.error);
+          throw new Error(errorMsg);
         }
 
         const contentType = res.headers.get('content-type') || '';
