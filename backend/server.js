@@ -534,14 +534,22 @@ async function fetchPodcastAudio(inputUrl) {
     const epId = epMatch ? epMatch[1] : ('xyz_' + Date.now());
     console.log(`[小宇宙播客] 正在解析单集页面: ${epId}`);
 
-    const res = await axios.get(cleanUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1',
-        'Referer': 'https://www.xiaoyuzhoufm.com'
-      },
-      timeout: 15000
-    });
-    const html = res.data;
+    let html = '';
+    try {
+      const res = await axios.get(cleanUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1',
+          'Referer': 'https://www.xiaoyuzhoufm.com'
+        },
+        timeout: 15000
+      });
+      html = res.data;
+    } catch (err) {
+      if (err.response?.status === 404) {
+        throw new Error('该小宇宙单集不存在或已被下架删除 (404)');
+      }
+      throw err;
+    }
     const titleMatch = html.match(/<title>([^<]+)<\/title>/);
     const title = titleMatch ? titleMatch[1].replace(/ - [^|]+ \| 小宇宙.*$/, '') : '小宇宙播客单集';
 
