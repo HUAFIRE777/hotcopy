@@ -905,24 +905,54 @@ app.post('/api/generate', authenticate, async (req, res) => {
 
     const systemPrompt = mode === 'rewrite' ? PROMPT_REWRITE : mode === 'summary' ? PROMPT_SUMMARY : PROMPT_TRANSLATE;
 
+    const candidateModels = [
+      process.env.LLM_MODEL,
+      'openai/gpt-oss-120b',
+      'openai/gpt-oss-20b',
+      'qwen/qwen3.8-27b'
+    ].filter((m, idx, arr) => m && arr.indexOf(m) === idx);
+
+    let aiResp = null;
+    let selectedModel = candidateModels[0];
+
+    for (const m of candidateModels) {
+      try {
+        const resp = await fetch(`${process.env.LLM_BASE_URL}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.LLM_API_KEY}`
+          },
+          body: JSON.stringify({
+            model: m,
+            stream: true,
+            max_tokens: 2500,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: `原文本内容如下：\n\n${cleanedInput.slice(0, 40000)}` }
+            ]
+          })
+        });
+
+        if (resp.ok) {
+          aiResp = resp;
+          selectedModel = m;
+          break;
+        } else {
+          const errData = await resp.text().catch(() => '');
+          console.warn(`[LLM Failover] 模型 ${m} 返回状态 ${resp.status}: ${errData.slice(0, 120)}，自动切换备选模型...`);
+        }
+      } catch (callErr) {
+        console.warn(`[LLM Failover] 模型 ${m} 调用异常: ${callErr.message}，自动切换备选模型...`);
+      }
+    }
+
+    if (!aiResp || !aiResp.ok) {
+      throw new Error('AI 生成服务节点暂时繁忙，请稍后重试');
+    }
+
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.setHeader('Transfer-Encoding', 'chunked');
-
-    const aiResp = await fetch(`${process.env.LLM_BASE_URL}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.LLM_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: process.env.LLM_MODEL || 'gpt-4o-mini',
-        stream: true,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: `原文本内容如下：\n\n${cleanedInput}` }
-        ]
-      })
-    });
 
     const reader = aiResp.body.getReader();
     const decoder = new TextDecoder();
