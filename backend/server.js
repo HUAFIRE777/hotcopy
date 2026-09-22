@@ -514,32 +514,58 @@ app.post('/api/webhook/creem', (req, res) => {
     const email = event.data?.customer_email || event.data?.email || event.data?.customer?.email || event.customer_email;
     const name = (event.data?.product_name || event.data?.product?.name || event.product_name || '').toLowerCase();
 
-    let plan = 'basic';
-    let limit = 50;
-
-    if (name.includes('premium') || name.includes('studio')) {
-      plan = 'premium';
-      limit = 300;
-    } else if (name.includes('pro')) {
-      plan = 'pro';
-      limit = 100;
-    }
+    // 检查是否为一次性加油包 (Booster / Top-up)
+    const isBooster = name.includes('booster') || name.includes('top-up') || name.includes('credit');
 
     if (email) {
       const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
-      if (!user) {
-        db.prepare(`
-          INSERT INTO users (email, password_hash, plan, monthly_limit, used_count, expires_at, created_at)
-          VALUES (?, '', ?, ?, 0, ?, ?)
-        `).run(email, plan, limit, Date.now() + 30 * 86400000, Date.now());
+
+      if (isBooster) {
+        let addCredits = 20;
+        if (name.includes('50') || name.includes('pro')) addCredits = 50;
+
+        if (!user) {
+          db.prepare(`
+            INSERT INTO users (email, password_hash, plan, monthly_limit, used_count, expires_at, created_at)
+            VALUES (?, '', 'basic', ?, 0, ?, ?)
+          `).run(email, addCredits, Date.now() + 365 * 86400000, Date.now());
+        } else {
+          const newLimit = (user.monthly_limit || 0) + addCredits;
+          const newPlan = user.plan === 'free' ? 'basic' : user.plan;
+          const newExpire = Math.max(user.expires_at || 0, Date.now() + 365 * 86400000);
+          db.prepare(`
+            UPDATE users 
+            SET plan = ?, monthly_limit = ?, expires_at = ?
+            WHERE email = ?
+          `).run(newPlan, newLimit, newExpire, email);
+        }
+        console.log(`[Creem Webhook] 成功为用户 ${email} 充值一次性加油包 +${addCredits} 次额度`);
       } else {
-        db.prepare(`
-          UPDATE users 
-          SET plan = ?, monthly_limit = ?, used_count = 0, expires_at = ?
-          WHERE email = ?
-        `).run(plan, limit, Date.now() + 30 * 86400000, email);
+        // 月度订阅方案
+        let plan = 'basic';
+        let limit = 50;
+        if (name.includes('premium') || name.includes('studio')) {
+          plan = 'premium';
+          limit = 300;
+        } else if (name.includes('pro')) {
+          plan = 'pro';
+          limit = 100;
+        }
+
+        if (!user) {
+          db.prepare(`
+            INSERT INTO users (email, password_hash, plan, monthly_limit, used_count, expires_at, created_at)
+            VALUES (?, '', ?, ?, 0, ?, ?)
+          `).run(email, plan, limit, Date.now() + 30 * 86400000, Date.now());
+        } else {
+          db.prepare(`
+            UPDATE users 
+            SET plan = ?, monthly_limit = ?, used_count = 0, expires_at = ?
+            WHERE email = ?
+          `).run(plan, limit, Date.now() + 30 * 86400000, email);
+        }
+        console.log(`[Creem Webhook] 成功为用户 ${email} 开通 ${plan} 套餐 (${limit}次/月)`);
       }
-      console.log(`[Creem Webhook] 成功为用户 ${email} 开通 ${plan} 套餐 (${limit}次/月)`);
     }
   }
   res.json({ received: true });
