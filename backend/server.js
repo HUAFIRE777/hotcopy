@@ -170,7 +170,7 @@ async function updateTrendsJob() {
   `);
 
   pruneExcessCache();
-  const cacheStmt = db.prepare('INSERT OR REPLACE INTO copies_cache (video_id, mode, content, created_at) VALUES (?, ?, ?, ?)');
+  const cacheStmt = db.prepare('INSERT OR IGNORE INTO copies_cache (video_id, mode, content, created_at) VALUES (?, ?, ?, ?)');
 
   const insertList = (list, cat) => {
     for (const item of list) {
