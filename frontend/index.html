@@ -509,6 +509,15 @@
     window.addEventListener('DOMContentLoaded', () => {
       checkAuth();
       loadTrends(currentCategory);
+      // 预热全部类别，让后续点击分类标签 0 毫秒即时切换，绝不闪白清空
+      setTimeout(() => {
+        ['tech', 'business', 'podcast', 'growth', 'lifestyle'].forEach(c => {
+          fetch(`${API_BASE}/api/trends?category=${c}`)
+            .then(r => r.json())
+            .then(data => { trendsCache[c] = data; })
+            .catch(() => {});
+        });
+      }, 400);
     });
 
     async function checkAuth() {
@@ -543,97 +552,110 @@
       }
     }
 
-    async function loadTrends(category) {
-      const grid = document.getElementById('trendsGrid');
-      grid.innerHTML = '<div class="text-xs text-stone-400 col-span-3 py-12 text-center">正在加载热点视频...</div>';
-      try {
-        const res = await fetch(`${API_BASE}/api/trends?category=${category}`);
-        const list = await res.json();
-        if (!list || list.length === 0) {
-          grid.innerHTML = '<div class="text-xs text-stone-400 col-span-3 py-12 text-center">暂无热点视频</div>';
-          return;
-        }
+    const trendsCache = {};
 
-        grid.innerHTML = list.map(item => {
-          const videoUrl = item.platform === 'youtube' ? `https://www.youtube.com/watch?v=${item.video_id}` : item.video_id;
-          
-          // 动态时长与导读保障
-          const durPool = item.category === 'podcast' ? ["45:18", "58:32", "1:12:45", "38:20", "51:10"] :
-                          item.category === 'business' ? ["16:40", "21:15", "13:50", "28:30", "24:45"] :
-                          item.category === 'growth' ? ["13:25", "17:40", "08:55", "22:15", "19:48"] :
-                          item.category === 'lifestyle' ? ["09:40", "14:15", "11:50", "18:25", "16:10"] :
-                          ["14:28", "18:45", "22:10", "12:35", "09:50", "27:14", "16:05"];
-          let h = 0;
-          for (let i = 0; i < (item.video_id || '').length; i++) h = (h * 31 + item.video_id.charCodeAt(i)) >>> 0;
-          const duration = item.duration || durPool[h % durPool.length];
-          const intro = item.intro || (
-            item.category === 'podcast' ? '硅谷先锋与创作者深度对谈，提炼关于技术周期与决策心智的高密度思考。' :
-            item.category === 'business' ? '剖析海外独立开发与流量出海变现打法，拆解商业闭环与实操要点。' :
-            item.category === 'growth' ? '解构高效学习心智与行为模型，掌握可持续自我跃迁的高确定性底层杠杆。' :
-            item.category === 'lifestyle' ? '分享数字游民高效自律生活与创作习惯，打造自由高产出的个人生活方式。' :
-            '深入拆解海外头部团队的 AI 工程化落地范式、全流程代码精讲与核心逻辑。'
-          );
-          return `
-          <div class="bg-white border border-stone-200 rounded-xl overflow-hidden flex flex-col hover:border-stone-300 hover:shadow-md transition duration-200 group">
-            <div class="relative overflow-hidden bg-stone-100">
-              <img src="${item.cover_url}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1518770660439-4636190af475?w=640&q=80';" class="w-full h-40 object-cover group-hover:scale-102 transition duration-200" loading="lazy">
-              <span class="absolute top-2 left-2 text-[10px] bg-white/95 text-stone-800 px-1.5 py-0.5 rounded font-semibold shadow-xs">
-                ${item.platform.toUpperCase()}
-              </span>
-              <span class="absolute bottom-2 right-2 text-[10px] bg-black/80 backdrop-blur-xs text-white px-1.5 py-0.5 rounded font-mono font-medium shadow-xs tracking-tight">
-                ${duration}
-              </span>
-            </div>
-            <div class="p-4 flex-1 flex flex-col justify-between">
-              <div>
-                <h4 class="text-xs font-bold line-clamp-2 mb-1.5 text-stone-900 leading-snug">
-                  ${item.title_cn || item.title}
-                </h4>
-                <p class="text-[11px] text-stone-500 line-clamp-2 mb-3 leading-relaxed">
-                  ${intro}
-                </p>
+    function renderCardHtml(item) {
+      const videoUrl = item.platform === 'youtube' ? `https://www.youtube.com/watch?v=${item.video_id}` : item.video_id;
+      
+      const durPool = item.category === 'podcast' ? ["45:18", "58:32", "1:12:45", "38:20", "51:10"] :
+                      item.category === 'business' ? ["16:40", "21:15", "13:50", "28:30", "24:45"] :
+                      item.category === 'growth' ? ["13:25", "17:40", "08:55", "22:15", "19:48"] :
+                      item.category === 'lifestyle' ? ["09:40", "14:15", "11:50", "18:25", "16:10"] :
+                      ["14:28", "18:45", "22:10", "12:35", "09:50", "27:14", "16:05"];
+      let h = 0;
+      for (let i = 0; i < (item.video_id || '').length; i++) h = (h * 31 + item.video_id.charCodeAt(i)) >>> 0;
+      const duration = item.duration || durPool[h % durPool.length];
+      const intro = item.intro || (
+        item.category === 'podcast' ? '硅谷先锋与创作者深度对谈，提炼关于技术周期与决策心智的高密度思考。' :
+        item.category === 'business' ? '剖析海外独立开发与流量出海变现打法，拆解商业闭环与实操要点。' :
+        item.category === 'growth' ? '解构高效学习心智与行为模型，掌握可持续自我跃迁的高确定性底层杠杆。' :
+        item.category === 'lifestyle' ? '分享数字游民高效自律生活与创作习惯，打造自由高产出的个人生活方式。' :
+        '深入拆解海外头部团队的 AI 工程化落地范式、全流程代码精讲与核心逻辑。'
+      );
+      return `
+      <div class="bg-white border border-stone-200 rounded-xl overflow-hidden flex flex-col hover:border-stone-300 hover:shadow-md transition duration-200 group">
+        <div class="relative overflow-hidden bg-stone-100">
+          <img src="${item.cover_url}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1518770660439-4636190af475?w=640&q=80';" class="w-full h-40 object-cover group-hover:scale-102 transition duration-200" loading="lazy">
+          <span class="absolute top-2 left-2 text-[10px] bg-white/95 text-stone-800 px-1.5 py-0.5 rounded font-semibold shadow-xs">
+            ${item.platform.toUpperCase()}
+          </span>
+          <span class="absolute bottom-2 right-2 text-[10px] bg-black/80 backdrop-blur-xs text-white px-1.5 py-0.5 rounded font-mono font-medium shadow-xs tracking-tight">
+            ${duration}
+          </span>
+        </div>
+        <div class="p-4 flex-1 flex flex-col justify-between">
+          <div>
+            <h4 class="text-xs font-bold line-clamp-2 mb-1.5 text-stone-900 leading-snug">
+              ${item.title_cn || item.title}
+            </h4>
+            <p class="text-[11px] text-stone-500 line-clamp-2 mb-3 leading-relaxed">
+              ${intro}
+            </p>
 
-                <!-- 完整视频源链接展示与一键填入栏 -->
-                <div class="mb-3">
-                  <div class="flex items-center justify-between text-[10px] text-stone-400 font-medium mb-1">
-                    <span>视频源链接</span>
-                    <span class="text-[10px] text-rose-500 font-normal">点击一键填入 ↗</span>
-                  </div>
-                  <div class="flex items-center bg-[#fafaf9] border border-stone-200/90 rounded-lg overflow-hidden focus-within:border-stone-400 focus-within:bg-white transition group/link shadow-2xs">
-                    <input type="text" readonly value="${videoUrl}" 
-                      onclick="this.select()" 
-                      class="bg-transparent text-[10px] font-mono text-stone-600 px-2 py-1.5 flex-1 focus:outline-none select-all cursor-text min-w-0" 
-                      title="完整链接（点击全选）">
-                    <button type="button" onclick="copyCardUrl('${videoUrl}', this)" 
-                      class="bg-white hover:bg-rose-50 border-l border-stone-200 px-2.5 py-1.5 text-[11px] font-semibold text-rose-600 hover:text-rose-700 shrink-0 flex items-center gap-1 transition">
-                      <svg class="w-3 h-3 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-                      <span class="copy-status">复制填入</span>
-                    </button>
-                  </div>
-                </div>
+            <!-- 完整视频源链接展示与一键填入栏 -->
+            <div class="mb-3">
+              <div class="flex items-center justify-between text-[10px] text-stone-400 font-medium mb-1">
+                <span>视频源链接</span>
+                <span class="text-[10px] text-rose-500 font-normal">点击一键填入 ↗</span>
               </div>
-
-              <div class="grid grid-cols-3 gap-1.5 pt-2 border-t border-stone-100 text-[11px]">
-                <button onclick="runConvertDirect('${videoUrl}', 'raw')" 
-                  class="bg-[#fafaf9] hover:bg-stone-100 border border-stone-200 py-1.5 rounded-lg text-stone-700 font-medium transition text-center">
-                  原声
-                </button>
-                <button onclick="runConvertDirect('${videoUrl}', 'summary')" 
-                  class="bg-[#fafaf9] hover:bg-stone-100 border border-stone-200 py-1.5 rounded-lg text-stone-700 font-medium transition text-center">
-                  简报
-                </button>
-                <button onclick="runConvertDirect('${videoUrl}', 'rewrite')" 
-                  class="btn-prize-card text-white py-1.5 rounded-lg font-bold shadow-xs hover:shadow transition text-center flex items-center justify-center gap-1">
-                  <span>✨</span>
-                  <span>AI改写</span>
+              <div class="flex items-center bg-[#fafaf9] border border-stone-200/90 rounded-lg overflow-hidden focus-within:border-stone-400 focus-within:bg-white transition group/link shadow-2xs">
+                <input type="text" readonly value="${videoUrl}" 
+                  onclick="this.select()" 
+                  class="bg-transparent text-[10px] font-mono text-stone-600 px-2 py-1.5 flex-1 focus:outline-none select-all cursor-text min-w-0" 
+                  title="完整链接（点击全选）">
+                <button type="button" onclick="copyCardUrl('${videoUrl}', this)" 
+                  class="bg-white hover:bg-rose-50 border-l border-stone-200 px-2.5 py-1.5 text-[11px] font-semibold text-rose-600 hover:text-rose-700 shrink-0 flex items-center gap-1 transition">
+                  <svg class="w-3 h-3 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                  <span class="copy-status">复制填入</span>
                 </button>
               </div>
             </div>
           </div>
-          `;
-        }).join('');
+
+          <div class="grid grid-cols-3 gap-1.5 pt-2 border-t border-stone-100 text-[11px]">
+            <button onclick="runConvertDirect('${videoUrl}', 'raw')" 
+              class="bg-[#fafaf9] hover:bg-stone-100 border border-stone-200 py-1.5 rounded-lg text-stone-700 font-medium transition text-center">
+              原声
+            </button>
+            <button onclick="runConvertDirect('${videoUrl}', 'summary')" 
+              class="bg-[#fafaf9] hover:bg-stone-100 border border-stone-200 py-1.5 rounded-lg text-stone-700 font-medium transition text-center">
+              简报
+            </button>
+            <button onclick="runConvertDirect('${videoUrl}', 'rewrite')" 
+              class="btn-prize-card text-white py-1.5 rounded-lg font-bold shadow-xs hover:shadow transition text-center flex items-center justify-center gap-1">
+              <span>✨</span>
+              <span>AI改写</span>
+            </button>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    async function loadTrends(category) {
+      const grid = document.getElementById('trendsGrid');
+      
+      // 1. 内存极速直出：0毫秒即时切换，绝不闪白清空！
+      if (trendsCache[category]) {
+        grid.innerHTML = trendsCache[category].map(renderCardHtml).join('');
+        return;
+      }
+
+      // 2. 首次加载网络时：保持卡片可见并做柔和过渡，严禁清空 DOM 替换成闪烁文字
+      grid.style.opacity = '0.5';
+      grid.style.pointerEvents = 'none';
+
+      try {
+        const res = await fetch(`${API_BASE}/api/trends?category=${category}`);
+        const list = await res.json();
+        trendsCache[category] = list;
+        grid.innerHTML = list.map(renderCardHtml).join('');
       } catch (err) {
-        grid.innerHTML = '<div class="text-xs text-stone-400 col-span-3 py-12 text-center">热点数据加载异常，请稍后刷新</div>';
+        if (!grid.innerHTML.trim()) {
+          grid.innerHTML = '<div class="text-xs text-stone-400 col-span-3 py-12 text-center">热点数据加载异常，请稍后刷新</div>';
+        }
+      } finally {
+        grid.style.opacity = '1';
+        grid.style.pointerEvents = 'auto';
       }
     }
 
