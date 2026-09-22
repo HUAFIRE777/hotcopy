@@ -507,15 +507,17 @@ app.post('/api/generate', authenticate, async (req, res) => {
 
 // ---------------- Creem Webhook 自动发货 ----------------
 app.post('/api/webhook/creem', (req, res) => {
-  const event = req.body;
-  if (event.type === 'checkout.completed' || event.type === 'subscription.created') {
-    const email = event.data?.customer_email || event.data?.email;
-    const name = (event.data?.product_name || '').toLowerCase();
+  const event = req.body || {};
+  console.log('[Creem Webhook] 收到事件:', event.type || event.event);
+
+  if (event.type === 'checkout.completed' || event.type === 'subscription.created' || event.event === 'checkout.completed') {
+    const email = event.data?.customer_email || event.data?.email || event.data?.customer?.email || event.customer_email;
+    const name = (event.data?.product_name || event.data?.product?.name || event.product_name || '').toLowerCase();
 
     let plan = 'basic';
     let limit = 50;
 
-    if (name.includes('premium')) {
+    if (name.includes('premium') || name.includes('studio')) {
       plan = 'premium';
       limit = 300;
     } else if (name.includes('pro')) {
@@ -523,12 +525,22 @@ app.post('/api/webhook/creem', (req, res) => {
       limit = 100;
     }
 
-    db.prepare(`
-      UPDATE users 
-      SET plan = ?, monthly_limit = ?, used_count = 0, expires_at = ?
-      WHERE email = ?
-    `).run(plan, limit, Date.now() + 30 * 86400000, email);
-    console.log(`[Creem Webhook] 成功开通 ${email} 为 ${plan} 会员`);
+    if (email) {
+      const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+      if (!user) {
+        db.prepare(`
+          INSERT INTO users (email, password_hash, plan, monthly_limit, used_count, expires_at, created_at)
+          VALUES (?, '', ?, ?, 0, ?, ?)
+        `).run(email, plan, limit, Date.now() + 30 * 86400000, Date.now());
+      } else {
+        db.prepare(`
+          UPDATE users 
+          SET plan = ?, monthly_limit = ?, used_count = 0, expires_at = ?
+          WHERE email = ?
+        `).run(plan, limit, Date.now() + 30 * 86400000, email);
+      }
+      console.log(`[Creem Webhook] 成功为用户 ${email} 开通 ${plan} 套餐 (${limit}次/月)`);
+    }
   }
   res.json({ received: true });
 });

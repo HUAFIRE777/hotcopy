@@ -510,6 +510,16 @@
     window.addEventListener('DOMContentLoaded', () => {
       checkAuth();
       loadTrends(currentCategory);
+
+      // 监听从 Creem 支付完成重定向回来的回调
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('payment') === 'success' || urlParams.get('status') === 'success') {
+        window.history.replaceState({}, document.title, window.location.pathname);
+        showToast('🎉 支付成功！系统正在同步您的会员权益，请稍候...');
+        setTimeout(() => { checkAuth(); }, 1200);
+        setTimeout(() => { checkAuth(); showToast('✨ 会员权益与额度已成功激活！'); }, 3500);
+      }
+
       // 预热全部类别，让后续点击分类标签 0 毫秒即时切换，绝不闪白清空
       setTimeout(() => {
         ['tech', 'business', 'podcast', 'growth', 'lifestyle'].forEach(c => {
