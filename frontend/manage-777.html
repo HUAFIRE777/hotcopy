@@ -463,6 +463,15 @@
               <p>• <strong>Delivery 字段留空准则</strong>：Delivery 用于交付电子书或压缩包下载，HotCopy 属于线上云服务，权益发货完全由服务端实时 Webhook 完成，因此 <strong>Delivery 必须保持留空 (Nothing to deliver yet)</strong>。</p>
               <p>• <strong>Return URL (付款成功重定向)</strong>：统一填写 <code class="font-mono bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.5 rounded border border-emerald-200">https://hotcopy.eazyopc.com/?payment=success</code>，用户在 Creem 刷卡完成后自动跳回主站，主站会自动捕获该参数弹出庆祝通知并自动刷新用户配额。</p>
               <p>• <strong>Webhook 自动发货端点</strong>：在 Creem 的 Developers ➜ Webhooks 中填入 <code class="font-mono bg-stone-100 px-1 py-0.5 rounded">https://api.eazyopc.com/api/webhook/creem</code>，勾选 <code class="font-mono bg-stone-100 px-1 py-0.5 rounded">checkout.completed</code> 与 <code class="font-mono bg-stone-100 px-1 py-0.5 rounded">subscription.created</code>，即可实现毫秒级自动充值发货。</p>
+              <div class="mt-2 bg-[#fafaf9] p-3 rounded-xl border border-stone-100 font-mono text-[11px] space-y-1">
+                <div class="font-bold text-stone-700 font-sans">现役官方 Creem 商品 ID 与链接矩阵：</div>
+                <div>• Basic ($4.9/mo): <span class="text-stone-500">prod_6yBTQZmi3xEv0nLQ53Ka3e</span></div>
+                <div>• Pro ($9.9/mo): <span class="text-stone-500">prod_5Uaj4zKtKXiSHY7vsR0HHR</span></div>
+                <div>• Studio ($19.9/mo): <span class="text-stone-500">prod_18Pj0OPprcNCwgLmr6nnE4</span></div>
+                <div>• Booster 20 ($2.99 一次性): <span class="text-stone-500">prod_6Kq15IgZgt8kBenKZt1lWC</span></div>
+                <div>• Booster 50 ($5.99 一次性): <span class="text-stone-500">prod_1KNRjyt1zEpUhQR9RHsVkv</span></div>
+                <div>• Booster 100 ($11.99 一次性): <span class="text-stone-500">prod_1J2GS2ql5fOOLmALoP0dw6</span></div>
+              </div>
             </div>
           </div>
         </div>
