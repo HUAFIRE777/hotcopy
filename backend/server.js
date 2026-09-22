@@ -85,7 +85,11 @@ try {
   console.error('[Admin] 初始化管理员表失败:', e.message);
 }
 
-app.use(express.json());
+app.use(express.json({
+  verify: (req, res, buf) => {
+    req.rawBody = buf;
+  }
+}));
 app.use(cors({ origin: '*' }));
 
 // 中间件：JWT 鉴权
@@ -926,10 +930,63 @@ app.post('/api/generate', authenticate, async (req, res) => {
   }
 });
 
-// ---------------- Creem Webhook 自动发货 ----------------
-app.post('/api/webhook/creem', (req, res) => {
+// ---------------- Creem Webhook 自动发货 (支持官方 HMAC-SHA256 验签与防伪) ----------------
+app.post('/api/webhook/creem', async (req, res) => {
+  const signature = req.headers['creem-signature'] || req.headers['x-creem-signature'];
+  const webhookSecret = process.env.CREEM_WEBHOOK_SECRET;
+
+  // 1. 如果已配置 Webhook Secret，执行严格 HMAC-SHA256 签名比对
+  if (webhookSecret && webhookSecret.trim() !== 'your_creem_webhook_signing_secret' && webhookSecret.trim().length > 0) {
+    if (!signature) {
+      console.warn('[Creem Webhook] 拒绝请求: 缺少 creem-signature 签名头');
+      return res.status(401).json({ error: 'Missing signature' });
+    }
+
+    try {
+      const rawBody = req.rawBody ? req.rawBody.toString('utf8') : JSON.stringify(req.body);
+      const expectedSignature = crypto
+        .createHmac('sha256', webhookSecret.trim())
+        .update(rawBody)
+        .digest('hex');
+
+      const sigBuf = Buffer.from(signature, 'hex');
+      const expBuf = Buffer.from(expectedSignature, 'hex');
+
+      if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+        console.warn('[Creem Webhook] 拒绝请求: 签名校验失败 (Invalid Signature)，疑似伪造回调！');
+        return res.status(403).json({ error: 'Invalid webhook signature' });
+      }
+      console.log('[Creem Webhook] 官方签名校验通过 (HMAC-SHA256 Verified) ✓');
+    } catch (sigErr) {
+      console.error('[Creem Webhook] 验签异常:', sigErr.message);
+      return res.status(403).json({ error: 'Signature verification failed' });
+    }
+  }
+
   const event = req.body || {};
   console.log('[Creem Webhook] 收到事件:', event.type || event.event);
+
+  // 2. 如果配置了 CREEM_API_KEY，且存在 checkout_id，向官方反查真实订单状态
+  const checkoutId = event.data?.checkout_id || event.data?.id;
+  if (process.env.CREEM_API_KEY && process.env.CREEM_API_KEY.trim() && checkoutId) {
+    try {
+      console.log(`[Creem Webhook] 正在向官方 API 反查订单 ${checkoutId}...`);
+      const verifyRes = await axios.get(`https://api.creem.io/v1/checkouts/${checkoutId}`, {
+        headers: {
+          'x-api-key': process.env.CREEM_API_KEY.trim()
+        },
+        timeout: 10000
+      });
+      const orderStatus = verifyRes.data?.status || verifyRes.data?.order_status;
+      if (orderStatus !== 'completed' && orderStatus !== 'paid') {
+        console.warn(`[Creem Webhook] 官方反查状态为 ${orderStatus}，非已付款状态，拦截发货！`);
+        return res.status(400).json({ error: 'Order not paid on Creem' });
+      }
+      console.log(`[Creem Webhook] 官方 API 订单反查真实有效 (${orderStatus}) ✓`);
+    } catch (apiErr) {
+      console.warn('[Creem Webhook] API 反查请求跳过或网络异常:', apiErr.message);
+    }
+  }
 
   if (event.type === 'checkout.completed' || event.type === 'subscription.created' || event.event === 'checkout.completed') {
     const email = event.data?.customer_email || event.data?.email || event.data?.customer?.email || event.customer_email;
