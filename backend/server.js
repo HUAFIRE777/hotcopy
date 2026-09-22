@@ -7,6 +7,7 @@ const cron = require('node-cron');
 const axios = require('axios');
 const FormData = require('form-data');
 const { YoutubeTranscript } = require('youtube-transcript');
+const { TECH_TRENDS, BUSINESS_TRENDS, LIFE_TRENDS } = require('./trends_data');
 require('dotenv').config();
 
 const app = express();
@@ -162,27 +163,27 @@ app.post('/api/auth/activate', authenticate, (req, res) => {
 
 // ---------------- 定时任务：2 小时同步全球热点 ----------------
 async function updateTrendsJob() {
-  const mockBatch = [
-    { platform: 'youtube', category: 'tech', video_id: 'dQw4w9WgXcQ', title: 'OpenAI DevDay Highlights', title_cn: 'OpenAI 最新技术发布亮点' },
-    { platform: 'youtube', category: 'business', video_id: 'aircAruvnKk', title: 'How I built a $10k MRR micro-saas', title_cn: '一个人如何靠 Micro-SaaS 做到月入万刀' },
-    { platform: 'youtube', category: 'life', video_id: '3JZ_D3ELwOQ', title: 'The Science of Deep Sleep', title_cn: '顶尖神经科学家揭示深度睡眠法则' }
-  ];
-
   const stmt = db.prepare(`
     INSERT OR REPLACE INTO trends (platform, category, video_id, title, title_cn, cover_url, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
 
-  for (const item of mockBatch) {
-    const cover = `https://img.youtube.com/vi/${item.video_id}/hqdefault.jpg`;
-    stmt.run(item.platform, item.category, item.video_id, item.title, item.title_cn, cover, Date.now());
-  }
+  const insertList = (list, cat) => {
+    for (const item of list) {
+      const cover = `https://img.youtube.com/vi/${item.video_id}/hqdefault.jpg`;
+      stmt.run('youtube', cat, item.video_id, item.title, item.title_cn, cover, Date.now());
+    }
+  };
+
+  insertList(TECH_TRENDS, 'tech');
+  insertList(BUSINESS_TRENDS, 'business');
+  insertList(LIFE_TRENDS, 'life');
 }
 cron.schedule('0 */2 * * *', updateTrendsJob);
 
 app.get('/api/trends', (req, res) => {
   const category = req.query.category || 'tech';
-  const list = db.prepare('SELECT * FROM trends WHERE category = ? ORDER BY updated_at DESC LIMIT 30').all(category);
+  const list = db.prepare('SELECT * FROM trends WHERE category = ? ORDER BY id ASC LIMIT 50').all(category);
   res.json(list);
 });
 
@@ -214,6 +215,12 @@ const PROMPT_REWRITE = `你是一位顶级自媒体爆款内容操盘手。请�
 2. 提炼核心主干逻辑，分点阐述，消除机翻味，保留原作者真实意图。
 3. 排版美观适度增加 Emoji，文末附带 3 个热门 Tag 标签。`;
 
+const PROMPT_SUMMARY = `你是一位高阶认知与商业情报提炼专家。请将提供的音视频转录内容，提炼为一份高信息密度的核心干货速读简报：
+1. 【一句话精髓】：用一句话高度概括视频最核心的主旨与突破性观点。
+2. 【3-5 个核心论点与关键事实】：按逻辑分点列出作者的核心推导论述、实证案例或具体数据支撑，剔除一切客套话与口癖。
+3. 【实操建议 / 核心启示】：提炼对读者最具落地实操指导价值的金句或执行建议。
+排版简洁精炼，适度搭配 Emoji。`;
+
 const PROMPT_TRANSLATE = `你是一位专业翻译官。请将提供的音视频原文转录内容，翻译成自然流畅、准确严谨的中文，保留时间脉络与段落结构。`;
 
 app.post('/api/generate', authenticate, async (req, res) => {
@@ -221,7 +228,7 @@ app.post('/api/generate', authenticate, async (req, res) => {
   const user = req.user;
 
   if (mode === 'rewrite' && user.plan === 'basic') {
-    return res.status(403).json({ error: 'AI 爆款改写仅向 Pro/高级版开放，普通版仅支持双语精翻' });
+    return res.status(403).json({ error: 'AI 爆款改写仅向 Pro/高级版开放，普通版仅支持双语精翻与核心速读' });
   }
 
   if (user.used_count >= user.monthly_limit) {
@@ -265,7 +272,7 @@ app.post('/api/generate', authenticate, async (req, res) => {
       return res.send(cleanedInput);
     }
 
-    const systemPrompt = mode === 'rewrite' ? PROMPT_REWRITE : PROMPT_TRANSLATE;
+    const systemPrompt = mode === 'rewrite' ? PROMPT_REWRITE : mode === 'summary' ? PROMPT_SUMMARY : PROMPT_TRANSLATE;
 
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.setHeader('Transfer-Encoding', 'chunked');

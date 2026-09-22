@@ -205,19 +205,24 @@
             </button>
           </div>
 
-          <!-- 三档核心功能按钮 -->
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
-            <button onclick="runConvert('raw')" class="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 px-4 py-3 rounded-xl text-xs font-bold text-slate-200 transition shadow-sm group">
+          <!-- 四档核心功能按钮 -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
+            <button onclick="runConvert('raw')" class="flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-3 rounded-xl text-xs font-bold text-slate-200 transition shadow-sm group">
               <span class="text-emerald-400 group-hover:scale-110 transition">⚡</span>
-              <span>提取原声逐字稿 (直接导出)</span>
+              <span>提取原声 (直接导出)</span>
             </button>
 
-            <button onclick="runConvert('translate')" class="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 px-4 py-3 rounded-xl text-xs font-bold text-slate-200 transition shadow-sm group">
+            <button onclick="runConvert('summary')" class="flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-3 rounded-xl text-xs font-bold text-slate-200 transition shadow-sm group">
+              <span class="text-amber-400 group-hover:scale-110 transition">💡</span>
+              <span>核心要点提炼 (速读)</span>
+            </button>
+
+            <button onclick="runConvert('translate')" class="flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-3 rounded-xl text-xs font-bold text-slate-200 transition shadow-sm group">
               <span class="text-blue-400 group-hover:scale-110 transition">🌐</span>
-              <span>双语精准精翻 (基础版)</span>
+              <span>双语精翻 (基础版)</span>
             </button>
 
-            <button onclick="runConvert('rewrite')" class="flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 via-rose-500 to-rose-600 hover:opacity-95 px-4 py-3 rounded-xl text-xs font-bold text-white transition shadow-lg shadow-rose-600/20 group">
+            <button onclick="runConvert('rewrite')" class="flex items-center justify-center gap-1.5 bg-gradient-to-r from-amber-500 via-rose-500 to-rose-600 hover:opacity-95 px-3 py-3 rounded-xl text-xs font-bold text-white transition shadow-lg shadow-rose-600/20 group">
               <span class="group-hover:scale-110 transition">🚀</span>
               <span>AI 爆款改写 (Pro/高级)</span>
             </button>
@@ -576,14 +581,18 @@
               <h4 class="text-xs sm:text-sm font-bold line-clamp-2 mb-3 text-slate-200 leading-snug">
                 ${item.title_cn || item.title}
               </h4>
-              <div class="grid grid-cols-2 gap-2 mt-auto">
+              <div class="grid grid-cols-3 gap-1.5 mt-auto">
                 <button onclick="runConvertDirect('${item.platform === 'youtube' ? 'https://youtube.com/watch?v=' + item.video_id : item.video_id}', 'raw')" 
-                  class="bg-slate-800 hover:bg-slate-700 text-[11px] py-2 rounded-xl text-slate-300 font-medium transition">
-                  ⚡ 提取原声
+                  class="bg-slate-800 hover:bg-slate-700 text-[10px] py-1.5 rounded-xl text-slate-300 font-medium transition">
+                  ⚡ 原声
+                </button>
+                <button onclick="runConvertDirect('${item.platform === 'youtube' ? 'https://youtube.com/watch?v=' + item.video_id : item.video_id}', 'summary')" 
+                  class="bg-slate-800 hover:bg-slate-700 text-[10px] py-1.5 rounded-xl text-amber-300 font-medium transition">
+                  💡 速读
                 </button>
                 <button onclick="runConvertDirect('${item.platform === 'youtube' ? 'https://youtube.com/watch?v=' + item.video_id : item.video_id}', 'rewrite')" 
-                  class="bg-rose-600 hover:bg-rose-500 text-[11px] py-2 rounded-xl text-white font-semibold transition shadow-md shadow-rose-600/20">
-                  🚀 爆款改写
+                  class="bg-rose-600 hover:bg-rose-500 text-[10px] py-1.5 rounded-xl text-white font-semibold transition shadow-md shadow-rose-600/20">
+                  🚀 改写
                 </button>
               </div>
             </div>
@@ -621,7 +630,7 @@
       
       modal.classList.remove('hidden');
       box.innerText = '⚡ 正在调动海外云端节点连接官方字幕与音频流...\n';
-      meta.innerText = mode === 'raw' ? '正在提取官方字幕逐字稿' : mode === 'translate' ? '正在双语精翻中' : 'AI 爆款二创改写中';
+      meta.innerText = mode === 'raw' ? '正在提取官方字幕逐字稿' : mode === 'summary' ? '正在提炼核心干货速读简报' : mode === 'translate' ? '正在双语精翻中' : 'AI 爆款二创改写中';
       currentConvertedText = '';
 
       try {
