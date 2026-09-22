@@ -616,7 +616,7 @@ const BUSINESS_TRENDS = [
 const PODCAST_TRENDS = [
   {
       "platform": "bilibili",
-      "video_id": "BV1GJ411x7h7",
+      "video_id": "BV1BK411L7DJ",
       "title": "罗翔说刑法精选：关于法治精神、认知觉醒与人生底色的深层对话",
       "title_cn": "罗翔：我们为什么要读书与自省？法治与人性的终极思辨",
       "hot_badge": "🔥 知识区顶流 · 320万播放",
@@ -627,7 +627,7 @@ const PODCAST_TRENDS = [
   },
   {
       "platform": "xiaoyuzhou",
-      "video_id": "6641b312db6bbfbc7bfbe4e1",
+      "video_id": "682fdf12fcbc2e206b5021ac",
       "title": "知行小酒馆精选：从资产配置到底层心态，如何建立抗周期的确定性人生？",
       "title_cn": "知行小酒馆：普通人对抗不确定性的财务自由与资产配置底层逻辑",
       "hot_badge": "⭐ 小宇宙热播榜 Top 1",

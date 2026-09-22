@@ -674,6 +674,9 @@ async function fetchBilibiliTranscript(inputUrl) {
   }
 
   const initState = JSON.parse(m[1]);
+  if (initState.video?.error === -404 || initState.error === -404 || (!initState.video?.viewInfo?.title && !initState.video?.playUrlInfo)) {
+    throw new Error('该 B站 视频不存在或已被作者下架删除 (404)');
+  }
   const viewInfo = initState.video?.viewInfo || {};
   const title = viewInfo.title || 'Bilibili 视频';
   const cid = viewInfo.cid;
