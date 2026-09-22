@@ -380,7 +380,7 @@ app.post('/api/generate', authenticate, async (req, res) => {
       }
     }
 
-    const cleanedInput = cleanRawTranscript(text.slice(0, 10000));
+    const cleanedInput = cleanRawTranscript(text.slice(0, 60000));
 
     if (mode === 'raw') {
       db.prepare('UPDATE users SET used_count = used_count + 1 WHERE id = ?').run(user.id);
