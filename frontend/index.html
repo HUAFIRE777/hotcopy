@@ -531,7 +531,7 @@
         grid.innerHTML = list.map(item => `
           <div class="bg-white border border-stone-200 rounded-xl overflow-hidden flex flex-col hover:border-stone-300 transition shadow-xs group">
             <div class="relative overflow-hidden bg-stone-100">
-              <img src="${item.cover_url}" class="w-full h-40 object-cover group-hover:scale-102 transition duration-200" loading="lazy">
+              <img src="${item.cover_url}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1518770660439-4636190af475?w=640&q=80';" class="w-full h-40 object-cover group-hover:scale-102 transition duration-200" loading="lazy">
               <span class="absolute top-2 left-2 text-[10px] bg-white/90 text-stone-800 px-1.5 py-0.5 rounded font-medium shadow-xs">
                 ${item.platform.toUpperCase()}
               </span>
