@@ -1,4 +1,5 @@
 const express = require('express');
+const fs = require('fs');
 const cors = require('cors');
 const Database = require('better-sqlite3');
 const bcrypt = require('bcrypt');
@@ -236,8 +237,9 @@ function fetchYouTubeWhisperTranscript(videoId) {
   return new Promise((resolve, reject) => {
     const audioPath = `/tmp/yt_${videoId}_${Date.now()}.mp3`;
     const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
-    console.log(`[Groq Whisper] 正在为 YouTube 视频 ${videoId} 提取音频流...`);
-    const cmd = `yt-dlp -f "ba[ext=m4a]/ba" --extract-audio --audio-format mp3 --max-filesize 24M -o "${audioPath}" "${videoUrl}"`;
+    const cookiesFlag = fs.existsSync('/opt/hotcopy/cookies.txt') ? '--cookies /opt/hotcopy/cookies.txt' : '';
+    console.log(`[Groq Whisper] 正在为 YouTube 视频 ${videoId} 提取音频流并进行轻量化压缩...`);
+    const cmd = `yt-dlp ${cookiesFlag} -f "ba[ext=m4a]/ba" --extract-audio --audio-format mp3 --postprocessor-args "-ar 16000 -ac 1 -b:a 32k" -o "${audioPath}" "${videoUrl}"`;
     
     exec(cmd, async (err, stdout, stderr) => {
       if (err) {
