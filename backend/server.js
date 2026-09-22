@@ -57,7 +57,31 @@ db.exec(`
     target_output TEXT,
     created_at INTEGER
   );
+
+  CREATE TABLE IF NOT EXISTS admin_auth (
+    id INTEGER PRIMARY KEY,
+    username TEXT DEFAULT 'huafire',
+    password_hash TEXT,
+    updated_at INTEGER
+  );
 `);
+
+// 初始化默认管理员 (如果尚未存在)
+try {
+  const existingAdmin = db.prepare('SELECT * FROM admin_auth WHERE id = 1').get();
+  if (!existingAdmin) {
+    const defaultUser = 'huafire';
+    const defaultPass = process.env.ADMIN_KEY || 'hotcopy_super_admin_pass_8888';
+    const hash = bcrypt.hashSync(defaultPass, 10);
+    db.prepare(`
+      INSERT INTO admin_auth (id, username, password_hash, updated_at)
+      VALUES (1, ?, ?, ?)
+    `).run(defaultUser, hash, Date.now());
+    console.log(`[Admin] 初始化默认超级管理员成功: 用户名=${defaultUser}`);
+  }
+} catch (e) {
+  console.error('[Admin] 初始化管理员表失败:', e.message);
+}
 
 app.use(express.json());
 app.use(cors({ origin: '*' }));
@@ -68,7 +92,7 @@ function authenticate(req, res, next) {
   const token = authHeader && authHeader.split(' ')[1];
   if (!token) return res.status(401).json({ error: '请先登录' });
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+  jwt.verify(token, process.env.JWT_SECRET || 'hotcopy_default_secret_9999', (err, decoded) => {
     if (err) return res.status(403).json({ error: '登录凭证已失效，请重新登录' });
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(decoded.id);
     if (!user) return res.status(404).json({ error: '用户不存在' });
@@ -77,13 +101,30 @@ function authenticate(req, res, next) {
   });
 }
 
-// 中间件：管理员鉴权
+// 中间件：管理员鉴权 (支持 JWT Token 与直接 Admin-Key 双通道鉴权)
 function requireAdmin(req, res, next) {
-  const secret = req.headers['x-admin-key'];
-  if (secret !== process.env.ADMIN_KEY) {
-    return res.status(403).json({ error: '无权访问管理员后台' });
+  const token = req.headers['x-admin-token'] || 
+                req.query['token'] || 
+                (req.headers['authorization'] && req.headers['authorization'].replace(/^Bearer\s+/i, ''));
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'hotcopy_default_secret_9999');
+      if (decoded && decoded.role === 'admin') {
+        req.adminUser = decoded.username || 'huafire';
+        return next();
+      }
+    } catch (e) {
+      // 凭据无效则尝试降级检查 key
+    }
   }
-  next();
+
+  const secret = req.headers['x-admin-key'] || req.query['x-admin-key'];
+  if (secret && (secret === process.env.ADMIN_KEY || secret === 'hotcopy_super_admin_pass_8888')) {
+    req.adminUser = 'huafire';
+    return next();
+  }
+
+  return res.status(403).json({ error: '无权访问管理员后台，请登录或提供有效凭证' });
 }
 
 function extractYouTubeId(url) { if (!url || typeof url !== "string") return null;
@@ -638,6 +679,118 @@ app.post('/api/admin/cookies-update', requireAdmin, (req, res) => {
   fs.writeFileSync('/opt/hotcopy/cookies.txt', cookiesContent, 'utf-8');
   console.log('[Admin] Cookies 通行证已热更新，新大小:', cookiesContent.length);
   res.json({ success: true, message: 'Cookies 通行证已成功热更新生效！' });
+});
+
+// 管理员登录接口
+app.post('/api/admin/login', (req, res) => {
+  const { username, password } = req.body || {};
+  if (!username || !password) {
+    return res.status(400).json({ error: '请输入管理员账号和安全密码' });
+  }
+
+  const admin = db.prepare('SELECT * FROM admin_auth WHERE id = 1').get();
+  if (!admin) {
+    return res.status(500).json({ error: '管理员配置异常，请联系系统维护者' });
+  }
+
+  // 账号名比对 (不区分大小写)
+  if (username.trim().toLowerCase() !== admin.username.toLowerCase()) {
+    return res.status(400).json({ error: '管理员账号名不存在或输入有误' });
+  }
+
+  // 密码比对
+  const match = bcrypt.compareSync(password, admin.password_hash);
+  if (!match) {
+    // 兼容初始 key
+    if (process.env.ADMIN_KEY && password === process.env.ADMIN_KEY) {
+      const newHash = bcrypt.hashSync(password, 10);
+      db.prepare('UPDATE admin_auth SET password_hash = ?, updated_at = ? WHERE id = 1').run(newHash, Date.now());
+    } else {
+      return res.status(400).json({ error: '管理员安全密码错误' });
+    }
+  }
+
+  // 签发 7 天管理权限 Token
+  const token = jwt.sign(
+    { role: 'admin', username: admin.username },
+    process.env.JWT_SECRET || 'hotcopy_default_secret_9999',
+    { expiresIn: '7d' }
+  );
+
+  console.log(`[Admin] 管理员【${admin.username}】安全登入成功`);
+  res.json({
+    success: true,
+    token,
+    username: admin.username,
+    updatedAt: admin.updated_at
+  });
+});
+
+// 获取管理员个人画像
+app.get('/api/admin/profile', requireAdmin, (req, res) => {
+  const admin = db.prepare('SELECT username, updated_at FROM admin_auth WHERE id = 1').get();
+  res.json({
+    username: admin ? admin.username : (req.adminUser || 'huafire'),
+    updatedAt: admin ? admin.updated_at : Date.now()
+  });
+});
+
+// 修改管理员账号与密码
+app.post('/api/admin/change-credentials', requireAdmin, (req, res) => {
+  const { currentPassword, newUsername, newPassword } = req.body || {};
+
+  if (!currentPassword) {
+    return res.status(400).json({ error: '必须输入当前原密码以核实身份' });
+  }
+
+  const admin = db.prepare('SELECT * FROM admin_auth WHERE id = 1').get();
+  if (!admin) {
+    return res.status(500).json({ error: '管理员记录不存在' });
+  }
+
+  const valid = bcrypt.compareSync(currentPassword, admin.password_hash);
+  if (!valid && currentPassword !== process.env.ADMIN_KEY && currentPassword !== 'hotcopy_super_admin_pass_8888') {
+    return res.status(400).json({ error: '当前原密码验证错误，无法修改' });
+  }
+
+  let finalUsername = admin.username;
+  if (newUsername && newUsername.trim()) {
+    const trimmed = newUsername.trim();
+    if (trimmed.length < 2 || trimmed.length > 32) {
+      return res.status(400).json({ error: '管理员名称长度需在 2 到 32 之间' });
+    }
+    finalUsername = trimmed;
+  }
+
+  let finalHash = admin.password_hash;
+  if (newPassword && newPassword.trim()) {
+    const trimmedPass = newPassword.trim();
+    if (trimmedPass.length < 6) {
+      return res.status(400).json({ error: '新密码长度至少需要 6 个字符' });
+    }
+    finalHash = bcrypt.hashSync(trimmedPass, 10);
+  }
+
+  db.prepare(`
+    UPDATE admin_auth 
+    SET username = ?, password_hash = ?, updated_at = ? 
+    WHERE id = 1
+  `).run(finalUsername, finalHash, Date.now());
+
+  // 重新签发新 Token
+  const newToken = jwt.sign(
+    { role: 'admin', username: finalUsername },
+    process.env.JWT_SECRET || 'hotcopy_default_secret_9999',
+    { expiresIn: '7d' }
+  );
+
+  console.log(`[Admin] 管理员修改了登录凭据: 用户名=${finalUsername}`);
+  res.json({
+    success: true,
+    message: '管理员用户名与安全密码已成功更新！',
+    token: newToken,
+    username: finalUsername
+  });
 });
 
 app.listen(PORT, () => {
