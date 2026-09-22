@@ -766,7 +766,7 @@ function pruneExcessCache() {
   try {
     db.prepare(`
       DELETE FROM copies_cache 
-      WHERE id NOT IN (SELECT id FROM copies_cache ORDER BY created_at DESC LIMIT 200)
+      WHERE rowid NOT IN (SELECT rowid FROM copies_cache ORDER BY created_at DESC LIMIT 200)
     `).run();
   } catch (e) {}
 }
@@ -845,7 +845,7 @@ app.post('/api/generate', authenticate, async (req, res) => {
 
   try {
     // 核心提速与降本：先检查是否已存在该音视频的底层 raw 原声逐字稿
-    const rawCached = db.prepare('SELECT content FROM copies_cache WHERE video_id = ? AND mode = "raw"').get(videoId);
+    const rawCached = db.prepare('SELECT content FROM copies_cache WHERE video_id = ? AND mode = ?').get(videoId, 'raw');
     if (rawCached && rawCached.content && rawCached.content.trim().length > 0) {
       console.log(`[Cache Hit] 视频/音频 ${videoId} 命中底层原声逐字稿缓存，直接复用！`);
       text = rawCached.content;
@@ -879,8 +879,8 @@ app.post('/api/generate', authenticate, async (req, res) => {
 
       // 首次提取成功后，立即把清洗后的逐字稿永久存入 raw 模式缓存
       const initialCleaned = cleanRawTranscript(text.slice(0, 300000));
-      db.prepare('INSERT OR REPLACE INTO copies_cache (video_id, mode, content, created_at) VALUES (?, "raw", ?, ?)')
-        .run(videoId, initialCleaned, Date.now());
+      db.prepare('INSERT OR REPLACE INTO copies_cache (video_id, mode, content, created_at) VALUES (?, ?, ?, ?)')
+        .run(videoId, 'raw', initialCleaned, Date.now());
       text = initialCleaned;
     }
 
