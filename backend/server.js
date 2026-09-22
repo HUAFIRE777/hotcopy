@@ -169,7 +169,8 @@ async function updateTrendsJob() {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
-  const cacheStmt = db.prepare('INSERT OR REPLACE INTO copies_cache (video_id, mode, content, created_at) VALUES (?, ?, ?, ?)');
+  const cacheStmt = pruneExcessCache();
+    db.prepare('INSERT OR REPLACE INTO copies_cache (video_id, mode, content, created_at) VALUES (?, ?, ?, ?)');
 
   const insertList = (list, cat) => {
     for (const item of list) {
@@ -298,6 +299,24 @@ async function fetchTikTokTranscript(url) {
 
   return whisperRes.data.text;
 }
+
+
+// ---------------- 磁盘与缓存超限自愈保护机制 ----------------
+function pruneExcessCache() {
+  try {
+    // 限制 copies_cache 最多保留 200 条最热记录，杜绝数据库无节制膨胀
+    db.prepare(`
+      DELETE FROM copies_cache 
+      WHERE id NOT IN (SELECT id FROM copies_cache ORDER BY created_at DESC LIMIT 200)
+    `).run();
+  } catch (e) {}
+}
+
+// 每 30 分钟定时清理 /tmp 下所有的音视频碎片文件，确保硬盘 0 冗余
+setInterval(() => {
+  pruneExcessCache();
+  exec("rm -f /tmp/yt_*.mp3 /tmp/test_*.mp3 /tmp/*.webm /tmp/*.part 2>/dev/null", () => {});
+}, 1800000);
 
 // ---------------- 核心生成与数据双写 ----------------
 const PROMPT_REWRITE = `你是一位顶级自媒体爆款内容操盘手。请将提供的视频转录逐字稿，改写为符合中文互联网习惯的爆款文案：
