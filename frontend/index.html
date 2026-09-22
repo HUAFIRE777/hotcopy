@@ -12,13 +12,15 @@
 
   <!-- Google Search Console 站长平台验证 -->
   <meta name="google-site-verification" content="google89b79b3a1ee865f8" />
-
-  <!-- OpenGraph Metadata -->
+  <title>HotCopy (热文工坊) - YouTube/TikTok海外视频原声提取与 AI 爆款改写工坊</title>
+  <meta name="description" content="直连官方字幕接口，秒级抓取完整原声逐字稿。支持一键导出 TXT 纯文本、核心要点简报速读、中英双语精翻与 AI 爆款内容改写。" />
+  <meta name="keywords" content="YouTube逐字稿,视频字幕提取,导出TXT字幕,AI爆款改写,TikTok音频提取,出海视频二创,海外热文" />
+  
+  <!-- Open Graph / SEO -->
   <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="HotCopy · EazyOPC" />
   <meta property="og:url" content="https://hotcopy.eazyopc.com/" />
-  <meta property="og:title" content="HotCopy (热文工坊) - 海外视频原声提取与自媒体二创工坊" />
-  <meta property="og:description" content="极简、高效、专注内容本身：秒级提取海外视频逐字稿，一键导出 TXT 纯文本与自媒体二创脚本。" />
+  <meta property="og:title" content="HotCopy (热文工坊) - 海外视频原声提取与 AI 爆款改写工坊" />
+  <meta property="og:description" content="极简、高效、专注内容本身：秒级提取海外视频逐字稿，一键导出 TXT 纯文本与 AI 爆款改写脚本。" />
   <meta property="og:image" content="https://hotcopy.eazyopc.com/favicon.svg" />
 
   <!-- Google AdSense 核心代码 -->
@@ -111,8 +113,8 @@
       </nav>
 
       <div id="authArea" class="flex items-center gap-2 text-xs">
-        <button onclick="handleAuthPrompt('login')" class="px-3 py-1.5 text-stone-600 hover:text-stone-900 font-medium transition">登录</button>
-        <button onclick="handleAuthPrompt('register')" class="bg-stone-900 hover:bg-stone-800 text-white px-3.5 py-1.5 rounded-lg font-medium transition shadow-xs">注册</button>
+        <button onclick="openAuthModal('login')" class="px-3 py-1.5 text-stone-600 hover:text-stone-900 font-medium transition">登录</button>
+        <button onclick="openAuthModal('register')" class="bg-stone-900 hover:bg-stone-800 text-white px-3.5 py-1.5 rounded-lg font-medium transition shadow-xs">注册</button>
       </div>
     </div>
   </header>
@@ -176,8 +178,8 @@
           </button>
 
           <button onclick="runConvert('rewrite')" class="flex flex-col items-start p-3.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-white transition text-left group shadow-xs">
-            <span class="text-xs font-bold text-white mb-0.5">自媒体二创改写</span>
-            <span class="text-[11px] text-stone-300">黄金抓手 · 小红书/短视频</span>
+            <span class="text-xs font-bold text-white mb-0.5">AI 爆款改写</span>
+            <span class="text-[11px] text-stone-300">爆款钩子 · 小红书/公众号/短视频</span>
           </button>
         </div>
       </div>
@@ -211,10 +213,13 @@
           <p class="text-xs text-stone-500 mt-0.5">每 2 小时自动同步海外优质内容源，点击卡片即可直接提取</p>
         </div>
 
-        <div class="flex gap-1.5" id="categoryTabs">
-          <button onclick="switchCategory('tech')" class="tab-btn px-3.5 py-1.5 rounded-lg text-xs font-medium bg-stone-900 text-white" data-cat="tech">前沿科技</button>
-          <button onclick="switchCategory('business')" class="tab-btn px-3.5 py-1.5 rounded-lg text-xs font-medium bg-white text-stone-600 border border-stone-200 hover:border-stone-300" data-cat="business">商业出海</button>
-          <button onclick="switchCategory('life')" class="tab-btn px-3.5 py-1.5 rounded-lg text-xs font-medium bg-white text-stone-600 border border-stone-200 hover:border-stone-300" data-cat="life">认知成长</button>
+        <div class="flex gap-1.5 overflow-x-auto pb-1 max-w-full" id="categoryTabs">
+          <button onclick="switchCategory('all')" class="tab-btn shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-medium bg-stone-900 text-white" data-cat="all">全部精选</button>
+          <button onclick="switchCategory('tech')" class="tab-btn shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-medium bg-white text-stone-600 border border-stone-200 hover:border-stone-300" data-cat="tech">前沿科技 & AI</button>
+          <button onclick="switchCategory('business')" class="tab-btn shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-medium bg-white text-stone-600 border border-stone-200 hover:border-stone-300" data-cat="business">商业创富 & 出海</button>
+          <button onclick="switchCategory('podcast')" class="tab-btn shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-medium bg-white text-stone-600 border border-stone-200 hover:border-stone-300" data-cat="podcast">深度播客 & 访谈</button>
+          <button onclick="switchCategory('growth')" class="tab-btn shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-medium bg-white text-stone-600 border border-stone-200 hover:border-stone-300" data-cat="growth">认知思维 & 成长</button>
+          <button onclick="switchCategory('lifestyle')" class="tab-btn shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-medium bg-white text-stone-600 border border-stone-200 hover:border-stone-300" data-cat="lifestyle">生活方式 & 技能</button>
         </div>
       </div>
 
@@ -377,8 +382,8 @@
             <div class="text-2xl font-black mt-2 mb-3 text-stone-900">$9.9 <span class="text-xs font-normal text-stone-400">/月</span></div>
             <ul class="text-xs text-stone-600 space-y-2">
               <li>✓ <strong>每月 100 次</strong>生成额度</li>
-              <li>✓ <strong>解锁自媒体二创改写</strong></li>
-              <li>✓ 黄金 3 秒标题与小红书脚本</li>
+              <li>✓ <strong>解锁 AI 爆款改写</strong></li>
+              <li>✓ 爆款钩子、公众号与短视频脚本</li>
               <li>✓ 优先处理通道</li>
               <li>✓ 永久纯净无广告</li>
             </ul>
@@ -422,6 +427,49 @@
     </div>
   </div>
 
+  <!-- EazyOPC 极简风格登录 / 注册模态弹窗 -->
+  <div id="authModal" class="fixed inset-0 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-[#fbfbfa] border border-stone-200 w-full max-w-sm rounded-2xl p-6 sm:p-7 shadow-xl relative animate-in fade-in zoom-in-95 duration-150">
+      <button onclick="closeModal('authModal')" class="absolute top-4 right-4 w-7 h-7 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-500 hover:text-stone-800 flex items-center justify-center text-xs transition">✕</button>
+      
+      <div class="mb-5">
+        <div class="w-8 h-8 rounded-lg bg-stone-900 text-white flex items-center justify-center font-bold text-xs tracking-tight mb-3">
+          HC
+        </div>
+        <h3 id="authTitle" class="text-lg font-bold text-stone-900">登录 HotCopy</h3>
+        <p id="authSubtitle" class="text-xs text-stone-500 mt-1">欢迎回来，创造者。</p>
+      </div>
+
+      <form id="authForm" onsubmit="submitAuthForm(event)" class="space-y-3.5">
+        <div>
+          <label class="block text-[11px] font-medium text-stone-600 mb-1">电子邮箱</label>
+          <input id="authEmail" type="email" required placeholder="name@domain.com"
+            class="w-full bg-white border border-stone-300 rounded-xl px-3 py-2 text-xs text-stone-900 focus:outline-none focus:border-stone-900 transition">
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-medium text-stone-600 mb-1">登录密码</label>
+          <input id="authPassword" type="password" required placeholder="请输入至少 6 位密码"
+            class="w-full bg-white border border-stone-300 rounded-xl px-3 py-2 text-xs text-stone-900 focus:outline-none focus:border-stone-900 transition">
+        </div>
+
+        <div id="authError" class="hidden text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg p-2.5 leading-tight"></div>
+
+        <button id="authSubmitBtn" type="submit"
+          class="w-full bg-stone-900 hover:bg-stone-800 text-white py-2.5 rounded-xl text-xs font-semibold transition shadow-xs">
+          登录
+        </button>
+      </form>
+
+      <div class="mt-5 pt-4 border-t border-stone-200 text-center text-xs text-stone-500">
+        <span id="authToggleText">还没有账号？</span>
+        <button id="authToggleBtn" type="button" onclick="toggleAuthMode()" class="text-stone-900 font-semibold hover:underline ml-1">
+          立即免费注册
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
       ? 'http://localhost:3001' 
@@ -429,7 +477,7 @@
 
     let token = localStorage.getItem('token');
     let currentUser = null;
-    let currentCategory = 'tech';
+    let currentCategory = 'all';
     let currentConvertedText = '';
 
     window.addEventListener('DOMContentLoaded', () => {
@@ -503,7 +551,7 @@
                 </button>
                 <button onclick="runConvertDirect('${item.platform === 'youtube' ? 'https://youtube.com/watch?v=' + item.video_id : item.video_id}', 'rewrite')" 
                   class="bg-stone-900 hover:bg-stone-800 text-white py-1.5 rounded-lg font-medium transition text-center">
-                  二创
+                  AI改写
                 </button>
               </div>
             </div>
@@ -518,9 +566,9 @@
       currentCategory = cat;
       document.querySelectorAll('.tab-btn').forEach(btn => {
         if (btn.dataset.cat === cat) {
-          btn.className = 'tab-btn px-3.5 py-1.5 rounded-lg text-xs font-medium bg-stone-900 text-white';
+          btn.className = 'tab-btn shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-medium bg-stone-900 text-white';
         } else {
-          btn.className = 'tab-btn px-3.5 py-1.5 rounded-lg text-xs font-medium bg-white text-stone-600 border border-stone-200 hover:border-stone-300';
+          btn.className = 'tab-btn shrink-0 px-3.5 py-1.5 rounded-lg text-xs font-medium bg-white text-stone-600 border border-stone-200 hover:border-stone-300';
         }
       });
       loadTrends(cat);
@@ -533,7 +581,7 @@
     }
 
     async function runConvertDirect(url, mode) {
-      if (!token) return handleAuthPrompt('login');
+      if (!token) return openAuthModal('login');
       
       const modal = document.getElementById('resultModal');
       const box = document.getElementById('resultText');
@@ -541,7 +589,7 @@
       
       modal.classList.remove('hidden');
       box.innerText = '正在调动海外云端节点连接官方字幕与音频流...\n';
-      meta.innerText = mode === 'raw' ? '提取官方逐字稿' : mode === 'summary' ? '提炼事实简报' : mode === 'translate' ? '双语精翻' : '自媒体二创改写';
+      meta.innerText = mode === 'raw' ? '提取官方逐字稿' : mode === 'summary' ? '提炼事实简报' : mode === 'translate' ? '双语精翻' : 'AI 爆款改写';
       currentConvertedText = '';
 
       try {
@@ -629,31 +677,78 @@
     function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
     function logout() { localStorage.removeItem('token'); location.reload(); }
 
-    function handleAuthPrompt(type) {
-      const email = prompt(`${type === 'login' ? '登录' : '注册'} HotCopy - 请输入您的邮箱:`);
-      if (!email) return;
-      const password = prompt('请输入密码:');
-      if (!password) return;
+    let currentAuthMode = 'login'; // 'login' or 'register'
 
-      fetch(`${API_BASE}/api/auth/${type}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      })
-      .then(r => r.json())
-      .then(d => {
-        if (d.token) {
-          localStorage.setItem('token', d.token);
-          location.reload();
-        } else {
-          alert(d.error || '操作失败');
+    function openAuthModal(mode = 'login') {
+      currentAuthMode = mode;
+      updateAuthModalUI();
+      document.getElementById('authError').classList.add('hidden');
+      document.getElementById('authModal').classList.remove('hidden');
+      setTimeout(() => {
+        const input = document.getElementById('authEmail');
+        if (input) input.focus();
+      }, 50);
+    }
+
+    function toggleAuthMode() {
+      currentAuthMode = currentAuthMode === 'login' ? 'register' : 'login';
+      updateAuthModalUI();
+    }
+
+    function updateAuthModalUI() {
+      const isLogin = currentAuthMode === 'login';
+      document.getElementById('authTitle').innerText = isLogin ? '登录 HotCopy' : '免费注册 HotCopy';
+      document.getElementById('authSubtitle').innerText = isLogin ? '欢迎回来，创造者。' : '注册即送 3 次免费体验额度，开启高效创作。';
+      document.getElementById('authSubmitBtn').innerText = isLogin ? '登录' : '立即注册';
+      document.getElementById('authToggleText').innerText = isLogin ? '还没有账号？' : '已有 HotCopy 账号？';
+      document.getElementById('authToggleBtn').innerText = isLogin ? '立即免费注册' : '直接登录';
+      document.getElementById('authError').classList.add('hidden');
+    }
+
+    async function submitAuthForm(e) {
+      e.preventDefault();
+      const email = document.getElementById('authEmail').value.trim();
+      const password = document.getElementById('authPassword').value.trim();
+      const errBox = document.getElementById('authError');
+      const submitBtn = document.getElementById('authSubmitBtn');
+
+      if (!email || !password) return;
+      if (password.length < 6) {
+        errBox.innerText = '密码长度不能少于 6 位';
+        errBox.classList.remove('hidden');
+        return;
+      }
+
+      errBox.classList.add('hidden');
+      submitBtn.disabled = true;
+      submitBtn.innerText = currentAuthMode === 'login' ? '正在登录...' : '正在注册...';
+
+      try {
+        const res = await fetch(`${API_BASE}/api/auth/${currentAuthMode}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || '请求失败，请检查账号密码');
         }
-      })
-      .catch(err => alert('网络异常: ' + err.message));
+        if (data.token) {
+          localStorage.setItem('token', data.token);
+          closeModal('authModal');
+          location.reload();
+        }
+      } catch (err) {
+        errBox.innerText = err.message;
+        errBox.classList.remove('hidden');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerText = currentAuthMode === 'login' ? '登录' : '立即注册';
+      }
     }
 
     async function verifyLicense() {
-      if (!token) return handleAuthPrompt('login');
+      if (!token) return openAuthModal('login');
       const input = document.getElementById('licenseCodeInput');
       const code = input.value.trim();
       if (!code) return alert('请输入卡密');
