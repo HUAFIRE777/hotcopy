@@ -512,24 +512,28 @@ app.post('/api/webhook/creem', (req, res) => {
 
   if (event.type === 'checkout.completed' || event.type === 'subscription.created' || event.event === 'checkout.completed') {
     const email = event.data?.customer_email || event.data?.email || event.data?.customer?.email || event.customer_email;
+    const prodId = event.data?.product_id || event.data?.product?.id || event.product_id || '';
     const name = (event.data?.product_name || event.data?.product?.name || event.product_name || '').toLowerCase();
 
     // 检查是否为一次性加油包 (Booster / Top-up)
-    const isBooster = name.includes('booster') || name.includes('top-up') || name.includes('credit');
+    const isBooster = prodId === 'prod_6Kq15IgZgt8kBenKZt1lWC' || 
+                      prodId === 'prod_1KNRjyt1zEpUhQR9RHsVkv' || 
+                      prodId === 'prod_1J2GS2ql5fOOLmALoP0dw6' ||
+                      name.includes('booster') || name.includes('top-up') || name.includes('credit');
 
     if (email) {
       const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
 
       if (isBooster) {
-        let addCredits = 50;
+        let addCredits = 20;
         let boosterPlan = 'basic';
-        if (name.includes('100')) {
+        if (prodId === 'prod_1J2GS2ql5fOOLmALoP0dw6' || name.includes('100')) {
           addCredits = 100;
           boosterPlan = 'pro';
-        } else if (name.includes('50')) {
+        } else if (prodId === 'prod_1KNRjyt1zEpUhQR9RHsVkv' || name.includes('50')) {
           addCredits = 50;
           boosterPlan = 'basic';
-        } else if (name.includes('20')) {
+        } else if (prodId === 'prod_6Kq15IgZgt8kBenKZt1lWC' || name.includes('20')) {
           addCredits = 20;
           boosterPlan = 'basic';
         }
@@ -554,12 +558,15 @@ app.post('/api/webhook/creem', (req, res) => {
         // 月度订阅方案
         let plan = 'basic';
         let limit = 50;
-        if (name.includes('premium') || name.includes('studio')) {
+        if (prodId === 'prod_18Pj0OPprcNCwgLmr6nnE4' || name.includes('premium') || name.includes('studio')) {
           plan = 'premium';
           limit = 300;
-        } else if (name.includes('pro')) {
+        } else if (prodId === 'prod_5Uaj4zKtKXiSHY7vsR0HHR' || name.includes('pro')) {
           plan = 'pro';
           limit = 100;
+        } else if (prodId === 'prod_6yBTQZmi3xEv0nLQ53Ka3e' || name.includes('basic')) {
+          plan = 'basic';
+          limit = 50;
         }
 
         if (!user) {
