@@ -524,6 +524,31 @@ app.post('/api/admin/upgrade', requireAdmin, (req, res) => {
   res.json({ success: true, message: `已更新 ${email} 的套餐为 ${plan}` });
 });
 
+app.get('/api/admin/cookies-status', requireAdmin, (req, res) => {
+  const cookiePath = '/opt/hotcopy/cookies.txt';
+  const exists = fs.existsSync(cookiePath);
+  if (!exists) {
+    return res.json({ status: 'missing', message: 'Cookies 通行证文件不存在' });
+  }
+  const stat = fs.statSync(cookiePath);
+  res.json({
+    status: 'ok',
+    updatedAt: stat.mtimeMs,
+    size: stat.size,
+    message: 'Cookies 通行证正常工作中'
+  });
+});
+
+app.post('/api/admin/cookies-update', requireAdmin, (req, res) => {
+  const { cookiesContent } = req.body;
+  if (!cookiesContent || typeof cookiesContent !== 'string' || cookiesContent.length < 50) {
+    return res.status(400).json({ error: 'Cookies 内容过短或无效，请确保完整复制' });
+  }
+  fs.writeFileSync('/opt/hotcopy/cookies.txt', cookiesContent, 'utf-8');
+  console.log('[Admin] Cookies 通行证已热更新，新大小:', cookiesContent.length);
+  res.json({ success: true, message: 'Cookies 通行证已成功热更新生效！' });
+});
+
 app.listen(PORT, () => {
   console.log(`HotCopy Core Backend running on port ${PORT}`);
   updateTrendsJob();
