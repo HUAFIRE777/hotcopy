@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>HotCopy 管理员面板与数据资产导出</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 p-8 min-h-screen">
+  <div class="max-w-5xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+      <div class="flex items-center gap-2">
+        <span class="font-bold text-lg text-rose-500">HotCopy</span>
+        <span class="text-xs text-slate-400">运营管控与微调资产面板</span>
+      </div>
+      <div class="flex gap-2">
+        <input id="adminKey" type="password" placeholder="输入 ADMIN_KEY" class="bg-slate-800 border border-slate-700 px-3 py-1.5 rounded text-xs">
+        <button onclick="fetchStats()" class="bg-rose-600 hover:bg-rose-500 text-white text-xs px-3 py-1.5 rounded font-medium">验证载入</button>
+      </div>
+    </div>
+
+    <!-- 概览看板 -->
+    <div class="grid grid-cols-3 gap-4 mb-6">
+      <div class="bg-slate-800 p-4 rounded-lg">
+        <div class="text-xs text-slate-400">总注册用户</div>
+        <div id="statTotal" class="text-2xl font-bold mt-1">0</div>
+      </div>
+      <div class="bg-slate-800 p-4 rounded-lg">
+        <div class="text-xs text-slate-400">付费活跃会员</div>
+        <div id="statPaid" class="text-2xl font-bold mt-1 text-emerald-400">0</div>
+      </div>
+      <div class="bg-slate-800 p-4 rounded-lg border border-rose-500/40">
+        <div class="text-xs text-slate-400">已沉淀 SFT 微调语料 (条)</div>
+        <div id="statSft" class="text-2xl font-bold mt-1 text-rose-400">0</div>
+      </div>
+    </div>
+
+    <!-- SFT 数据集一键打包下载 -->
+    <div class="bg-slate-800 p-4 rounded-lg mb-6 flex justify-between items-center border border-rose-500/20">
+      <div>
+        <h4 class="text-xs font-bold text-rose-300">打包导出高质量 SFT 训练集</h4>
+        <p class="text-[11px] text-slate-400 mt-0.5">自动导出包含 instruction, input, output 的标准 JSONL 语料，用于直接交付或模型微调。</p>
+      </div>
+      <button onclick="downloadDataset()" class="bg-rose-600 hover:bg-rose-500 text-white text-xs px-4 py-2 rounded-lg font-semibold flex items-center gap-1.5">
+        导出 hotcopy_sft_dataset.jsonl
+      </button>
+    </div>
+
+    <!-- 手动调整套餐 -->
+    <div class="bg-slate-800 p-4 rounded-lg mb-6 flex gap-3 items-center">
+      <input id="targetEmail" placeholder="指定用户邮箱" class="bg-slate-900 border border-slate-700 px-3 py-1.5 text-xs rounded flex-1">
+      <select id="targetPlan" class="bg-slate-900 border border-slate-700 px-3 py-1.5 text-xs rounded">
+        <option value="basic">基础版 (50次/月)</option>
+        <option value="pro">Pro 版 (100次/月)</option>
+        <option value="premium">高级版 (300次/月)</option>
+      </select>
+      <button onclick="manualUpgrade()" class="bg-emerald-600 text-xs px-4 py-1.5 rounded font-medium">确认调整/延期 30 天</button>
+    </div>
+
+    <!-- 用户明细 -->
+    <div class="bg-slate-800 rounded-lg overflow-hidden">
+      <table class="w-full text-xs text-left">
+        <thead class="bg-slate-950 text-slate-400">
+          <tr>
+            <th class="p-3">ID</th>
+            <th class="p-3">邮箱</th>
+            <th class="p-3">套餐</th>
+            <th class="p-3">当月已用 / 总限额</th>
+            <th class="p-3">到期时间</th>
+          </tr>
+        </thead>
+        <tbody id="userListBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+      ? 'http://localhost:3001' 
+      : 'https://api.eazyopc.com';
+
+    async function fetchStats() {
+      const key = document.getElementById('adminKey').value;
+      const res = await fetch(`${API}/api/admin/stats`, { headers: { 'x-admin-key': key } });
+      if (!res.ok) return alert('验证密钥失败');
+      const data = await res.json();
+      document.getElementById('statTotal').innerText = data.totalUsers;
+      document.getElementById('statPaid').innerText = data.paidUsers;
+      document.getElementById('statSft').innerText = data.sftDataCount;
+      document.getElementById('userListBody').innerHTML = data.users.map(u => `
+        <tr class="border-t border-slate-700">
+          <td class="p-3 font-mono">${u.id}</td>
+          <td class="p-3">${u.email}</td>
+          <td class="p-3"><span class="px-2 py-0.5 rounded ${u.plan === 'premium' ? 'bg-amber-900 text-amber-300' : u.plan === 'pro' ? 'bg-rose-900 text-rose-300' : 'bg-slate-700'}">${u.plan.toUpperCase()}</span></td>
+          <td class="p-3 font-mono">${u.used_count} / ${u.monthly_limit}</td>
+          <td class="p-3 text-slate-400">${new Date(u.expires_at).toLocaleDateString()}</td>
+        </tr>
+      `).join('');
+    }
+
+    function downloadDataset() {
+      const key = document.getElementById('adminKey').value;
+      if (!key) return alert('请先输入 ADMIN_KEY');
+      window.open(`${API}/api/admin/export-dataset?x-admin-key=${encodeURIComponent(key)}`);
+    }
+
+    async function manualUpgrade() {
+      const key = document.getElementById('adminKey').value;
+      const email = document.getElementById('targetEmail').value;
+      const plan = document.getElementById('targetPlan').value;
+      const res = await fetch(`${API}/api/admin/upgrade`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-key': key },
+        body: JSON.stringify({ email, plan, days: 30 })
+      });
+      const d = await res.json();
+      alert(d.message);
+      fetchStats();
+    }
+  </script>
+</body>
+</html>

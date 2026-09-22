@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HotCopy (热文工坊) - YouTube/TikTok海外热点视频提取与AI爆款文案生成器</title>
+  <meta name="keywords" content="HotCopy,热点文案,YouTube提取字幕,TikTok视频转文字,海外视频搬运二创,小红书爆款文案生成,短视频口播脚本改写,免翻墙自媒体工具">
+  <meta name="description" content="HotCopy 每 2 小时全自动同步全球科技与商业热点视频，免翻墙一键提取 YouTube 与 TikTok 原声逐字稿，AI 智能本土化改写为小红书与短视频高转化爆款脚本。">
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google AdSense 核心代码 -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6499357447763670" crossorigin="anonymous"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+  <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 bg-gradient-to-tr from-amber-500 to-rose-600 rounded-lg flex items-center justify-center font-black text-white shadow-lg shadow-rose-500/20">H</div>
+        <div class="flex flex-col">
+          <span class="font-bold text-lg leading-tight tracking-tight">HotCopy</span>
+          <span class="text-[10px] text-slate-400">热文工坊 · 爆款文案引擎</span>
+        </div>
+      </div>
+      <div id="authArea" class="flex items-center gap-3 text-sm">
+        <button onclick="handleAuthPrompt('login')" class="text-slate-300 hover:text-white">登录</button>
+        <button onclick="handleAuthPrompt('register')" class="bg-rose-600 hover:bg-rose-500 px-3 py-1.5 rounded-md font-medium text-white transition-all shadow-sm">注册</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4 py-8">
+    <!-- 广告位：横幅（免费用户展示，会员自动隐藏） -->
+    <div id="topAdBanner" class="w-full my-3 text-center overflow-hidden bg-slate-900/40 border border-slate-800/60 rounded-xl p-2">
+      <span class="text-[10px] text-slate-600 block mb-1">赞助商内容</span>
+      <ins class="adsbygoogle"
+           style="display:block"
+           data-ad-client="ca-pub-6499357447763670"
+           data-ad-slot="1234567890"
+           data-ad-format="auto"
+           data-full-width-responsive="true"></ins>
+      <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+    </div>
+
+    <!-- 视频链接转换区 -->
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-6 mb-8 shadow-xl">
+      <h2 class="text-base font-semibold mb-2">输入任意 YouTube / TikTok 链接生成文案</h2>
+      <p class="text-xs text-slate-400 mb-4">自动识别海外平台链接，TikTok 自动完成原声音频转写与本地化爆款重写。</p>
+      
+      <div class="flex flex-col md:flex-row gap-3">
+        <input id="videoUrl" type="text" placeholder="粘贴链接：https://www.youtube.com/... 或 https://www.tiktok.com/@..." 
+          class="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-rose-500">
+        <div class="flex gap-2">
+          <button onclick="runConvert('translate')" class="bg-slate-800 hover:bg-slate-700 px-4 py-2.5 rounded-lg text-xs font-semibold">双语精翻 (基础版)</button>
+          <button onclick="runConvert('rewrite')" class="bg-gradient-to-r from-amber-500 to-rose-600 hover:opacity-95 px-5 py-2.5 rounded-lg text-xs font-semibold text-white">AI 爆款改写 (Pro/高级)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2小时自动更新热点列表 -->
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex gap-2" id="categoryTabs">
+        <button onclick="switchCategory('tech')" class="tab-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-rose-600 text-white" data-cat="tech">科技前沿</button>
+        <button onclick="switchCategory('business')" class="tab-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-slate-900 text-slate-400 border border-slate-800" data-cat="business">商业搞钱</button>
+        <button onclick="switchCategory('life')" class="tab-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-slate-900 text-slate-400 border border-slate-800" data-cat="life">认知奇闻</button>
+      </div>
+      <span class="text-xs text-slate-500">每 2 小时同步全球热点</span>
+    </div>
+
+    <div id="trendsGrid" class="grid grid-cols-1 md:grid-cols-3 gap-5"></div>
+  </main>
+
+  <!-- 结果输出弹窗 -->
+  <div id="resultModal" class="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-xl max-w-2xl w-full max-h-[85vh] flex flex-col p-6 shadow-2xl">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="font-bold text-sm">文案提炼结果</h3>
+        <button onclick="closeModal('resultModal')" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+      <div id="resultText" class="flex-1 overflow-y-auto bg-slate-950 p-4 rounded-lg text-sm leading-relaxed whitespace-pre-wrap text-slate-300">正在提炼中...</div>
+      
+      <!-- 弹窗内置插屏广告 -->
+      <div id="modalAdBox" class="mt-3 text-center">
+        <ins class="adsbygoogle"
+             style="display:block"
+             data-ad-client="ca-pub-6499357447763670"
+             data-ad-slot="9876543210"
+             data-ad-format="horizontal"></ins>
+        <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+      </div>
+
+      <div class="mt-4 flex justify-end gap-2">
+        <button onclick="copyResult()" class="bg-rose-600 px-4 py-2 rounded-lg text-xs font-semibold text-white">一键复制</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 三档会员升级弹窗 -->
+  <div id="pricingModal" class="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-xl max-w-4xl w-full p-6 text-center">
+      <h3 class="text-xl font-bold mb-1">选择最适合你的 HotCopy 方案</h3>
+      <p class="text-xs text-slate-400 mb-6">无缝支持 YouTube 与 TikTok，秒级提炼中文爆款文案</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
+        <div class="bg-slate-950 border border-slate-800 p-5 rounded-lg flex flex-col justify-between">
+          <div>
+            <div class="text-xs font-bold text-slate-400">基础版 (Basic)</div>
+            <div class="text-2xl font-black mt-2 mb-4">$4.9 <span class="text-xs font-normal">/月</span></div>
+            <ul class="text-xs text-slate-400 space-y-2">
+              <li>✓ 每月 50 次双语精翻</li>
+              <li>✓ 支持 YouTube/TikTok 解析</li>
+              <li>✓ 纯净无广告体验</li>
+            </ul>
+          </div>
+          <a href="https://creem.io/checkout/your-basic-link" target="_blank" class="block text-center mt-6 bg-slate-800 py-2 rounded text-xs font-semibold">开通基础版</a>
+        </div>
+
+        <div class="bg-slate-950 border border-rose-500 p-5 rounded-lg flex flex-col justify-between relative shadow-lg shadow-rose-500/10">
+          <span class="absolute top-2 right-2 text-[10px] bg-rose-600 text-white px-2 py-0.5 rounded-full font-bold">最受欢迎</span>
+          <div>
+            <div class="text-xs font-bold text-rose-400">Pro 爆款版</div>
+            <div class="text-2xl font-black mt-2 mb-4">$9.9 <span class="text-xs font-normal">/月</span></div>
+            <ul class="text-xs text-slate-400 space-y-2">
+              <li>✓ 每月 100 次生成</li>
+              <li>✓ 解锁 AI 爆款重写引擎</li>
+              <li>✓ 小红书/短视频口播脚本定制</li>
+              <li>✓ 纯净无广告体验</li>
+            </ul>
+          </div>
+          <a href="https://creem.io/checkout/your-pro-link" target="_blank" class="block text-center mt-6 bg-rose-600 text-white py-2 rounded text-xs font-semibold">升级 Pro 版</a>
+        </div>
+
+        <div class="bg-slate-950 border border-amber-500 p-5 rounded-lg flex flex-col justify-between">
+          <div>
+            <div class="text-xs font-bold text-amber-400">高级工作室版 (Premium)</div>
+            <div class="text-2xl font-black mt-2 mb-4">$19.9 <span class="text-xs font-normal">/月</span></div>
+            <ul class="text-xs text-slate-400 space-y-2">
+              <li>✓ 每月 300 次大额度</li>
+              <li>✓ 优先高并发流式处理队列</li>
+              <li>✓ 全模型爆款生成权限</li>
+              <li>✓ 专属 Prompt 调优支持</li>
+            </ul>
+          </div>
+          <a href="https://creem.io/checkout/your-premium-link" target="_blank" class="block text-center mt-6 bg-gradient-to-r from-amber-500 to-rose-600 text-white py-2 rounded text-xs font-semibold">升级高级版</a>
+        </div>
+      </div>
+      <button onclick="closeModal('pricingModal')" class="mt-6 text-xs text-slate-500">稍后决定</button>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
+      ? 'http://localhost:3001' 
+      : 'https://api.eazyopc.com';
+    let token = localStorage.getItem('token');
+    let currentCategory = 'tech';
+
+    window.addEventListener('DOMContentLoaded', () => {
+      checkAuth();
+      loadTrends(currentCategory);
+    });
+
+    async function checkAuth() {
+      if (!token) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/auth/me`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error();
+        const user = await res.json();
+
+        if (user.plan !== 'free') {
+          const topAd = document.getElementById('topAdBanner');
+          const modalAd = document.getElementById('modalAdBox');
+          if (topAd) topAd.style.display = 'none';
+          if (modalAd) modalAd.style.display = 'none';
+        }
+
+        document.getElementById('authArea').innerHTML = `
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-slate-400">${user.email} (${user.plan.toUpperCase()})</span>
+            <span class="text-xs text-rose-400 font-mono">额度: ${user.used_count}/${user.monthly_limit}</span>
+            <button onclick="openPricing()" class="text-xs bg-rose-600/30 text-rose-300 border border-rose-500/30 px-2 py-1 rounded">升级</button>
+            <button onclick="logout()" class="text-xs text-slate-500">退出</button>
+          </div>
+        `;
+      } catch {
+        localStorage.removeItem('token');
+      }
+    }
+
+    async function loadTrends(category) {
+      const grid = document.getElementById('trendsGrid');
+      grid.innerHTML = '<div class="text-xs text-slate-500">正在同步热点...</div>';
+      try {
+        const res = await fetch(`${API_BASE}/api/trends?category=${category}`);
+        const list = await res.json();
+        grid.innerHTML = list.map(item => `
+          <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col">
+            <img src="${item.cover_url}" class="w-full h-40 object-cover" loading="lazy">
+            <div class="p-4 flex-1 flex flex-col justify-between">
+              <h4 class="text-xs font-bold line-clamp-2 mb-3 text-slate-200">${item.title_cn || item.title}</h4>
+              <div class="grid grid-cols-2 gap-2 mt-auto">
+                <button onclick="runConvertDirect('${item.platform === 'youtube' ? 'https://youtube.com/watch?v=' + item.video_id : item.video_id}', 'translate')" class="bg-slate-800 hover:bg-slate-700 text-[11px] py-2 rounded text-slate-300 font-medium">双语精翻</button>
+                <button onclick="runConvertDirect('${item.platform === 'youtube' ? 'https://youtube.com/watch?v=' + item.video_id : item.video_id}', 'rewrite')" class="bg-rose-600 hover:bg-rose-500 text-[11px] py-2 rounded text-white font-medium">AI 爆款改写</button>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) {
+        grid.innerHTML = '<div class="text-xs text-slate-500">暂未能加载热点，请稍后再试</div>';
+      }
+    }
+
+    function switchCategory(cat) {
+      currentCategory = cat;
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        if (btn.dataset.cat === cat) {
+          btn.className = 'tab-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-rose-600 text-white';
+        } else {
+          btn.className = 'tab-btn px-4 py-1.5 rounded-full text-xs font-semibold bg-slate-900 text-slate-400 border border-slate-800';
+        }
+      });
+      loadTrends(cat);
+    }
+
+    function runConvert(mode) {
+      const url = document.getElementById('videoUrl').value.trim();
+      if (!url) return alert('请输入有效链接');
+      runConvertDirect(url, mode);
+    }
+
+    async function runConvertDirect(url, mode) {
+      if (!token) return handleAuthPrompt('login');
+      const modal = document.getElementById('resultModal');
+      const box = document.getElementById('resultText');
+      modal.classList.remove('hidden');
+      box.innerText = '正在调动云端引擎抓取并转录中...\n';
+
+      try {
+        const res = await fetch(`${API_BASE}/api/generate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ url, mode })
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: '请求异常' }));
+          if (res.status === 429 || res.status === 403) {
+            closeModal('resultModal');
+            openPricing();
+          }
+          throw new Error(err.error);
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        box.innerText = '';
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          box.innerText += decoder.decode(value, { stream: true });
+        }
+        checkAuth();
+      } catch (e) {
+        box.innerText = `处理失败: ${e.message}`;
+      }
+    }
+
+    function openPricing() { document.getElementById('pricingModal').classList.remove('hidden'); }
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+    function logout() { localStorage.removeItem('token'); location.reload(); }
+    function copyResult() {
+      navigator.clipboard.writeText(document.getElementById('resultText').innerText);
+      alert('文案已成功复制！');
+    }
+
+    function handleAuthPrompt(type) {
+      const email = prompt(`${type === 'login' ? '登录' : '注册'} - 请输入邮箱:`);
+      if (!email) return;
+      const password = prompt('请输入密码:');
+      if (!password) return;
+
+      fetch(`${API_BASE}/api/auth/${type}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      })
+      .then(r => r.json())
+      .then(d => {
+        if (d.token) {
+          localStorage.setItem('token', d.token);
+          location.reload();
+        } else {
+          alert(d.error || '操作失败');
+        }
+      });
+    }
+  </script>
+</body>
+</html>
