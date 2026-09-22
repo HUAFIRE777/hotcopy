@@ -173,7 +173,7 @@
       <!-- 输入栏 -->
       <div class="space-y-4">
         <div class="flex items-center bg-[#fafaf9] border border-stone-300 rounded-xl p-1.5 focus-within:border-stone-800 focus-within:bg-white transition shadow-inner">
-          <input id="videoUrl" type="text" placeholder="粘贴视频链接：https://www.youtube.com/watch?v=... 或 https://www.tiktok.com/@..." 
+          <input id="videoUrl" type="text" placeholder="粘贴链接：支持 YouTube 视频、Apple Podcasts、小宇宙播客、B站、音频直链..." 
             class="flex-1 bg-transparent border-none px-3.5 py-2.5 text-xs sm:text-sm text-stone-900 focus:outline-none placeholder-stone-400">
           <button onclick="pasteFromClipboard()" class="hidden sm:inline-block px-3 py-1.5 text-xs text-stone-600 hover:text-stone-900 bg-white border border-stone-200 hover:border-stone-300 rounded-lg transition font-medium mr-1">
             粘贴
@@ -214,19 +214,19 @@
       <div class="flex flex-wrap items-center gap-6 mt-8 pt-6 border-t border-stone-100 text-[11px] text-stone-500">
         <div class="flex items-center gap-1.5">
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-          <span>海外骨干节点直连</span>
+          <span>支持 YouTube / 播客 / B站 / 音频直链</span>
         </div>
         <div class="flex items-center gap-1.5">
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-          <span>官方字幕轨自动识别</span>
+          <span>官方 CC 字幕 0 秒秒出</span>
         </div>
         <div class="flex items-center gap-1.5">
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-          <span>自动清洗无意义口癖</span>
+          <span>超长音频无损智能分片</span>
         </div>
         <div class="flex items-center gap-1.5">
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-          <span>支持免费下载纯文本</span>
+          <span>多通道容灾 · 100% 稳定交付</span>
         </div>
       </div>
     </section>
@@ -794,7 +794,7 @@
       const meta = document.getElementById('resultMeta');
       
       modal.classList.remove('hidden');
-      box.innerText = '正在调动海外云端节点连接官方字幕与音频流...\n';
+      box.innerText = '正在调动云端节点解析音视频/字幕流并启动智能听译管道...\n';
       meta.innerText = mode === 'raw' ? '提取官方逐字稿' : mode === 'summary' ? '提炼事实简报' : mode === 'translate' ? '双语精翻' : 'AI 爆款改写';
       currentConvertedText = '';
 

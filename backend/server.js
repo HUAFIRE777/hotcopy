@@ -1,5 +1,6 @@
 const express = require('express');
 const fs = require('fs');
+const path = require('path');
 const os = require('os');
 const cors = require('cors');
 const Database = require('better-sqlite3');
@@ -8,6 +9,7 @@ const jwt = require('jsonwebtoken');
 const cron = require('node-cron');
 const axios = require('axios');
 const FormData = require('form-data');
+const crypto = require('crypto');
 const { YoutubeTranscript } = require('youtube-transcript');
 const { TECH_TRENDS, BUSINESS_TRENDS, PODCAST_TRENDS, GROWTH_TRENDS, LIFESTYLE_TRENDS } = require('./trends_data');
 require('dotenv').config();
@@ -272,9 +274,120 @@ app.get('/api/trends', (req, res) => {
 });
 
 
-// ---------------- YouTube 音频流提取与 Groq Whisper 听译 (无字幕自动回退) ----------------
+// ---------------- 音频转录底层与 Groq Whisper 重试机制 ----------------
 const { exec } = require('child_process');
 
+async function sendFileToWhisper(filePath, maxRetries = 2) {
+  const models = ['whisper-large-v3', 'whisper-large-v3-turbo'];
+  let lastErr = null;
+
+  for (const model of models) {
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const form = new FormData();
+        form.append('file', fs.createReadStream(filePath));
+        form.append('model', model);
+        const res = await axios.post('https://api.groq.com/openai/v1/audio/transcriptions', form, {
+          headers: {
+            ...form.getHeaders(),
+            'Authorization': 'Bearer ' + process.env.GROQ_API_KEY
+          },
+          timeout: 120000
+        });
+        return res.data?.text || '';
+      } catch (err) {
+        lastErr = err;
+        const errMsg = err.response?.data?.error?.message || err.message;
+        console.warn(`[Groq Whisper - ${model}] 第 ${attempt + 1} 次尝试失败: ${errMsg}`);
+        if (errMsg.includes('Rate limit reached')) {
+          // 如果是模型级速率超限，立即跳出尝试下一个备用模型
+          break;
+        }
+        if (attempt < maxRetries) {
+          await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
+        }
+      }
+    }
+    console.warn(`[Groq Whisper] 模型 ${model} 不可用，无缝切换至备用 Whisper 模型...`);
+  }
+  throw new Error('Groq Whisper 转录失败: ' + (lastErr.response?.data?.error?.message || lastErr.message));
+}
+
+// ---------------- 工业级长音频处理管道 (自动轻量化压缩 + 超长分片保障) ----------------
+async function transcribeLongAudio(audioSourceUrl, identifier, customHeaders = {}) {
+  const tmpId = `${identifier}_${Date.now()}`;
+  const compressedPath = `/tmp/hc_${tmpId}.mp3`;
+  const chunkPrefix = `/tmp/hc_${tmpId}_chk`;
+
+  let headerArg = '';
+  if (customHeaders && Object.keys(customHeaders).length > 0) {
+    const headerStr = Object.entries(customHeaders).map(([k, v]) => `${k}: ${v}`).join('\r\n') + '\r\n';
+    headerArg = `-headers "${headerStr}"`;
+  }
+
+  console.log(`[Audio Engine] 正在下载并轻量化压缩音频: ${identifier}...`);
+  // 16kHz mono 32kbps：约 14.4MB / 小时
+  const cmd = `ffmpeg -y ${headerArg} -i "${audioSourceUrl}" -vn -ar 16000 -ac 1 -b:a 32k "${compressedPath}"`;
+
+  await new Promise((resolve, reject) => {
+    exec(cmd, { maxBuffer: 10 * 1024 * 1024, timeout: 600000 }, (err, stdout, stderr) => {
+      if (err) return reject(new Error('音频提取/压缩失败: ' + (stderr || err.message).slice(-200)));
+      resolve();
+    });
+  });
+
+  if (!fs.existsSync(compressedPath)) {
+    throw new Error('音频文件未成功生成');
+  }
+
+  const stat = fs.statSync(compressedPath);
+  console.log(`[Audio Engine] 音频压缩完成，文件大小: ${(stat.size / (1024 * 1024)).toFixed(2)} MB`);
+
+  let fullTranscript = '';
+
+  try {
+    // 若压缩后 <= 24MB（约 100 分钟），直接单次转录
+    if (stat.size <= 24 * 1024 * 1024) {
+      console.log(`[Audio Engine] 文件 <= 24MB，单次上传 Groq Whisper 听写...`);
+      fullTranscript = await sendFileToWhisper(compressedPath);
+    } else {
+      // 超长音频 (> 24MB，约 1.5~3小时+)，启动 40 分钟无损时间切片
+      console.log(`[Audio Engine] 音频超过 24MB，启用 40 分钟时间切片容灾分段...`);
+      const chunkCmd = `ffmpeg -y -i "${compressedPath}" -f segment -segment_time 2400 -c copy "${chunkPrefix}_%03d.mp3"`;
+      await new Promise((resolve, reject) => {
+        exec(chunkCmd, { timeout: 120000 }, (err, stdout, stderr) => {
+          if (err) return reject(new Error('长音频切片失败: ' + (stderr || err.message)));
+          resolve();
+        });
+      });
+
+      const tmpDirFiles = fs.readdirSync('/tmp');
+      const chunkFiles = tmpDirFiles
+        .filter(f => f.startsWith(`hc_${tmpId}_chk_`) && f.endsWith('.mp3'))
+        .sort()
+        .map(f => `/tmp/${f}`);
+
+      console.log(`[Audio Engine] 成功生成 ${chunkFiles.length} 个分段，开始分批听写...`);
+
+      for (let i = 0; i < chunkFiles.length; i++) {
+        const cPath = chunkFiles[i];
+        console.log(`[Audio Engine] 正在听写分段 ${i + 1}/${chunkFiles.length}...`);
+        const chunkText = await sendFileToWhisper(cPath);
+        if (chunkText) {
+          fullTranscript += (fullTranscript ? ' ' : '') + chunkText.trim();
+        }
+        try { fs.unlinkSync(cPath); } catch (e) {}
+      }
+    }
+  } finally {
+    try { if (fs.existsSync(compressedPath)) fs.unlinkSync(compressedPath); } catch (e) {}
+    try { exec(`rm -f /tmp/hc_${tmpId}* 2>/dev/null`, () => {}); } catch (e) {}
+  }
+
+  return fullTranscript;
+}
+
+// ---------------- YouTube 音频流提取与 Groq Whisper 听译 (支持超长视频分片) ----------------
 function fetchYouTubeWhisperTranscript(videoId) {
   return new Promise((resolve, reject) => {
     const audioPath = `/tmp/yt_${videoId}_${Date.now()}.mp3`;
@@ -282,7 +395,7 @@ function fetchYouTubeWhisperTranscript(videoId) {
     const cookiesFlag = fs.existsSync('/opt/hotcopy/cookies.txt') ? '--cookies /opt/hotcopy/cookies.txt' : '';
     console.log(`[Groq Whisper] 正在为 YouTube 视频 ${videoId} 提取音频流并进行轻量化压缩...`);
     const cmd = `yt-dlp ${cookiesFlag} -f "ba[ext=m4a]/ba" --extract-audio --audio-format mp3 --postprocessor-args "-ar 16000 -ac 1 -b:a 32k" -o "${audioPath}" "${videoUrl}"`;
-    
+
     exec(cmd, async (err, stdout, stderr) => {
       if (err) {
         const errStr = (stderr || stdout || err.message || '').toString();
@@ -300,26 +413,270 @@ function fetchYouTubeWhisperTranscript(videoId) {
         if (!fs.existsSync(audioPath)) {
           return reject(new Error('音频下载完成但未生成有效文件'));
         }
-        console.log(`[Groq Whisper] 音频提取成功，正在上传至 Groq Whisper-Large-V3 听译...`);
-        const form = new FormData();
-        form.append('file', fs.createReadStream(audioPath));
-        form.append('model', 'whisper-large-v3');
-        const res = await axios.post('https://api.groq.com/openai/v1/audio/transcriptions', form, {
-          headers: {
-            ...form.getHeaders(),
-            'Authorization': 'Bearer ' + process.env.GROQ_API_KEY
-          },
-          timeout: 60000
-        });
+
+        const stat = fs.statSync(audioPath);
+        console.log(`[YouTube Whisper] 音频下载完成，文件大小: ${(stat.size / (1024 * 1024)).toFixed(2)} MB`);
+
+        let transcript = '';
+        if (stat.size <= 24 * 1024 * 1024) {
+          transcript = await sendFileToWhisper(audioPath);
+        } else {
+          // 超长 YouTube 视频分片
+          const chunkPrefix = `/tmp/yt_chk_${videoId}_${Date.now()}`;
+          const chunkCmd = `ffmpeg -y -i "${audioPath}" -f segment -segment_time 2400 -c copy "${chunkPrefix}_%03d.mp3"`;
+          await new Promise((resChunk, rejChunk) => {
+            exec(chunkCmd, { timeout: 120000 }, (chunkErr) => {
+              if (chunkErr) return rejChunk(chunkErr);
+              resChunk();
+            });
+          });
+
+          const tmpDirFiles = fs.readdirSync('/tmp');
+          const chunkFiles = tmpDirFiles
+            .filter(f => f.startsWith(path.basename(chunkPrefix)) && f.endsWith('.mp3'))
+            .sort()
+            .map(f => `/tmp/${f}`);
+
+          for (const cPath of chunkFiles) {
+            const chunkText = await sendFileToWhisper(cPath);
+            if (chunkText) transcript += (transcript ? ' ' : '') + chunkText.trim();
+            try { fs.unlinkSync(cPath); } catch (e) {}
+          }
+        }
+
         fs.unlink(audioPath, () => {});
-        console.log(`[Groq Whisper] 听译完成，提取到 ${res.data?.text?.length || 0} 字符`);
-        resolve(res.data?.text || '');
+        console.log(`[Groq Whisper] YouTube 听译完成，提取到 ${transcript.length} 字符`);
+        resolve(transcript);
       } catch (whisperErr) {
         fs.unlink(audioPath, () => {});
         reject(new Error('Groq Whisper 语音转录失败: ' + (whisperErr.response?.data?.error?.message || whisperErr.message)));
       }
     });
   });
+}
+
+// ---------------- 播客与通用音频解析引擎 (Apple Podcasts / 小宇宙 / 通用直链) ----------------
+async function fetchPodcastAudio(inputUrl) {
+  const cleanUrl = (inputUrl || '').trim();
+
+  // 1. 通用音频直链 (.mp3, .m4a, .wav, .aac, .ogg)
+  if (/\.(mp3|m4a|wav|aac|ogg)(\?.*)?$/i.test(cleanUrl)) {
+    return {
+      audioUrl: cleanUrl,
+      title: '通用音频文件',
+      id: 'audio_' + crypto.createHash('md5').update(cleanUrl).digest('hex').slice(0, 12)
+    };
+  }
+
+  // 2. 小宇宙播客 (xiaoyuzhoufm.com)
+  if (cleanUrl.includes('xiaoyuzhoufm.com')) {
+    const epMatch = cleanUrl.match(/episode\/([a-zA-Z0-9]+)/);
+    const epId = epMatch ? epMatch[1] : ('xyz_' + Date.now());
+    console.log(`[小宇宙播客] 正在解析单集页面: ${epId}`);
+
+    const res = await axios.get(cleanUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1',
+        'Referer': 'https://www.xiaoyuzhoufm.com'
+      },
+      timeout: 15000
+    });
+    const html = res.data;
+    const titleMatch = html.match(/<title>([^<]+)<\/title>/);
+    const title = titleMatch ? titleMatch[1].replace(/ - [^|]+ \| 小宇宙.*$/, '') : '小宇宙播客单集';
+
+    // 匹配 media.xyzcdn.net 音频直链或 enclosure
+    const audioMatch = html.match(/https:\/\/media\.xyzcdn\.net\/[^"'\s<>]+\.(?:m4a|mp3)/) ||
+                       html.match(/<meta property="og:audio" content="([^"]+)"/) ||
+                       html.match(/"enclosure":\s*\{\s*"url":\s*"([^"]+)"/);
+
+    if (!audioMatch) {
+      throw new Error('未能从小宇宙单集网页中解析到有效音频直链，请确认该节目是否已公开发布');
+    }
+    const audioUrl = audioMatch[1] || audioMatch[0];
+    console.log(`[小宇宙播客] 解析到音频直链: ${audioUrl.slice(0, 80)}...`);
+    return {
+      audioUrl,
+      title,
+      id: 'xyz_' + epId
+    };
+  }
+
+  // 3. Apple Podcasts (苹果播客)
+  if (cleanUrl.includes('podcasts.apple.com')) {
+    const epMatch = cleanUrl.match(/[?&]i=(\d+)/);
+    const podMatch = cleanUrl.match(/\/id(\d+)/);
+    const epId = epMatch ? epMatch[1] : (podMatch ? podMatch[1] : 'apple_' + Date.now());
+    console.log(`[Apple Podcasts] 正在解析苹果播客单集: ${epId}`);
+
+    // 通道一：直接抓取网页提取音频直链
+    try {
+      const res = await axios.get(cleanUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        },
+        timeout: 15000
+      });
+      const html = res.data;
+      const titleMatch = html.match(/<title>([^<]+)<\/title>/);
+      const title = titleMatch ? titleMatch[1].replace(/ on Apple Podcasts.*$/, '') : 'Apple 播客单集';
+
+      const audioMatch = html.match(/https:\/\/[^"'\s<>]+\.(?:mp3|m4a)[^"'\s<>]*/i);
+      if (audioMatch) {
+        const audioUrl = audioMatch[0].replace(/\\/g, '');
+        console.log(`[Apple Podcasts] 网页直出音频直链: ${audioUrl.slice(0, 80)}...`);
+        return {
+          audioUrl,
+          title,
+          id: 'apple_' + epId
+        };
+      }
+    } catch (pageErr) {
+      console.warn('[Apple Podcasts] 网页直取失败，切换到 iTunes Lookup API 备选通道:', pageErr.message);
+    }
+
+    // 通道二：iTunes Lookup API 备用
+    if (podMatch) {
+      try {
+        const itunesRes = await axios.get(`https://itunes.apple.com/lookup?id=${podMatch[1]}&entity=podcastEpisode&limit=60`, { timeout: 15000 });
+        const results = itunesRes.data?.results || [];
+        let ep = null;
+        if (epMatch) {
+          ep = results.find(r => String(r.trackId) === epMatch[1]);
+        }
+        if (!ep && results.length > 1) {
+          ep = results[1];
+        }
+        if (ep && ep.episodeUrl) {
+          console.log(`[Apple Podcasts] iTunes API 提取音频直链成功: ${ep.episodeUrl.slice(0, 80)}...`);
+          return {
+            audioUrl: ep.episodeUrl,
+            title: ep.trackName || 'Apple 播客',
+            id: 'apple_' + epId
+          };
+        }
+      } catch (itunesErr) {
+        console.warn('[Apple Podcasts] iTunes Lookup 失败:', itunesErr.message);
+      }
+    }
+
+    throw new Error('未能从 Apple Podcasts 解析到音频文件直链，请检查单集链接是否有效');
+  }
+
+  throw new Error('未识别的播客或音频链接类型');
+}
+
+// ---------------- Bilibili 知识视频解析引擎 (官方CC字幕优先 + 极速音频流保底) ----------------
+async function fetchBilibiliTranscript(inputUrl) {
+  let cleanUrl = (inputUrl || '').trim();
+  const urlExtract = cleanUrl.match(/https?:\/\/[^\s]+/);
+  if (urlExtract) cleanUrl = urlExtract[0];
+
+  // 1. 如果是 b23.tv 短链接，先 302 重定向还原为真实 BV 链接
+  if (cleanUrl.includes('b23.tv')) {
+    try {
+      const redir = await axios.get(cleanUrl, {
+        maxRedirects: 0,
+        validateStatus: status => status >= 200 && status < 400,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1'
+        },
+        timeout: 10000
+      });
+      if (redir.headers.location) {
+        cleanUrl = redir.headers.location;
+      }
+    } catch (e) {
+      console.warn('[Bilibili] b23.tv 短链接还原跳转:', e.message);
+    }
+  }
+
+  // 2. 提取 BV 号
+  const bvMatch = cleanUrl.match(/(BV[0-9a-zA-Z]{10})/i);
+  if (!bvMatch) {
+    throw new Error('未在链接中识别到有效的 B站 BV 号，请检查链接格式');
+  }
+  const bvid = bvMatch[1];
+  console.log(`[Bilibili] 正在解析 B站 视频: ${bvid}`);
+
+  // 3. 采用移动端页面请求（避开海外机房 412 WAF 挑战）
+  const pageRes = await axios.get(`https://m.bilibili.com/video/${bvid}`, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1',
+      'Referer': 'https://m.bilibili.com'
+    },
+    timeout: 15000
+  });
+
+  const m = pageRes.data.match(/__INITIAL_STATE__\s*=\s*({.+?});/);
+  if (!m) {
+    throw new Error('B站移动端页面解析异常，未能获取视频状态');
+  }
+
+  const initState = JSON.parse(m[1]);
+  const viewInfo = initState.video?.viewInfo || {};
+  const title = viewInfo.title || 'Bilibili 视频';
+  const cid = viewInfo.cid;
+
+  // 4. 优先检查官方 CC 字幕 (0秒直出)
+  let subtitles = viewInfo.subtitle?.list || [];
+
+  if ((!subtitles || subtitles.length === 0) && cid) {
+    try {
+      const pRes = await axios.get(`https://api.bilibili.com/x/player/v2?cid=${cid}&bvid=${bvid}`, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1',
+          'Referer': 'https://m.bilibili.com'
+        },
+        timeout: 10000
+      });
+      if (pRes.data?.data?.subtitle?.subtitles) {
+        subtitles = pRes.data.data.subtitle.subtitles;
+      }
+    } catch (e) {
+      console.warn('[Bilibili] player/v2 字幕查询跳过:', e.message);
+    }
+  }
+
+  if (subtitles && subtitles.length > 0) {
+    const subItem = subtitles.find(s => (s.lan || '').startsWith('zh')) || subtitles[0];
+    let subUrl = subItem.subtitle_url;
+    if (subUrl.startsWith('//')) subUrl = 'https:' + subUrl;
+    console.log(`[Bilibili] 发现官方 CC 字幕 (${subItem.lan_doc || subItem.lan})，正在极速拉取...`);
+
+    const subRes = await axios.get(subUrl, { timeout: 10000 });
+    const body = subRes.data?.body || [];
+    const transcriptText = body.map(b => b.content).filter(Boolean).join(' ');
+    if (transcriptText.trim().length > 20) {
+      console.log(`[Bilibili] 成功秒出 CC 字幕，共 ${transcriptText.length} 字符`);
+      return {
+        text: transcriptText,
+        title,
+        id: 'bili_' + bvid
+      };
+    }
+  }
+
+  // 5. 无字幕时，无缝切换到高清播放流提取 + Groq Whisper 听译保底
+  console.log(`[Bilibili] 该视频未挂载官方字幕，启用高清音频流提取与 Whisper 听写保底...`);
+  const playUrlInfo = initState.video?.playUrlInfo?.[0] || initState.video?.playUrlInfo || {};
+  const streamUrl = playUrlInfo.url;
+
+  if (!streamUrl) {
+    throw new Error('未获取到该 B站 视频的播放音频流，可能为大会员专区或受版权地区限制');
+  }
+
+  const customHeaders = {
+    'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1',
+    'Referer': 'https://www.bilibili.com'
+  };
+
+  const text = await transcribeLongAudio(streamUrl, 'bili_' + bvid, customHeaders);
+  return {
+    text,
+    title,
+    id: 'bili_' + bvid
+  };
 }
 
 // ---------------- TikTok 音频提取与 Groq 转写 ----------------
@@ -344,11 +701,9 @@ async function fetchTikTokTranscript(url) {
   return whisperRes.data.text;
 }
 
-
 // ---------------- 磁盘与缓存超限自愈保护机制 ----------------
 function pruneExcessCache() {
   try {
-    // 限制 copies_cache 最多保留 200 条最热记录，杜绝数据库无节制膨胀
     db.prepare(`
       DELETE FROM copies_cache 
       WHERE id NOT IN (SELECT id FROM copies_cache ORDER BY created_at DESC LIMIT 200)
@@ -359,7 +714,7 @@ function pruneExcessCache() {
 // 每 30 分钟定时清理 /tmp 下所有的音视频碎片文件，确保硬盘 0 冗余
 setInterval(() => {
   pruneExcessCache();
-  exec("rm -f /tmp/yt_*.mp3 /tmp/test_*.mp3 /tmp/*.webm /tmp/*.part 2>/dev/null", () => {});
+  exec("rm -f /tmp/yt_*.mp3 /tmp/hc_*.mp3 /tmp/test_*.mp3 /tmp/*.webm /tmp/*.part 2>/dev/null", () => {});
 }, 1800000);
 
 // ---------------- 核心生成与数据双写 ----------------
@@ -380,23 +735,48 @@ app.post('/api/generate', authenticate, async (req, res) => {
   const { url, mode = 'rewrite' } = req.body;
   const user = req.user;
 
-  // 所有付费套餐（Basic / Pro / Studio）均可使用 AI 爆款改写
   if (user.used_count >= user.monthly_limit) {
     return res.status(429).json({ error: '本月生成额度已用尽，请升级会员方案' });
   }
 
+  const cleanUrl = (url || '').trim();
+  if (!cleanUrl) {
+    return res.status(400).json({ error: '链接不能为空' });
+  }
+
+  let platform = 'youtube';
+  let videoId = null;
   let text = '';
-  let videoId = extractYouTubeId(url);
-  const isTikTok = url.includes('tiktok.com');
 
-  if (isTikTok) {
-    videoId = 'tk_' + Buffer.from(url).toString('base64').slice(0, 16);
+  // 路由器识别平台
+  const ytId = extractYouTubeId(cleanUrl);
+  if (ytId) {
+    platform = 'youtube';
+    videoId = ytId;
+  } else if (cleanUrl.includes('tiktok.com')) {
+    platform = 'tiktok';
+    videoId = 'tk_' + Buffer.from(cleanUrl).toString('base64').slice(0, 16);
+  } else if (cleanUrl.includes('bilibili.com') || cleanUrl.includes('b23.tv') || /BV[0-9a-zA-Z]{10}/i.test(cleanUrl)) {
+    platform = 'bilibili';
+    const bvMatch = cleanUrl.match(/(BV[0-9a-zA-Z]{10})/i);
+    videoId = bvMatch ? ('bili_' + bvMatch[1]) : ('bili_' + Date.now());
+  } else if (cleanUrl.includes('podcasts.apple.com')) {
+    platform = 'podcast';
+    const epMatch = cleanUrl.match(/[?&]i=(\d+)/);
+    const podMatch = cleanUrl.match(/\/id(\d+)/);
+    videoId = 'apple_' + (epMatch ? epMatch[1] : (podMatch ? podMatch[1] : Date.now()));
+  } else if (cleanUrl.includes('xiaoyuzhoufm.com')) {
+    platform = 'podcast';
+    const epMatch = cleanUrl.match(/episode\/([a-zA-Z0-9]+)/);
+    videoId = 'xyz_' + (epMatch ? epMatch[1] : Date.now());
+  } else if (/\.(mp3|m4a|wav|aac|ogg)(\?.*)?$/i.test(cleanUrl)) {
+    platform = 'audio_direct';
+    videoId = 'audio_' + crypto.createHash('md5').update(cleanUrl).digest('hex').slice(0, 12);
+  } else {
+    return res.status(400).json({ error: '无效链接，仅支持：YouTube、Apple Podcasts、小宇宙播客、B站、音频直链' });
   }
 
-  if (!videoId && !isTikTok) {
-    return res.status(400).json({ error: '无效链接，仅支持 YouTube 或 TikTok' });
-  }
-
+  // 缓存优先命中
   const cached = db.prepare('SELECT content FROM copies_cache WHERE video_id = ? AND mode = ?').get(videoId, mode);
   if (cached) {
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
@@ -404,9 +784,7 @@ app.post('/api/generate', authenticate, async (req, res) => {
   }
 
   try {
-    if (isTikTok) {
-      text = await fetchTikTokTranscript(url);
-    } else {
+    if (platform === 'youtube') {
       try {
         const items = await YoutubeTranscript.fetchTranscript(videoId);
         if (items && items.length > 0) {
@@ -419,6 +797,18 @@ app.post('/api/generate', authenticate, async (req, res) => {
       if (!text || text.trim().length === 0) {
         text = await fetchYouTubeWhisperTranscript(videoId);
       }
+    } else if (platform === 'tiktok') {
+      text = await fetchTikTokTranscript(cleanUrl);
+    } else if (platform === 'bilibili') {
+      const biliRes = await fetchBilibiliTranscript(cleanUrl);
+      text = biliRes.text;
+    } else if (platform === 'podcast' || platform === 'audio_direct') {
+      const podRes = await fetchPodcastAudio(cleanUrl);
+      text = await transcribeLongAudio(podRes.audioUrl, podRes.id);
+    }
+
+    if (!text || text.trim().length === 0) {
+      throw new Error('未获取到该音视频的有效文本或对白内容');
     }
 
     const cleanedInput = cleanRawTranscript(text.slice(0, 300000));
@@ -481,11 +871,11 @@ app.post('/api/generate', authenticate, async (req, res) => {
         .run(videoId, mode, fullOutput, Date.now());
 
       if (mode === 'rewrite' && cleanedInput.length > 200) {
-        const defaultInstruction = "请根据以下海外视频转录内容，提炼核心事实并重构为地道、引人入胜的中文爆款图文脚本。";
+        const defaultInstruction = "请根据以下海外/国内优质长音频与视频转录内容，提炼核心事实并重构为地道、引人入胜的中文爆款图文脚本。";
         db.prepare(`
           INSERT INTO dataset_sft (source_platform, source_id, instruction, cleaned_input, target_output, created_at)
           VALUES (?, ?, ?, ?, ?, ?)
-        `).run(isTikTok ? 'tiktok' : 'youtube', videoId, defaultInstruction, cleanedInput, fullOutput, Date.now());
+        `).run(platform, videoId, defaultInstruction, cleanedInput, fullOutput, Date.now());
       }
     }
 
