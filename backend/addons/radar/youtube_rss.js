@@ -1,6 +1,7 @@
 const fs = require('node:fs/promises');
 const { execFile } = require('node:child_process');
 const { promisify } = require('node:util');
+const { runWithCookieFailover, isAuthenticationError } = require('../../youtube_cookie_pool');
 
 const CHANNEL_ID_PATTERN = /^UC[A-Za-z0-9_-]{22}$/;
 const VIDEO_ID_PATTERN = /^[A-Za-z0-9_-]{11}$/;
@@ -126,32 +127,41 @@ function parseYtDlpPlaylist(raw, expectedChannelId) {
 async function fetchChannelWithYtDlp(channelId, {
   execFileImpl = execFileAsync,
   binaryPath = process.env.YTDLP_BIN || '/usr/local/bin/yt-dlp',
-  cookiesPath = process.env.YTDLP_COOKIES_PATH,
+  cookiesPath,
   timeoutMs = 30000
 } = {}) {
   if (!CHANNEL_ID_PATTERN.test(channelId)) throw feedError('INVALID_CHANNEL_ID');
-  const args = ['--flat-playlist', '--playlist-end', '10', '-J', '--no-warnings', '--no-progress'];
-  if (cookiesPath) {
-    let stats;
-    try { stats = await fs.stat(cookiesPath); } catch { throw feedError('YTDLP_COOKIES_UNAVAILABLE'); }
-    if (!stats.isFile()) throw feedError('YTDLP_COOKIES_UNAVAILABLE');
-    args.push('--cookies', cookiesPath);
+  const attempt = async selectedPath => {
+    const args = ['--flat-playlist', '--playlist-end', '10', '-J', '--no-warnings', '--no-progress'];
+    if (selectedPath) {
+      let stats;
+      try { stats = await fs.stat(selectedPath); } catch { throw feedError('YTDLP_COOKIES_UNAVAILABLE'); }
+      if (!stats.isFile()) throw feedError('YTDLP_COOKIES_UNAVAILABLE');
+      args.push('--cookies', selectedPath);
+    }
+    args.push(`https://www.youtube.com/channel/${channelId}/videos`);
+    let stdout;
+    try {
+      ({ stdout } = await execFileImpl(binaryPath, args, {
+        timeout: timeoutMs,
+        maxBuffer: MAX_YTDLP_OUTPUT_BYTES,
+        windowsHide: true,
+        shell: false
+      }));
+    } catch (error) {
+      if (isAuthenticationError(error)) throw error;
+      throw feedError(error.code === 'ENOENT' ? 'YTDLP_UNAVAILABLE'
+        : error.code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER' ? 'YTDLP_OUTPUT_TOO_LARGE'
+          : error.killed ? 'YTDLP_TIMEOUT' : 'YTDLP_FAILED');
+    }
+    return parseYtDlpPlaylist(stdout, channelId);
+  };
+  if (cookiesPath !== undefined) return attempt(cookiesPath);
+  try { return await runWithCookieFailover(attempt); }
+  catch (error) {
+    if (isAuthenticationError(error)) throw feedError('YTDLP_AUTH_FAILED');
+    throw error;
   }
-  args.push(`https://www.youtube.com/channel/${channelId}/videos`);
-  let stdout;
-  try {
-    ({ stdout } = await execFileImpl(binaryPath, args, {
-      timeout: timeoutMs,
-      maxBuffer: MAX_YTDLP_OUTPUT_BYTES,
-      windowsHide: true,
-      shell: false
-    }));
-  } catch (error) {
-    throw feedError(error.code === 'ENOENT' ? 'YTDLP_UNAVAILABLE'
-      : error.code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER' ? 'YTDLP_OUTPUT_TOO_LARGE'
-        : error.killed ? 'YTDLP_TIMEOUT' : 'YTDLP_FAILED');
-  }
-  return parseYtDlpPlaylist(stdout, channelId);
 }
 
 async function fetchRssFeed(channelId, { fetchImpl = fetch, timeoutMs = 12000 } = {}) {

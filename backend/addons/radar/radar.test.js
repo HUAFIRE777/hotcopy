@@ -148,6 +148,36 @@ test('yt-dlp 回退使用无 shell 的固定参数、可选 Cookie，并校验�
   } finally { fs.rmSync(directory, { recursive: true, force: true }); }
 });
 
+test('雷达 RSS 回退在主凭证认证失败时使用备用凭证', async () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'hotcopy-radar-cookie-test-'));
+  const names = ['YTDLP_COOKIES_PATH', 'YTDLP_COOKIES_BACKUP_1_PATH', 'YTDLP_COOKIES_BACKUP_2_PATH'];
+  const previous = Object.fromEntries(names.map(name => [name, process.env[name]]));
+  try {
+    names.forEach((name, index) => {
+      process.env[name] = path.join(directory, `slot-${index}.txt`);
+      fs.writeFileSync(process.env[name], 'test cookie file');
+    });
+    const calls = [];
+    const result = await fetchChannelWithYtDlp(FIRE_ID, {
+      execFileImpl: async (binary, args) => {
+        const selected = args[args.indexOf('--cookies') + 1];
+        calls.push(selected);
+        if (selected === process.env.YTDLP_COOKIES_PATH) {
+          const error = new Error('yt-dlp failed');
+          error.stderr = "Sign in to confirm you're not a bot";
+          throw error;
+        }
+        return { stdout: YTDLP_JSON };
+      }
+    });
+    assert.equal(result.entries.length, 1);
+    assert.deepEqual(calls, [process.env.YTDLP_COOKIES_PATH, process.env.YTDLP_COOKIES_BACKUP_1_PATH]);
+  } finally {
+    names.forEach(name => { if (previous[name] === undefined) delete process.env[name]; else process.env[name] = previous[name]; });
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
+
 test('Worker 去重入库，失败退避并保留最后成功时间', async () => {
   const db = openDatabase(':memory:');
   let clock = Date.parse('2026-09-23T03:00:00Z');

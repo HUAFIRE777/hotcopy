@@ -3,6 +3,7 @@ const os = require('os');
 const path = require('path');
 const { execFile } = require('child_process');
 const { promisify } = require('util');
+const { runWithCookieFailover } = require('./youtube_cookie_pool');
 
 const runFile = promisify(execFile);
 const VIDEO_ID = /^[A-Za-z0-9_-]{11}$/;
@@ -82,30 +83,37 @@ async function fetchYouTubeCaptionsFast(videoId, options = {}) {
   const runner = options.run || runFile;
   const tmpDir = await fileSystem.promises.mkdtemp(path.join(options.tmpRoot || os.tmpdir(), 'hotcopy-yt-sub-'));
   try {
-    const configuredCookies = options.cookiesPath ?? process.env.YTDLP_COOKIES_PATH;
-    const defaultCookies = '/opt/hotcopy/cookies.txt';
-    if (configuredCookies && !fileSystem.existsSync(configuredCookies)) throw new Error('字幕 Cookie 文件不可用');
-    const cookiesPath = configuredCookies || (fileSystem.existsSync(defaultCookies) ? defaultCookies : null);
-    const args = [];
-    if (cookiesPath) args.push('--cookies', cookiesPath);
-    args.push('--write-subs', '--write-auto-subs', '--sub-langs', SUBTITLE_LANGUAGES,
-      '--sub-format', 'vtt', '--skip-download', '--no-playlist', '--no-progress',
-      '--retries', '1', '--fragment-retries', '1', '--socket-timeout', '8',
-      '--no-simulate', '--print', '%(language)s', '-o', path.join(tmpDir, '%(id)s.%(ext)s'),
-      `https://www.youtube.com/watch?v=${videoId}`);
-    const { stdout = '' } = await runner(options.binary || process.env.YTDLP_BIN || 'yt-dlp', args, {
-      timeout: options.timeoutMs || 30000,
-      maxBuffer: 2 * 1024 * 1024
-    });
-    const preferredLanguage = String(stdout).trim().split(/\s+/).pop();
-    const files = (await fileSystem.promises.readdir(tmpDir))
-      .filter(name => name.startsWith(`${videoId}.`) && name.endsWith('.vtt'))
-      .sort((a, b) => subtitlePriority(a, preferredLanguage) - subtitlePriority(b, preferredLanguage));
-    for (const filename of files) {
-      const transcript = parseVttTranscript(await fileSystem.promises.readFile(path.join(tmpDir, filename), 'utf8'));
-      if (transcript.length >= 10) return transcript;
+    const attempt = async cookiesPath => {
+      for (const name of await fileSystem.promises.readdir(tmpDir)) {
+        await fileSystem.promises.unlink(path.join(tmpDir, name));
+      }
+      const args = [];
+      if (cookiesPath) args.push('--cookies', cookiesPath);
+      args.push('--write-subs', '--write-auto-subs', '--sub-langs', SUBTITLE_LANGUAGES,
+        '--sub-format', 'vtt', '--skip-download', '--no-playlist', '--no-progress',
+        '--retries', '1', '--fragment-retries', '1', '--socket-timeout', '8',
+        '--no-simulate', '--print', '%(language)s', '-o', path.join(tmpDir, '%(id)s.%(ext)s'),
+        `https://www.youtube.com/watch?v=${videoId}`);
+      const { stdout = '' } = await runner(options.binary || process.env.YTDLP_BIN || 'yt-dlp', args, {
+        timeout: options.timeoutMs || 30000,
+        maxBuffer: 2 * 1024 * 1024,
+        shell: false
+      });
+      const preferredLanguage = String(stdout).trim().split(/\s+/).pop();
+      const files = (await fileSystem.promises.readdir(tmpDir))
+        .filter(name => name.startsWith(`${videoId}.`) && name.endsWith('.vtt'))
+        .sort((a, b) => subtitlePriority(a, preferredLanguage) - subtitlePriority(b, preferredLanguage));
+      for (const filename of files) {
+        const transcript = parseVttTranscript(await fileSystem.promises.readFile(path.join(tmpDir, filename), 'utf8'));
+        if (transcript.length >= 10) return transcript;
+      }
+      return '';
+    };
+    if (Object.hasOwn(options, 'cookiesPath')) {
+      if (options.cookiesPath && !fileSystem.existsSync(options.cookiesPath)) throw new Error('字幕 Cookie 文件不可用');
+      return attempt(options.cookiesPath);
     }
-    return '';
+    return runWithCookieFailover(attempt);
   } finally {
     await fileSystem.promises.rm(tmpDir, { recursive: true, force: true });
   }

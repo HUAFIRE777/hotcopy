@@ -13,6 +13,7 @@ const crypto = require('crypto');
 const { YoutubeTranscript } = require('youtube-transcript');
 const { validTrend, readRadarTrends, TREND_MAX_AGE_MS } = require('./trends_live');
 const { extractYouTubeId, getYouTubeTranscript } = require('./youtube_transcript');
+const { runWithCookieFailover, getCookieStatus, probeSlot, updateCookieSlot, startCookieMonitoring } = require('./youtube_cookie_pool');
 require('dotenv').config();
 
 const app = express();
@@ -87,6 +88,7 @@ try {
 }
 
 app.use(express.json({
+  limit: '300kb',
   verify: (req, res, buf) => {
     req.rawBody = buf;
   }
@@ -132,6 +134,17 @@ function requireAdmin(req, res, next) {
   }
 
   return res.status(403).json({ error: '无权访问管理员后台，请登录或提供有效凭证' });
+}
+
+// 凭证维护只接受管理员登录签发的 JWT；旧版 Admin-Key 不可用于上传会话文件。
+function requireAdminSession(req, res, next) {
+  const token = req.headers['x-admin-token'];
+  if (typeof token !== 'string') return res.status(403).json({ error: '请先登录管理员后台' });
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'hotcopy_default_secret_9999');
+    if (decoded?.role === 'admin') return next();
+  } catch {}
+  return res.status(403).json({ error: '管理员登录已失效，请重新登录' });
 }
 
 function cleanRawTranscript(text) {
@@ -491,29 +504,22 @@ function fetchYouTubeWhisperTranscript(videoId) {
   return new Promise((resolve, reject) => {
     const audioPath = `/tmp/yt_${videoId}_${Date.now()}.mp3`;
     const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
-    const configuredCookies = process.env.YTDLP_COOKIES_PATH;
-    if (configuredCookies && !fs.existsSync(configuredCookies)) return reject(new Error('YouTube Cookie 文件不可用'));
-    const cookiesPath = configuredCookies || (fs.existsSync('/opt/hotcopy/cookies.txt') ? '/opt/hotcopy/cookies.txt' : null);
     console.log(`[Groq Whisper] 正在为 YouTube 视频 ${videoId} 提取音频流并进行轻量化压缩...`);
-    const args = [];
-    if (cookiesPath) args.push('--cookies', cookiesPath);
-    args.push('-f', 'ba[ext=m4a]/ba', '--extract-audio', '--audio-format', 'mp3',
-      '--postprocessor-args', '-ar 16000 -ac 1 -b:a 32k', '-o', audioPath, videoUrl);
-
-    execFile(process.env.YTDLP_BIN || 'yt-dlp', args, { timeout: 300000, maxBuffer: 2 * 1024 * 1024 }, async (err, stdout, stderr) => {
-      if (err) {
-        try { fs.unlinkSync(audioPath); } catch (e) {}
-        const errStr = (stderr || stdout || err.message || '').toString();
-        console.error(`[Groq Whisper] yt-dlp 提取音频失败: ${errStr}`);
-        if (errStr.includes('This video is unavailable') || errStr.includes('Video unavailable')) {
-          return reject(new Error('该视频在 YouTube 上不存在、已被作者删除或设为私密视频，请检查视频链接是否正确！'));
-        }
-        if (errStr.includes('Sign in to confirm your age')) {
-          return reject(new Error('该视频受 YouTube 年龄限制保护，无法公开提取音频！'));
-        }
-        return reject(new Error('无法提取该视频音频流: ' + errStr.slice(0, 100)));
-      }
-
+    runWithCookieFailover(cookiesPath => new Promise((downloadResolve, downloadReject) => {
+      try { fs.unlinkSync(audioPath); } catch {}
+      const args = [];
+      if (cookiesPath) args.push('--cookies', cookiesPath);
+      args.push('-f', 'ba[ext=m4a]/ba', '--extract-audio', '--audio-format', 'mp3',
+        '--postprocessor-args', '-ar 16000 -ac 1 -b:a 32k', '-o', audioPath, videoUrl);
+      execFile(process.env.YTDLP_BIN || 'yt-dlp', args,
+        { timeout: 300000, maxBuffer: 2 * 1024 * 1024, shell: false }, (err, stdout, stderr) => {
+          if (err) {
+            err.stderr = stderr;
+            return downloadReject(err);
+          }
+          downloadResolve();
+        });
+    })).then(async () => {
       try {
         if (!fs.existsSync(audioPath)) {
           return reject(new Error('音频下载完成但未生成有效文件'));
@@ -556,6 +562,16 @@ function fetchYouTubeWhisperTranscript(videoId) {
         fs.unlink(audioPath, () => {});
         reject(new Error('Groq Whisper 语音转录失败: ' + (whisperErr.response?.data?.error?.message || whisperErr.message)));
       }
+    }).catch(error => {
+      try { fs.unlinkSync(audioPath); } catch {}
+      const detail = String(error.stderr || error.message || '');
+      if (/This video is unavailable|Video unavailable|private video/i.test(detail)) {
+        return reject(new Error('该视频在 YouTube 上不存在、已被作者删除或设为私密视频，请检查视频链接是否正确！'));
+      }
+      if (/Sign in to confirm your age/i.test(detail)) {
+        return reject(new Error('该视频受 YouTube 年龄限制保护，无法公开提取音频！'));
+      }
+      reject(new Error('暂时无法提取该视频音频流，请稍后重试'));
     });
   });
 }
@@ -1309,29 +1325,31 @@ app.post('/api/admin/upgrade', requireAdmin, (req, res) => {
   res.json({ success: true, message: `已更新 ${email} 的套餐为 ${plan}` });
 });
 
-app.get('/api/admin/cookies-status', requireAdmin, (req, res) => {
-  const cookiePath = '/opt/hotcopy/cookies.txt';
-  const exists = fs.existsSync(cookiePath);
-  if (!exists) {
-    return res.json({ status: 'missing', message: 'Cookies 通行证文件不存在' });
-  }
-  const stat = fs.statSync(cookiePath);
-  res.json({
-    status: 'ok',
-    updatedAt: stat.mtimeMs,
-    size: stat.size,
-    message: 'Cookies 通行证正常工作中'
-  });
+app.get('/api/admin/cookies-status', requireAdminSession, (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(getCookieStatus());
 });
 
-app.post('/api/admin/cookies-update', requireAdmin, (req, res) => {
-  const { cookiesContent } = req.body;
-  if (!cookiesContent || typeof cookiesContent !== 'string' || cookiesContent.length < 50) {
-    return res.status(400).json({ error: 'Cookies 内容过短或无效，请确保完整复制' });
+app.post('/api/admin/cookies-probe', requireAdminSession, async (req, res) => {
+  try {
+    res.setHeader('Cache-Control', 'no-store');
+    res.json(await probeSlot(req.body?.slot));
+  } catch {
+    res.status(400).json({ error: '检测请求无效，请稍后重试' });
   }
-  fs.writeFileSync('/opt/hotcopy/cookies.txt', cookiesContent, 'utf-8');
-  console.log('[Admin] Cookies 通行证已热更新，新大小:', cookiesContent.length);
-  res.json({ success: true, message: 'Cookies 通行证已成功热更新生效！' });
+});
+
+app.post('/api/admin/cookies-update', requireAdminSession, async (req, res) => {
+  try {
+    const status = await updateCookieSlot(req.body?.slot || 'primary', req.body?.cookiesContent);
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({ success: true, message: '新凭证已通过公开视频探测并生效', ...status });
+  } catch (error) {
+    const badInput = /格式|位置/.test(error.message);
+    res.status(badInput ? 400 : 422).json({
+      error: badInput ? error.message : '新凭证未通过公开视频探测，原凭证已保留。请检查 Cookie、账号或服务器网络。'
+    });
+  }
 });
 
 // 管理员登录接口
@@ -1448,5 +1466,6 @@ app.post('/api/admin/change-credentials', requireAdmin, (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`HotCopy Core Backend running on port ${PORT}`);
+  startCookieMonitoring();
   updateTrendsJob();
 });

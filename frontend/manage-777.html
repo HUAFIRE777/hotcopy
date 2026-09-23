@@ -371,34 +371,39 @@
       <div id="tabCookies" class="tab-content hidden space-y-6">
         <div class="flex justify-between items-center">
           <div>
-            <h1 class="text-xl font-bold text-stone-900 tracking-tight">YouTube 通行证 (Cookies) 热维护</h1>
-            <p class="text-xs text-stone-500 mt-0.5">免重启服务器，直接在线粘贴并热刷新 YouTube 授权通行凭证</p>
+            <h1 class="text-xl font-bold text-stone-900 tracking-tight">YouTube 凭证与备用切换</h1>
+            <p class="text-xs text-stone-500 mt-0.5">主用与两套备用独立管理；仅在明确的认证故障后自动尝试下一套</p>
           </div>
           <button onclick="testCookiesLive()" class="bg-white border border-stone-200 hover:bg-stone-50 text-stone-700 text-xs px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-            即时自检连通性
+            检测全部凭证
           </button>
         </div>
 
         <div class="bg-white border border-stone-200/80 p-6 rounded-2xl space-y-5">
           <div class="flex items-center justify-between pb-4 border-b border-stone-100">
             <div>
-              <div class="font-bold text-stone-900 text-sm">当前服务器通行证工作状态</div>
-              <div class="text-xs text-stone-500 mt-0.5" id="cookieStatusDetails">正在检测服务器凭证...</div>
+              <div class="font-bold text-stone-900 text-sm">当前提取链路</div>
+              <div class="text-xs text-stone-500 mt-0.5" id="cookieStatusDetails">正在读取状态...</div>
             </div>
             <span id="cookieBadgeStatus" class="text-xs px-2.5 py-1 rounded-full bg-stone-100 text-stone-600 font-semibold">
               检测中...
             </span>
           </div>
+          <div id="cookieSlotStatus" class="grid gap-3 sm:grid-cols-3" aria-live="polite"></div>
 
           <div>
-            <label class="block text-xs font-bold text-stone-800 mb-2">在线更新通行证 (Paste new cookies.txt content)</label>
-            <p class="text-[11px] text-stone-400 mb-3">若遇到 YouTube 强力风控或提示人机验证，只需在 Chrome 扩展导出新的 cookies.txt 并全选粘贴至下方，点击保存即可毫秒级热生效：</p>
+            <label for="cookieSlotSelect" class="block text-xs font-bold text-stone-800 mb-2">选择要更新的位置</label>
+            <select id="cookieSlotSelect" class="w-full sm:w-48 bg-white border border-stone-200 rounded-lg px-3 py-2 text-sm mb-3">
+              <option value="primary">主用</option><option value="backup1">备用一</option><option value="backup2">备用二</option>
+            </select>
+            <label for="cookiesTextarea" class="block text-xs font-bold text-stone-800 mb-2">粘贴该账号导出的 Netscape 格式 Cookie</label>
+            <p class="text-[11px] text-stone-500 mb-3">每个位置应使用不同专用账号。保存前会做公开视频探测；失败时保留原文件。</p>
             <textarea id="cookiesTextarea" rows="8" placeholder="# Netscape HTTP Cookie File&#10;.youtube.com  TRUE  /  TRUE  1789000000  LOGIN_INFO  ..." class="w-full bg-[#fafaf9] border border-stone-200 rounded-xl p-3 text-xs font-mono text-stone-800 focus:outline-none focus:border-stone-900 focus:bg-white transition"></textarea>
           </div>
 
           <div class="flex justify-between items-center pt-2">
-            <span class="text-[11px] text-stone-400">凭证将加密保存在新加坡服务器专属系统目录 /opt/hotcopy/cookies.txt</span>
+            <span class="text-[11px] text-stone-400">凭证仅存于服务器受限文件；后台不会显示文件内容。保存后无需重启。</span>
             <button onclick="saveCookiesFromTab()" class="bg-stone-900 hover:bg-stone-800 text-white font-semibold text-xs px-5 py-2.5 rounded-xl transition shadow-xs">
               立即热更新通行证
             </button>
@@ -418,12 +423,12 @@
           <div class="bg-white border border-stone-200/80 p-5 rounded-2xl space-y-3">
             <div class="flex items-center gap-2">
               <span class="w-6 h-6 rounded-lg bg-rose-50 text-rose-600 font-bold text-xs flex items-center justify-center border border-rose-100">1</span>
-              <h3 class="font-bold text-stone-900 text-sm">YouTube 通行证 (Cookies) 3~6 个月维护 SOP</h3>
+              <h3 class="font-bold text-stone-900 text-sm">YouTube 凭证失效处理</h3>
             </div>
             <div class="text-xs text-stone-600 leading-relaxed space-y-1.5 pl-8">
-              <p>• <strong>核心机制</strong>：系统通过专属系统目录 <code class="font-mono bg-stone-100 px-1 py-0.5 rounded">/opt/hotcopy/cookies.txt</code> 挂载 YouTube 会话，绕过 100% 的 Sign in to confirm you're not a bot 封锁。</p>
-              <p>• <strong>何时需要维护</strong>：只有当你在 Google 账号后台点击了“退出所有设备”或修改了该 Google 账号密码，Cookies 才会失效；否则通常能稳定存活 3 ~ 6 个月甚至更久。</p>
-              <p>• <strong>一键更新步骤</strong>：在电脑 Chrome 安装 <em>Get cookies.txt LOCALLY</em> 插件 ➜ 打开 youtube.com 导出 ➜ 进入后台「YouTube 通行证」标签 ➜ 粘贴并点击「立即热更新通行证」即时生效，无需重启服务器。</p>
+              <p>• <strong>判断状态</strong>：“探测通过”只表示当前服务器可访问测试视频；“待检测”不能当作有效。“认证失败”才会触发备用切换；视频下架、地区限制或服务器 IP 问题需单独排查。</p>
+              <p>• <strong>更新步骤</strong>：用对应专用账号打开新的无痕窗口登录 YouTube，在同一窗口打开 youtube.com/robots.txt，导出 youtube.com 的 Netscape 格式 Cookie，然后关闭无痕窗口。选中后台的对应位置，粘贴并保存，再点“检测全部凭证”。</p>
+              <p>• <strong>维护时机</strong>：以实际探测和提取结果为准，不按固定月份推算有效期。不要把 Cookie 粘贴到聊天、工单或代码仓库。</p>
             </div>
           </div>
 
@@ -661,7 +666,7 @@
         } catch (e) {}
 
         document.getElementById('loginGate').classList.add('hidden');
-        testCookiesLive();
+        loadCookiesStatus();
         return true;
       } catch (e) {
         return false;
@@ -865,41 +870,90 @@
       }
     }
 
-    // 保存 Cookies
+    let cookieProbeRunning = false;
+    const cookieStateLabels = {
+      available: '探测通过', untested: '待检测', missing: '未配置',
+      auth_failed: '认证失败', rate_limited: '请求受限',
+      video_unavailable: '探针视频不可用', probe_failed: '探测失败'
+    };
+
+    function renderCookieStatus(data) {
+      const slots = Array.isArray(data.slots) ? data.slots : [];
+      const container = document.getElementById('cookieSlotStatus');
+      container.replaceChildren();
+      slots.forEach(slot => {
+        const card = document.createElement('div');
+        card.className = 'rounded-xl border border-stone-200 bg-stone-50 p-3 text-xs space-y-1';
+        const name = document.createElement('div');
+        name.className = 'font-bold text-stone-900';
+        name.textContent = `${slot.label || slot.name}${slot.active ? ' · 上次使用' : ''}`;
+        const state = document.createElement('div');
+        state.className = slot.status === 'available' ? 'text-emerald-700' :
+          slot.status === 'untested' ? 'text-amber-700' : 'text-rose-700';
+        state.textContent = cookieStateLabels[slot.status] || '状态未知';
+        const detail = document.createElement('div');
+        detail.className = 'text-stone-500 leading-relaxed';
+        detail.textContent = slot.lastCheckedAt ? `上次检测：${new Date(slot.lastCheckedAt).toLocaleString()}` :
+          slot.updatedAt ? `文件更新：${new Date(slot.updatedAt).toLocaleString()}` : '尚未上传凭证';
+        card.append(name, state, detail);
+        container.appendChild(card);
+      });
+      const active = slots.find(slot => slot.name === data.activeSlot);
+      const badge = document.getElementById('cookieBadgeStatus');
+      const info = document.getElementById('cookieStatusDetails');
+      const healthy = active?.status === 'available';
+      badge.className = `text-xs px-2.5 py-1 rounded-full font-semibold ${healthy ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`;
+      badge.textContent = healthy ? '公开视频探测通过' : '需要检查';
+      info.textContent = `上次使用：${data.activeSlot === 'public' ? '公开模式' : active?.label || '尚无'}。${data.lastSwitchAt ? `上次切换：${new Date(data.lastSwitchAt).toLocaleString()}。` : '尚未发生自动切换。'}状态仅代表测试视频访问结果。`;
+      const dot = document.getElementById('navCookieDot');
+      dot.className = `w-2 h-2 rounded-full ${healthy ? 'bg-emerald-500' : 'bg-amber-500'}`;
+    }
+
+    async function loadCookiesStatus() {
+      try {
+        const res = await fetch(`${API}/api/admin/cookies-status`, { headers: getAuthHeaders(), cache: 'no-store' });
+        if (!res.ok) throw new Error('无法读取凭证状态');
+        renderCookieStatus(await res.json());
+      } catch {
+        document.getElementById('cookieStatusDetails').textContent = '无法读取状态，请检查管理员登录与 API 连接。';
+      }
+    }
+
+    // 保存前在服务器实际探测；失败时原文件仍然保留。
     async function saveCookiesFromTab() {
       const content = document.getElementById('cookiesTextarea').value.trim();
       if (!content) return alert('请先粘贴 cookies.txt 内容');
-      const res = await fetch(`${API}/api/admin/cookies-update`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ cookiesContent: content })
-      });
-      const d = await res.json();
-      if (res.ok) {
-        alert('Cookies 通行证热更新成功！');
+      const slot = document.getElementById('cookieSlotSelect').value;
+      try {
+        const res = await fetch(`${API}/api/admin/cookies-update`, {
+          method: 'POST', headers: getAuthHeaders(),
+          body: JSON.stringify({ slot, cookiesContent: content })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || '更新失败');
         document.getElementById('cookiesTextarea').value = '';
-        testCookiesLive();
-      } else {
-        alert(d.error || '更新失败');
+        renderCookieStatus(data);
+        alert('新凭证已通过公开视频探测并生效');
+      } catch (error) {
+        alert(error.message || '更新失败，原凭证仍保留');
       }
     }
 
     async function testCookiesLive() {
+      if (cookieProbeRunning) return;
+      cookieProbeRunning = true;
       try {
-        const res = await fetch(`${API}/api/admin/cookies-status`, { headers: getAuthHeaders() });
-        const d = await res.json();
-        const badge = document.getElementById('cookieBadgeStatus');
-        const info = document.getElementById('cookieStatusDetails');
-        if (d.status === 'ok') {
-          badge.className = 'text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-semibold';
-          badge.innerText = '🟢 正常生效中';
-          info.innerText = `凭证正常工作中 (${(d.size / 1024).toFixed(1)} KB)，更新于 ${new Date(d.updatedAt).toLocaleString()}。`;
-        } else {
-          badge.className = 'text-xs px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 font-semibold';
-          badge.innerText = '🔴 凭证已失效';
-          info.innerText = '当前通行证缺失或已失效，请在下方粘贴最新 cookies.txt 重新激活。';
+        for (const slot of ['primary', 'backup1', 'backup2']) {
+          document.getElementById('cookieStatusDetails').textContent = `正在检测 ${slot === 'primary' ? '主用' : slot === 'backup1' ? '备用一' : '备用二'}…`;
+          const res = await fetch(`${API}/api/admin/cookies-probe`, {
+            method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ slot })
+          });
+          if (!res.ok) throw new Error('服务器检测失败');
+          renderCookieStatus(await res.json());
         }
-      } catch (e) {}
+      } catch (error) {
+        document.getElementById('cookieStatusDetails').textContent = error.message || '检测中断，请稍后重试';
+      } finally { cookieProbeRunning = false; }
     }
   </script>
 </body>
