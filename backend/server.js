@@ -12,6 +12,7 @@ const FormData = require('form-data');
 const crypto = require('crypto');
 const { YoutubeTranscript } = require('youtube-transcript');
 const { validTrend, readRadarTrends, TREND_MAX_AGE_MS } = require('./trends_live');
+const { extractYouTubeId, getYouTubeTranscript } = require('./youtube_transcript');
 require('dotenv').config();
 
 const app = express();
@@ -131,11 +132,6 @@ function requireAdmin(req, res, next) {
   }
 
   return res.status(403).json({ error: '无权访问管理员后台，请登录或提供有效凭证' });
-}
-
-function extractYouTubeId(url) { if (!url || typeof url !== "string") return null;
-  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
-  return match ? match[1] : null;
 }
 
 function cleanRawTranscript(text) {
@@ -347,7 +343,7 @@ app.get('/api/trends/status', (req, res) => {
 
 
 // ---------------- 音频转录底层与 Groq Whisper 重试机制 ----------------
-const { exec } = require('child_process');
+const { execFile } = require('child_process');
 
 function getGroqApiKeys() {
   const keysStr = process.env.GROQ_API_KEYS || process.env.GROQ_API_KEY || '';
@@ -495,12 +491,18 @@ function fetchYouTubeWhisperTranscript(videoId) {
   return new Promise((resolve, reject) => {
     const audioPath = `/tmp/yt_${videoId}_${Date.now()}.mp3`;
     const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
-    const cookiesFlag = fs.existsSync('/opt/hotcopy/cookies.txt') ? '--cookies /opt/hotcopy/cookies.txt' : '';
+    const configuredCookies = process.env.YTDLP_COOKIES_PATH;
+    if (configuredCookies && !fs.existsSync(configuredCookies)) return reject(new Error('YouTube Cookie 文件不可用'));
+    const cookiesPath = configuredCookies || (fs.existsSync('/opt/hotcopy/cookies.txt') ? '/opt/hotcopy/cookies.txt' : null);
     console.log(`[Groq Whisper] 正在为 YouTube 视频 ${videoId} 提取音频流并进行轻量化压缩...`);
-    const cmd = `yt-dlp ${cookiesFlag} -f "ba[ext=m4a]/ba" --extract-audio --audio-format mp3 --postprocessor-args "-ar 16000 -ac 1 -b:a 32k" -o "${audioPath}" "${videoUrl}"`;
+    const args = [];
+    if (cookiesPath) args.push('--cookies', cookiesPath);
+    args.push('-f', 'ba[ext=m4a]/ba', '--extract-audio', '--audio-format', 'mp3',
+      '--postprocessor-args', '-ar 16000 -ac 1 -b:a 32k', '-o', audioPath, videoUrl);
 
-    exec(cmd, async (err, stdout, stderr) => {
+    execFile(process.env.YTDLP_BIN || 'yt-dlp', args, { timeout: 300000, maxBuffer: 2 * 1024 * 1024 }, async (err, stdout, stderr) => {
       if (err) {
+        try { fs.unlinkSync(audioPath); } catch (e) {}
         const errStr = (stderr || stdout || err.message || '').toString();
         console.error(`[Groq Whisper] yt-dlp 提取音频失败: ${errStr}`);
         if (errStr.includes('This video is unavailable') || errStr.includes('Video unavailable')) {
@@ -526,9 +528,9 @@ function fetchYouTubeWhisperTranscript(videoId) {
         } else {
           // 超长 YouTube 视频分片
           const chunkPrefix = `/tmp/yt_chk_${videoId}_${Date.now()}`;
-          const chunkCmd = `ffmpeg -y -i "${audioPath}" -f segment -segment_time 2400 -c copy "${chunkPrefix}_%03d.mp3"`;
           await new Promise((resChunk, rejChunk) => {
-            exec(chunkCmd, { timeout: 120000 }, (chunkErr) => {
+            execFile('ffmpeg', ['-y', '-i', audioPath, '-f', 'segment', '-segment_time', '2400',
+              '-c', 'copy', `${chunkPrefix}_%03d.mp3`], { timeout: 120000, maxBuffer: 10 * 1024 * 1024 }, (chunkErr) => {
               if (chunkErr) return rejChunk(chunkErr);
               resChunk();
             });
@@ -905,18 +907,16 @@ app.post('/api/generate', authenticate, async (req, res) => {
       text = rawCached.content;
     } else {
       if (platform === 'youtube') {
-        try {
-          const items = await YoutubeTranscript.fetchTranscript(videoId);
-          if (items && items.length > 0) {
-            text = items.map(i => i.text).join(' ');
-          }
-        } catch (subErr) {
-          console.log(`[YouTube] 官方字幕不可用 (${subErr.message})，无缝切换至 Groq Whisper 深度听译...`);
-        }
-
-        if (!text || text.trim().length === 0) {
-          text = await fetchYouTubeWhisperTranscript(videoId);
-        }
+        const transcript = await getYouTubeTranscript(videoId, {
+          legacy: async id => {
+            const items = await YoutubeTranscript.fetchTranscript(id);
+            return Array.isArray(items) ? items.map(item => item.text || '').join(' ') : '';
+          },
+          whisper: fetchYouTubeWhisperTranscript,
+          onFallback: stage => console.warn(`[YouTube] ${stage} 未取得对白，尝试下一级`)
+        });
+        text = transcript.text;
+        console.log(`[YouTube] 视频 ${videoId} 使用 ${transcript.source} 提取完成`);
       } else if (platform === 'tiktok') {
         text = await fetchTikTokTranscript(cleanUrl);
       } else if (platform === 'bilibili') {
