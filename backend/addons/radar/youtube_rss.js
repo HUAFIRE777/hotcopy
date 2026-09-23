@@ -70,12 +70,14 @@ function parseYouTubeFeed(xml, expectedChannelId) {
     if (seen.has(videoId)) continue;
     seen.add(videoId);
     const thumbnail = entry.match(/<media:thumbnail\b[^>]*\burl=["']([^"']+)["']/i)?.[1];
+    const mediaDuration = Number(entry.match(/<media:content\b[^>]*\bduration=["'](\d+)["']/i)?.[1]);
     entries.push({
       videoId,
       title,
       publishedAt,
       videoUrl: `https://www.youtube.com/watch?v=${videoId}`,
-      thumbnailUrl: thumbnail ? decodeXml(thumbnail) : `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
+      thumbnailUrl: thumbnail ? decodeXml(thumbnail) : `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
+      durationSeconds: Number.isSafeInteger(mediaDuration) && mediaDuration > 0 ? mediaDuration : null
     });
   }
   return { channelTitle: tagText(feedHeader, 'title'), entries };
@@ -112,13 +114,16 @@ function parseYtDlpPlaylist(raw, expectedChannelId) {
       .find(url => typeof url === 'string' && /^https:\/\/i\.ytimg\.com\//.test(url));
     const latestViews = Number.isSafeInteger(video.view_count) && video.view_count >= 0
       ? video.view_count : null;
+    const durationSeconds = Number.isSafeInteger(video.duration) && video.duration > 0
+      ? video.duration : null;
     entries.push({
       videoId,
       title: video.title.trim(),
       publishedAt,
       videoUrl: `https://www.youtube.com/watch?v=${videoId}`,
       thumbnailUrl: thumbnail || `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`,
-      latestViews
+      latestViews,
+      durationSeconds
     });
   }
   return { channelTitle: typeof playlist.title === 'string' ? playlist.title : '', entries };

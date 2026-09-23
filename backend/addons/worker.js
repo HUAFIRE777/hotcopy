@@ -22,12 +22,13 @@ function createWorker({ db, fetchFeed = fetchChannelFeed, now = Date.now, logger
   const insertVideo = db.prepare(`
     INSERT OR IGNORE INTO radar_videos
       (video_id, channel_id, category, title, video_url, thumbnail_url,
-       published_at, first_seen_at, latest_views, status_badge)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       published_at, first_seen_at, latest_views, duration_seconds, status_badge)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   const refreshVideo = db.prepare(`
     UPDATE radar_videos SET
       latest_views = COALESCE(?, latest_views),
+      duration_seconds = COALESCE(?, duration_seconds),
       published_at = CASE WHEN published_at = 0 AND ? > 0 THEN ? ELSE published_at END,
       status_badge = CASE WHEN published_at = 0 AND ? > 0 THEN ? ELSE status_badge END
     WHERE video_id = ? AND channel_id = ?
@@ -56,11 +57,12 @@ function createWorker({ db, fetchFeed = fetchChannelFeed, now = Date.now, logger
           const inserted = insertVideo.run(
             video.videoId, channel.channel_id, channel.category, video.title,
             video.videoUrl, video.thumbnailUrl, video.publishedAt, checkedAt,
-            video.latestViews ?? null, badge
+            video.latestViews ?? null, video.durationSeconds ?? null, badge
           ).changes;
           count += inserted;
-          if (!inserted && (video.latestViews != null || video.publishedAt > 0)) {
-            refreshVideo.run(video.latestViews ?? null, video.publishedAt, video.publishedAt,
+          if (!inserted && (video.latestViews != null || video.durationSeconds != null || video.publishedAt > 0)) {
+            refreshVideo.run(video.latestViews ?? null, video.durationSeconds ?? null,
+              video.publishedAt, video.publishedAt,
               video.publishedAt, badge, video.videoId, channel.channel_id);
           }
         }

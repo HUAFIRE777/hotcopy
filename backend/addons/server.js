@@ -143,7 +143,7 @@ function createApp({ db, config, fetchImpl = fetch, modelCall = callModel }) {
 
   function requireRadarPremium(req, res, next) {
     if (req.addonUser.plan !== 'premium' || !planLimit(req.addonUser)) {
-      return res.status(403).json({ error: '爆款雷达面向有效 Premium 会员开放' });
+      return res.status(403).json({ error: '爆款追踪面向有效 Premium 会员开放' });
     }
     next();
   }

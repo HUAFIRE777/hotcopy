@@ -35,6 +35,7 @@ function openDatabase(filename = process.env.ADDONS_DB_PATH || DEFAULT_DB_PATH) 
       published_at INTEGER NOT NULL,
       first_seen_at INTEGER NOT NULL,
       latest_views INTEGER,
+      duration_seconds INTEGER,
       velocity_hourly REAL DEFAULT 0,
       spike_score REAL DEFAULT 1,
       status_badge TEXT DEFAULT 'NEW'
@@ -109,6 +110,8 @@ function openDatabase(filename = process.env.ADDONS_DB_PATH || DEFAULT_DB_PATH) 
   if (!creatorColumns.has('next_retry_at')) db.exec('ALTER TABLE radar_creators ADD COLUMN next_retry_at INTEGER NOT NULL DEFAULT 0');
   if (!creatorColumns.has('verified_source')) db.exec('ALTER TABLE radar_creators ADD COLUMN verified_source TEXT');
   if (!creatorColumns.has('verified_at')) db.exec('ALTER TABLE radar_creators ADD COLUMN verified_at INTEGER DEFAULT 0');
+  const videoColumns = new Set(db.prepare('PRAGMA table_info(radar_videos)').all().map(column => column.name));
+  if (!videoColumns.has('duration_seconds')) db.exec('ALTER TABLE radar_videos ADD COLUMN duration_seconds INTEGER');
   db.exec('CREATE INDEX IF NOT EXISTS idx_radar_creators_due ON radar_creators(is_active, next_retry_at)');
   const projectColumns = new Set(db.prepare('PRAGMA table_info(creation_projects)').all().map(column => column.name));
   if (!projectColumns.has('video_id')) db.exec('ALTER TABLE creation_projects ADD COLUMN video_id TEXT');

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360" role="img" aria-label="内容封面暂不可用">
+  <defs>
+    <linearGradient id="bg" x2="1" y2="1">
+      <stop stop-color="#f3f0e9"/>
+      <stop offset="1" stop-color="#ebe7de"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="360" fill="url(#bg)"/>
+  <circle cx="320" cy="154" r="45" fill="#e4dbd0"/>
+  <path d="M309 132v44l34-22z" fill="#a69a8a"/>
+  <text x="320" y="244" fill="#786f63" font-family="Arial,sans-serif" font-size="18" text-anchor="middle">封面暂不可用</text>
+</svg>

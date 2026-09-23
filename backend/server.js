@@ -257,6 +257,7 @@ async function fetchBilibiliTrends() {
     .slice(0, 24).map(item => ({
       platform: 'bilibili', category: trendCategory(item.tname), video_id: item.bvid,
       title: item.title, cover_url: (item.pic || '').replace(/^http:/, 'https:'),
+      duration: Number.isSafeInteger(item.duration) && item.duration > 0 ? item.duration : null,
       intro: item.tname || '', source: 'bilibili-knowledge-ranking'
     }));
 }
@@ -287,6 +288,8 @@ async function fetchAppleTrends() {
     return {
       platform: 'podcast', category: 'podcast', video_id: `${show.id}?i=${episodeId}`,
       title: episode.trackName, cover_url: episode.artworkUrl600 || show.artworkUrl100,
+      duration: Number.isSafeInteger(episode.trackTimeMillis) && episode.trackTimeMillis > 0
+        ? Math.round(episode.trackTimeMillis / 1000) : null,
       intro: show.name, source: 'apple-podcast-chart'
     };
   }));
@@ -314,7 +317,7 @@ async function updateTrendsJob() {
         db.prepare('DELETE FROM trends WHERE platform = ?').run(platform);
         for (const item of validItems) {
           trendInsert.run(item.platform, item.category, item.video_id, item.title, null,
-            item.cover_url, syncedAt, '', item.intro, '', item.source);
+            item.cover_url, syncedAt, item.duration || '', item.intro, '', item.source);
         }
         db.prepare(`INSERT INTO trend_sync (platform, attempted_at, succeeded_at, status)
           VALUES (?, ?, ?, 'ok') ON CONFLICT(platform) DO UPDATE SET

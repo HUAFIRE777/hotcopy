@@ -70,10 +70,13 @@ function readRadarTrends({ dbPath = process.env.ADDONS_DB_PATH || path.join(__di
   if (!fs.existsSync(dbPath)) throw new Error('雷达数据库尚未部署');
   const radar = new Database(dbPath, { readonly: true, fileMustExist: true });
   try {
+    const hasDuration = radar.prepare('PRAGMA table_info(radar_videos)').all()
+      .some(column => column.name === 'duration_seconds');
     const rows = radar.prepare(`
       WITH ranked AS (
         SELECT v.video_id, v.channel_id, v.title, v.video_url, v.thumbnail_url,
           v.category, v.latest_views, v.published_at, v.first_seen_at, c.channel_name,
+          ${hasDuration ? 'v.duration_seconds' : 'NULL AS duration_seconds'},
           ROW_NUMBER() OVER (PARTITION BY v.channel_id
             ORDER BY COALESCE(NULLIF(v.published_at, 0), v.first_seen_at) DESC,
               COALESCE(v.latest_views, 0) DESC) AS channel_rank
@@ -103,6 +106,8 @@ function readRadarTrends({ dbPath = process.env.ADDONS_DB_PATH || path.join(__di
         title: row.title,
         cover_url: /^https:\/\/i\.ytimg\.com\//.test(row.thumbnail_url || '')
           ? row.thumbnail_url : `https://i.ytimg.com/vi/${row.video_id}/hqdefault.jpg`,
+        duration: Number.isSafeInteger(row.duration_seconds) && row.duration_seconds > 0
+          ? row.duration_seconds : null,
         intro: row.channel_name,
         source: LIVE_TREND_SOURCES.youtube
       }));

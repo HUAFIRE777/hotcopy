@@ -20,7 +20,7 @@ const FEED_XML = `<?xml version="1.0" encoding="UTF-8"?>
   <entry>
     <yt:videoId>abcdefghijk</yt:videoId><yt:channelId>${FIRE_ID}</yt:channelId>
     <title>AI &amp; Code</title><published>2026-09-23T01:00:00+00:00</published>
-    <media:group><media:thumbnail url="https://i.ytimg.com/vi/abcdefghijk/hqdefault.jpg"/></media:group>
+    <media:group><media:thumbnail url="https://i.ytimg.com/vi/abcdefghijk/hqdefault.jpg"/><media:content duration="123"/></media:group>
   </entry>
   <entry>
     <yt:videoId>ABCDEFGHIJK</yt:videoId><yt:channelId>${FIRE_ID}</yt:channelId>
@@ -30,7 +30,7 @@ const FEED_XML = `<?xml version="1.0" encoding="UTF-8"?>
 const YTDLP_JSON = JSON.stringify({
   _type: 'playlist', id: FIRE_ID, channel_id: FIRE_ID, title: 'Fireship - Videos',
   entries: [{
-    id: 'abcdefghijk', title: 'Latest video', timestamp: null, view_count: 1900000,
+    id: 'abcdefghijk', title: 'Latest video', timestamp: null, view_count: 1900000, duration: 615,
     thumbnails: [{ url: 'https://i.ytimg.com/vi/abcdefghijk/hqdefault.jpg' }]
   }]
 });
@@ -81,6 +81,7 @@ test('RSS 解析验证频道归属、标题转义与真实视频 ID', async () =
   assert.equal(parsed.entries.length, 2);
   assert.equal(parsed.entries[0].title, 'AI & Code');
   assert.equal(parsed.entries[0].videoUrl, 'https://www.youtube.com/watch?v=abcdefghijk');
+  assert.equal(parsed.entries[0].durationSeconds, 123);
   assert.throws(() => parseYouTubeFeed(FEED_XML, SEED_CREATORS[0].id), { code: 'CHANNEL_MISMATCH' });
   const emptyFeed = FEED_XML.replace(/<entry>[\s\S]*?<\/entry>/g, '');
   assert.equal(parseYouTubeFeed(emptyFeed, FIRE_ID).entries.length, 0);
@@ -116,6 +117,7 @@ test('yt-dlp 回退使用无 shell 的固定参数、可选 Cookie，并校验�
   assert.equal(parsed.entries[0].publishedAt, 0);
   assert.equal(parsed.entries[0].latestViews, 1900000);
   assert.equal(parsed.entries[0].thumbnailUrl, 'https://i.ytimg.com/vi/abcdefghijk/hqdefault.jpg');
+  assert.equal(parsed.entries[0].durationSeconds, 615);
   assert.throws(() => parseYtDlpPlaylist(YTDLP_JSON, SEED_CREATORS[0].id), { code: 'YTDLP_CHANNEL_MISMATCH' });
   assert.throws(() => parseYtDlpPlaylist('{', FIRE_ID), { code: 'YTDLP_BAD_JSON' });
 
@@ -184,6 +186,7 @@ test('Worker 去重入库，失败退避并保留最后成功时间', async () =
   let fail = true;
   let latestViews = 1900000;
   let publishedAt = 0;
+  let durationSeconds = 615;
   const errors = [];
   const worker = createWorker({
     db,
@@ -196,7 +199,7 @@ test('Worker 去重入库，失败退避并保留最后成功时间', async () =
         throw error;
       }
       return { entries: channelId === FIRE_ID ? [{
-        videoId: 'abcdefghijk', title: 'Real item', publishedAt, latestViews,
+        videoId: 'abcdefghijk', title: 'Real item', publishedAt, latestViews, durationSeconds,
         videoUrl: 'https://www.youtube.com/watch?v=abcdefghijk',
         thumbnailUrl: 'https://i.ytimg.com/vi/abcdefghijk/hqdefault.jpg'
       }] : [] };
@@ -223,11 +226,14 @@ test('Worker 去重入库，失败退避并保留最后成功时间', async () =
     assert.equal(db.prepare('SELECT COUNT(*) AS count FROM radar_videos').get().count, 1);
     assert.deepEqual(db.prepare('SELECT published_at, latest_views FROM radar_videos WHERE video_id = ?').get('abcdefghijk'),
       { published_at: 0, latest_views: 1900000 });
+    assert.equal(db.prepare('SELECT duration_seconds FROM radar_videos WHERE video_id = ?').get('abcdefghijk').duration_seconds, 615);
     assert.equal(db.prepare('SELECT last_error_code FROM radar_creators WHERE channel_id = ?').get(FIRE_ID).last_error_code, null);
     latestViews = 2000000;
+    durationSeconds = 620;
     publishedAt = clock - 3600000;
     assert.equal((await worker.runOnce()).inserted, 0);
     assert.deepEqual(db.prepare('SELECT published_at, latest_views, status_badge FROM radar_videos WHERE video_id = ?').get('abcdefghijk'),
       { published_at: publishedAt, latest_views: 2000000, status_badge: 'NEW' });
+    assert.equal(db.prepare('SELECT duration_seconds FROM radar_videos WHERE video_id = ?').get('abcdefghijk').duration_seconds, 620);
   } finally { db.close(); }
 });
