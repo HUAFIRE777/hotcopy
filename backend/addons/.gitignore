@@ -1,0 +1,4 @@
+addons.sqlite
+addons.sqlite-shm
+addons.sqlite-wal
+addons.sqlite-journal

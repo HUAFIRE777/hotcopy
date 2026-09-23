@@ -1,6 +1,7 @@
 node_modules/
 database.sqlite
 database.sqlite-journal
+.backups/
 .DS_Store
 .env
 .backups/

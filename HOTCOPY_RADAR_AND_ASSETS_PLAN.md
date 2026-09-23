@@ -129,16 +129,20 @@
 
 ---
 
-## 4. 模块二：YouTube 真实频道爆款雷达 (免 Key、零风控)
+## 4. 模块二：YouTube 频道爆款雷达 (免 API Key，需验证 Feed 稳定性)
 
 ### 4.1 采集协议：官方 Atom RSS Feed
-为彻底规避 YouTube Data API 的配额限制和反爬风险，雷达使用 Google 官方公开订阅接口：
+雷达优先使用 YouTube 公开 Atom Feed，避免消耗 YouTube Data API 配额；Feed 仍可能返回错误或受到区域、网络和平台策略影响，必须在部署环境实测：
 ```text
 URL: https://www.youtube.com/feeds/videos.xml?channel_id={CHANNEL_ID}
 请求方式: GET
 依赖项: 零 Key、零认证、无头浏览器不需要
-返回格式: 标准 XML (包含最新 15 条视频的 video_id, title, published, media:thumbnail)
+返回格式: Atom XML (含视频 ID、标题、发布时间等字段；条数及可用性以实际响应为准)
 ```
+
+2026-09-23 本机对已核对频道的 Feed 请求返回 HTTP 404；新加坡 VPS 只读探测中，Fireship 多次返回 HTTP 500，另两个频道返回 HTTP 404，而频道主页可访问。无 `www` 的入口曾短暂返回 HTTP 200，随后又报错，尚未取得可解析并核对的视频数据。这不能当作“已打通生产抓取”。Worker 必须记录错误并退避，VPS 实测成功前不要宣传实时监控。
+
+**阶段三补充兜底：** Feed 失败时调用本地 `yt-dlp --flat-playlist --playlist-end 10 -J` 读取频道 `/videos` 列表；Cookie 文件仅通过 `YTDLP_COOKIES_PATH` 配置。2026-09-23 已用新加坡 VPS 的真实 Fireship JSON 验证解析出 10 条视频与播放量。该模式通常没有发布时间，须以未知值保存，不得据此宣称“24 小时新发布”。生产 Worker 尚未启用。
 
 ### 4.2 轮询与播放量快照策略
 1. **定时触发**：`worker.js` 使用 `node-cron` 每 30 分钟执行一次轮询。
@@ -361,34 +365,34 @@ async function requireAddonUser(req, res, next) {
 
 ## 8. 20 个科技/AI/商业领域真实头部频道白名单
 
-为了彻底根治“输入 AI 教程却提取出流行歌曲”的假数据问题，Codex 必须在附加库初始化时执行以下 SQL，将真实存在的 20 个科技频道录入：
+以下名单于 2026-09-23 按各频道公开页面的 canonical channel ID 核对。原稿中有多处 ID 对错频道或无效，本表已更正；它是科技、AI、商业与成长领域精选名单，不代表官方排名：
 
 ```javascript
 // backend/addons/radar/seed_creators.js
 const SEED_CREATORS = [
   // 前沿 AI & 深度技术
-  { id: 'UCXvqdJ_2m_j9YwEPrqR0f5w', name: 'Andrej Karpathy', category: 'ai', url: 'https://www.youtube.com/@AndrejKarpathy' },
+  { id: 'UCXUPKJO5MZQN11PqgIvyuvQ', name: 'Andrej Karpathy', category: 'ai', url: 'https://www.youtube.com/@AndrejKarpathy' },
   { id: 'UCsBjURrPoezykLs9EqgamOA', name: 'Fireship', category: 'tech', url: 'https://www.youtube.com/@Fireship' },
   { id: 'UCSHZKyawb77ixDdsGog4iWA', name: 'Lex Fridman', category: 'ai', url: 'https://www.youtube.com/@lexfridman' },
-  { id: 'UCcefcZRL2oaA_TsBiDDJ-TW', name: 'Y Combinator', category: 'business', url: 'https://www.youtube.com/@ycombinator' },
-  { id: 'UC5r4Zf4Q69e_445s4U_L27w', name: 'Two Minute Papers', category: 'ai', url: 'https://www.youtube.com/@TwoMinutePapers' },
-  { id: 'UCbfYPyITQ-7l4upoX8nvctg', name: 'Two Bit da Vinci', category: 'tech', url: 'https://www.youtube.com/@TwoBitdaVinci' },
-  { id: 'UC0e3QhIqk799uQbgDVzFoGw', name: 'Matthew Berman', category: 'ai', url: 'https://www.youtube.com/@matthew_berman' },
-  { id: 'UCv83tO5cePwHMt1952IVVHw', name: 'AI Explained', category: 'ai', url: 'https://www.youtube.com/@ai-explained-official' },
+  { id: 'UCcefcZRL2oaA_uBNeo5UOWg', name: 'Y Combinator', category: 'business', url: 'https://www.youtube.com/@ycombinator' },
+  { id: 'UCbfYPyITQ-7l4upoX8nvctg', name: 'Two Minute Papers', category: 'ai', url: 'https://www.youtube.com/@TwoMinutePapers' },
+  { id: 'UCEgYhf84VjXDz-W7a9-rdCQ', name: 'Two Bit da Vinci', category: 'tech', url: 'https://www.youtube.com/@TwoBitdaVinci' },
+  { id: 'UCawZsQWqfGSbCI5yjkdVkTA', name: 'Matthew Berman', category: 'ai', url: 'https://www.youtube.com/@matthew_berman' },
+  { id: 'UCNJ1Ymd5yFuUPtn21xtRbbw', name: 'AI Explained', category: 'ai', url: 'https://www.youtube.com/channel/UCNJ1Ymd5yFuUPtn21xtRbbw' },
   
   // 商业出海与独立开发者
-  { id: 'UC_x5XG1OV2P6uZZ5FSM9Ttw', name: 'Google Cloud Tech', category: 'tech', url: 'https://www.youtube.com/@googlecloudtech' },
-  { id: 'UCnUYZLuoywbf4404jqcCc-A', name: 'My First Million', category: 'business', url: 'https://www.youtube.com/@MyFirstMillionPod' },
-  { id: 'UCF2v8vLgieMt1BgFCS1m_bw', name: 'The Diary Of A CEO', category: 'business', url: 'https://www.youtube.com/@TheDiaryOfACEO' },
-  { id: 'UC9rmX0xXf4L17e7lCvgR5eA', name: 'All-In Podcast', category: 'business', url: 'https://www.youtube.com/@allin' },
-  { id: 'UCJ24N456WH444Qk6q_C4Bfw', name: 'Huberman Lab', category: 'growth', url: 'https://www.youtube.com/@hubermanlab' },
-  { id: 'UC295-Dw_tDNtZXFeAPAW6Aw', name: 'Tim Ferriss', category: 'growth', url: 'https://www.youtube.com/@timferriss' },
+  { id: 'UCJS9pqu9BzkAMNTmzNMNhvg', name: 'Google Cloud Tech', category: 'tech', url: 'https://www.youtube.com/@googlecloudtech' },
+  { id: 'UCyaN6mg5u8Cjy2ZI4ikWaug', name: 'My First Million', category: 'business', url: 'https://www.youtube.com/@MyFirstMillionPod' },
+  { id: 'UCGq-a57w-aPwyi3pW7XLiHw', name: 'The Diary Of A CEO', category: 'business', url: 'https://www.youtube.com/@TheDiaryOfACEO' },
+  { id: 'UCESLZhusAkFfsNsApnjF_Cg', name: 'All-In Podcast', category: 'business', url: 'https://www.youtube.com/@allin' },
+  { id: 'UC2D2CMWXMOVWx7giW1n3LIg', name: 'Andrew Huberman', category: 'growth', url: 'https://www.youtube.com/@hubermanlab' },
+  { id: 'UCznv7Vf9nBdJYvBagFdAHWw', name: 'Tim Ferriss', category: 'growth', url: 'https://www.youtube.com/@timferriss' },
   { id: 'UCBJycsmduvYEL83R_U4JriQ', name: 'Marques Brownlee', category: 'tech', url: 'https://www.youtube.com/@mkbhd' },
-  { id: 'UCWpv7m2k0j_kQ3qPqFp9Ctw', name: 'The Verge', category: 'tech', url: 'https://www.youtube.com/@TheVerge' },
-  { id: 'UC_7eKqS3-l-C9n4uK6_fH2A', name: 'Wes Roth', category: 'ai', url: 'https://www.youtube.com/@WesRoth' },
-  { id: 'UCp6_KuD_oRCEvP97t0r48Ew', name: 'Dwarkesh Patel', category: 'business', url: 'https://www.youtube.com/@DwarkeshPatel' },
-  { id: 'UCv_vLHiWPYh_XRfOflQzS_w', name: 'Lenny Rachitsky', category: 'business', url: 'https://www.youtube.com/@LennyRachitsky' },
-  { id: 'UC1eSBC0Q62p6T_8XmX9Q8Qw', name: 'Ali Abdaal', category: 'growth', url: 'https://www.youtube.com/@aliabdaal' }
+  { id: 'UCddiUEpeqJcYeBxX1IVBKvQ', name: 'The Verge', category: 'tech', url: 'https://www.youtube.com/@TheVerge' },
+  { id: 'UCqcbQf6yw5KzRoDDcZ_wBSw', name: 'Wes Roth', category: 'ai', url: 'https://www.youtube.com/@WesRoth' },
+  { id: 'UCXl4i9dYBrFOabk0xGmbkRA', name: 'Dwarkesh Patel', category: 'business', url: 'https://www.youtube.com/@DwarkeshPatel' },
+  { id: 'UC6t1O76G0jYXOAoYCm153dA', name: "Lenny's Podcast", category: 'business', url: 'https://www.youtube.com/@LennysPodcast' },
+  { id: 'UCoOae5nYA7VqaXzerajD0lg', name: 'Ali Abdaal', category: 'growth', url: 'https://www.youtube.com/@aliabdaal' }
 ];
 ```
 

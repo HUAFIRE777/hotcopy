@@ -3,28 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HotCopy (热文工坊) - YouTube/TikTok海外视频原声提取与自媒体二创工坊</title>
-  <meta name="keywords" content="HotCopy,热文工坊,YouTube字幕提取,TikTok视频转文字,海外视频搬运二创,小红书文案生成,短视频口播脚本改写,自媒体工具,海外视频逐字稿">
-  <meta name="description" content="HotCopy (热文工坊) 专为内容创作者与自媒体人打造：免翻墙高速提取 YouTube 官方字幕与 TikTok 原声逐字稿，支持一键下载 TXT、核心事实速读、双语精翻与本土化二创改写。">
+  <title>HotCopy · 原声提取与 AI 爆款改写</title>
+  <meta name="keywords" content="HotCopy,AI爆款改写,抖音口播文案,小红书口播文案,视频号口播文案,TikTok script,YouTube script,视频逐字稿,播客逐字稿">
+  <meta name="description" content="从视频和播客提取原声，生成适合抖音、小红书、视频号、TikTok 与 YouTube 的口播文案初稿。">
   <meta name="author" content="EazyOPC" />
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
   <link rel="canonical" href="https://hotcopy.eazyopc.com/" />
 
   <!-- Google Search Console 站长平台验证 -->
   <meta name="google-site-verification" content="google89b79b3a1ee865f8" />
-  <title>HotCopy (热文工坊) - YouTube/TikTok海外视频原声提取与 AI 爆款改写工坊</title>
-  <meta name="description" content="直连官方字幕接口，秒级抓取完整原声逐字稿。支持一键导出 TXT 纯文本、核心要点简报速读、中英双语精翻与 AI 爆款内容改写。" />
-  <meta name="keywords" content="YouTube逐字稿,视频字幕提取,导出TXT字幕,AI爆款改写,TikTok音频提取,出海视频二创,海外热文" />
   
   <!-- Open Graph / SEO -->
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://hotcopy.eazyopc.com/" />
-  <meta property="og:title" content="HotCopy (热文工坊) - 海外视频原声提取与 AI 爆款改写工坊" />
-  <meta property="og:description" content="极简、高效、专注内容本身：秒级提取海外视频逐字稿，一键导出 TXT 纯文本与 AI 爆款改写脚本。" />
+  <meta property="og:title" content="HotCopy · 原声提取与 AI 爆款改写" />
+  <meta property="og:description" content="提取原声并整理成抖音、小红书、视频号、TikTok 与 YouTube 的口播文案初稿。" />
   <meta property="og:image" content="https://hotcopy.eazyopc.com/favicon.svg" />
-
-  <!-- Google AdSense 核心代码 -->
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6499357447763670" crossorigin="anonymous"></script>
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -54,10 +48,10 @@
         "mainEntity": [
           {
             "@type": "Question",
-            "name": "HotCopy 如何免翻墙提取 YouTube 视频逐字稿？",
+            "name": "HotCopy 如何提取 YouTube 视频逐字稿？",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "HotCopy 部署在海外高速骨干网络上，直连 YouTube 与 TikTok 官方底层音视频与字幕数据流，无需用户配置代理，毫秒级提取完整逐字稿。"
+              "text": "粘贴视频链接后，HotCopy 会优先读取可用字幕；没有字幕时，尝试从音频生成逐字稿。处理时间取决于内容长度和来源。"
             }
           },
           {
@@ -65,7 +59,7 @@
             "name": "提取出的逐字稿可以直接下载为 TXT 吗？",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "是的，系统内置一键下载纯文本 TXT 功能，方便您直接导入本地笔记软件、飞书、Notion 或剪映等剪辑工具。"
+              "text": "可以。结果支持下载 TXT，或复制 Markdown 后粘贴到笔记工具中。"
             }
           }
         ]
@@ -75,9 +69,8 @@
   </script>
 
   <style>
-    /* 暖白高质感纸质底色与优雅字形 */
     body {
-      background-color: #fbfbfa;
+      background: #f6f5f1;
       color: #1c1917;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
       -webkit-font-smoothing: antialiased;
@@ -86,53 +79,67 @@
       background-color: #e7e5e4;
       color: #1c1917;
     }
-    /* 爆款开门红金 / 中奖高光风格 */
-    .btn-prize-hero {
-      background: linear-gradient(135deg, #e11d48 0%, #ea580c 50%, #eab308 100%);
-      box-shadow: 0 4px 14px 0 rgba(225, 29, 72, 0.32);
-      border: 1px solid rgba(254, 240, 138, 0.5);
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .btn-prize-hero:hover {
-      background: linear-gradient(135deg, #be123c 0%, #c2410c 50%, #ca8a04 100%);
-      box-shadow: 0 6px 20px 0 rgba(225, 29, 72, 0.42);
-      transform: translateY(-1px) scale(1.01);
-    }
-    .btn-prize-card {
-      background: linear-gradient(135deg, #e11d48 0%, #ea580c 55%, #eab308 100%);
-      box-shadow: 0 2px 8px 0 rgba(225, 29, 72, 0.28);
-      border: 1px solid rgba(254, 240, 138, 0.4);
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .btn-prize-card:hover {
-      background: linear-gradient(135deg, #be123c 0%, #c2410c 55%, #ca8a04 100%);
-      box-shadow: 0 4px 12px 0 rgba(225, 29, 72, 0.38);
-      transform: translateY(-1px);
+    .workspace-card { box-shadow: 0 18px 55px rgba(38, 35, 28, .045), 0 1px 3px rgba(38, 35, 28, .035); }
+    .mode-card { transition: background .18s ease, border-color .18s ease, transform .18s ease, box-shadow .18s ease; }
+    .mode-card:not(.primary):hover { transform: translateY(-2px); border-color: #a8aaa2; background: #fff; }
+    .mode-card:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid #476657; outline-offset: 2px; }
+    .mode-card.primary { background: linear-gradient(105deg, #f04b3f 0%, #ff6f3d 57%, #ff8a3d 100%); border-color: #ee6743; color: #fff; box-shadow: 0 12px 26px rgba(214, 73, 44, .18); }
+    .mode-card.primary:hover { transform: translateY(-2px); box-shadow: 0 16px 30px rgba(214, 73, 44, .24); }
+    .platform-logo { width: 17px; height: 17px; flex: none; object-fit: contain; }
+    .drop-active { border-color: #476657 !important; background: #eff4ef !important; }
+    .reading-pane { font-size: 14px; line-height: 1.9; color: #292825; overflow-wrap: anywhere; }
+    .reading-pane h1, .reading-pane h2, .reading-pane h3 { color: #1d2b24; font-weight: 650; line-height: 1.45; margin: 1.35em 0 .45em; letter-spacing: -.025em; }
+    .reading-pane h1 { font-size: 1.55em; } .reading-pane h2 { font-size: 1.3em; } .reading-pane h3 { font-size: 1.12em; }
+    .reading-pane p { margin: .5em 0 .9em; }
+    .reading-pane ul, .reading-pane ol { margin: .55em 0 1em; padding-left: 1.5em; }
+    .reading-pane ul { list-style: disc; } .reading-pane ol { list-style: decimal; }
+    .reading-pane li { padding-left: .2em; margin: .18em 0; }
+    .reading-pane blockquote { border-left: 2px solid #64806b; margin: 1em 0; padding: .2em 1em; background: #f2f5f0; color: #465147; }
+    .reading-pane strong { font-weight: 700; color: #1c3025; }
+    .reading-pane code { background: #eeefeb; padding: .08em .32em; border-radius: 4px; font-size: .9em; }
+    .reading-pane a { color: #315f48; text-decoration: underline; text-underline-offset: 2px; }
+    .reading-pane .timestamp { font: 11px ui-monospace, SFMono-Regular, monospace; color: #42634d; background: #eef3ec; border-radius: 4px; padding: 2px 5px; }
+    .skeleton-line { height: 10px; border-radius: 5px; background: linear-gradient(90deg, #edece8 20%, #f7f6f3 45%, #edece8 70%); background-size: 220% 100%; animation: shimmer 1.6s ease infinite; }
+    #resultHeader, #sheetHandle { touch-action: none; }
+    @keyframes shimmer { to { background-position: -220% 0; } }
+    @media (prefers-reduced-motion: reduce) { .skeleton-line { animation: none; } .mode-card { transition: none; } }
+    @media (max-width: 640px) {
+      #videoUrl { font-size: 16px; min-height: 44px; }
+      #urlDropZone button, .mode-card, #resultActions button, #resultModal [id^="modalTab_"] { min-height: 44px; }
+      .mode-card:not(.primary) { min-height: 84px; }
+      #resultModal { align-items: end; padding: 0; }
+      #resultSheet { width: 100%; max-height: 94dvh; overflow-y: auto; border-radius: 22px 22px 0 0; padding: 18px 18px max(18px, env(safe-area-inset-bottom)); }
+      #resultTabs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: visible; }
+      #resultTabs button { min-width: 0; flex-wrap: wrap; }
+      #resultText, #assetResultPanel { min-height: 140px; }
+      #resultActions { flex-wrap: wrap; }
+      #resultActions > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
+      #resultActions > div button { width: 100%; }
     }
   </style>
 </head>
 <body class="min-h-screen flex flex-col justify-between">
   <!-- 顶部导航 -->
-  <header class="border-b border-stone-200/80 bg-[#fbfbfa]/90 backdrop-blur sticky top-0 z-40">
+  <header class="border-b border-stone-200/80 bg-[#f6f5f1]/95 backdrop-blur sticky top-0 z-40">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 h-15 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <a href="/" class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-lg bg-stone-900 text-white flex items-center justify-center font-bold text-sm tracking-tighter">
+          <div class="w-8 h-8 rounded-lg bg-[#294639] text-white flex items-center justify-center font-bold text-sm tracking-tighter">
             HC
           </div>
           <div class="flex items-baseline gap-1.5">
             <span class="font-bold text-base tracking-tight text-stone-900">HotCopy</span>
-            <span class="text-xs text-stone-500 font-normal">热文工坊</span>
+            <span class="brand-subtitle hidden sm:inline text-xs text-stone-500 font-normal">内容工作台</span>
           </div>
         </a>
       </div>
 
       <nav class="hidden md:flex items-center gap-6 text-xs font-medium text-stone-600">
-        <a href="#extractor" class="hover:text-stone-900 transition">视频提取</a>
-        <a href="#trends" class="hover:text-stone-900 transition">热点精选</a>
+        <a href="#extractor" class="hover:text-stone-900 transition">开始整理</a>
+        <a href="#trends" class="hover:text-stone-900 transition">全球热点</a>
+        <a href="#radarSection" onclick="openRadar(); return false;" class="hover:text-stone-900 transition">爆款雷达 <span class="text-[9px] text-orange-700 font-semibold">Premium</span></a>
         <a href="#pricing" onclick="openPricing(); return false;" class="hover:text-stone-900 transition">会员方案</a>
         <a href="#guide" class="hover:text-stone-900 transition">使用指南</a>
-        <a href="admin.html" target="_blank" class="text-stone-400 hover:text-stone-600 transition">后台</a>
       </nav>
 
       <div id="authArea" class="flex items-center gap-2 text-xs">
@@ -143,101 +150,98 @@
   </header>
 
   <main class="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12 flex-1 w-full">
-    <!-- Google AdSense 规范赞助横幅 (付费用户自动隐藏) -->
-    <div id="topAdBanner" class="w-full mb-8 bg-white border border-stone-200 rounded-xl p-3 shadow-xs text-center">
-      <div class="flex items-center justify-between px-2 mb-1.5 text-[10px] text-stone-400 uppercase tracking-wider">
-        <span>Sponsored Content</span>
-        <span class="cursor-pointer hover:text-stone-600" onclick="openPricing()">开通会员纯净去广告</span>
-      </div>
-      <ins class="adsbygoogle"
-           style="display:block; min-height: 60px;"
-           data-ad-client="ca-pub-6499357447763670"
-           data-ad-slot="1234567890"
-           data-ad-format="auto"
-           data-full-width-responsive="true"></ins>
-      <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-    </div>
-
     <!-- 核心 Hero 与链接提取器 -->
-    <section id="extractor" class="bg-white border border-stone-200 rounded-2xl p-6 sm:p-10 shadow-xs mb-12">
+    <section id="extractor" class="workspace-card bg-white border border-stone-200/80 rounded-[24px] p-6 sm:p-10 mb-14">
       <div class="max-w-2xl mb-5">
-        <span class="text-xs font-semibold text-stone-500 uppercase tracking-wider block mb-2">多平台音视频原声解析 · YouTube · 苹果播客 · 小宇宙 · B站 · 通用音频</span>
-        <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-stone-900 mb-3">
-          提取视频与播客长音频逐字稿，转化为高质量中文文案
+        <span class="text-[11px] font-semibold text-[#42634d] uppercase tracking-[.18em] block mb-3">HOTCOPY / CONTENT WORKSPACE</span>
+        <h1 class="text-[28px] sm:text-[40px] leading-[1.23] font-semibold tracking-tight text-stone-900 mb-4">
+          下一个 AI 爆款，从好内容开始。
         </h1>
-        <p class="text-xs sm:text-sm text-stone-600 leading-relaxed">
-          直连官方字幕接口，秒级抓取完整原声文本；超长播客智能分片切片听写。支持一键导出 TXT 纯文本、核心要点速读、双语精翻与自媒体本土化改写。
+        <p class="text-sm sm:text-[15px] text-stone-600 leading-[1.8]">
+          从视频或播客提取原声，生成抖音、小红书、视频号、TikTok 和 YouTube 口播文案初稿。
         </p>
       </div>
 
       <!-- 平台快速标识标签 -->
-      <div class="flex flex-wrap items-center gap-2 mb-3">
-        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium bg-red-50 text-red-700 border border-red-200/60">
-          <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>YouTube 视频
+      <div class="text-[11px] font-medium text-stone-500 mb-2">支持的素材来源</div>
+      <div class="flex flex-wrap items-center gap-2 mb-5">
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium bg-stone-50 text-stone-600 border border-stone-200">
+          <img class="platform-logo" src="assets/logos/youtube.svg" alt="">YouTube
         </span>
-        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium bg-purple-50 text-purple-700 border border-purple-200/60">
-          <span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span>Apple Podcasts (苹果播客)
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium bg-stone-50 text-stone-600 border border-stone-200">
+          <img class="platform-logo" src="assets/logos/applepodcasts.svg" alt="">Apple Podcasts
         </span>
-        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium bg-sky-50 text-sky-700 border border-sky-200/60">
-          <span class="w-1.5 h-1.5 rounded-full bg-sky-500"></span>小宇宙播客
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium bg-stone-50 text-stone-600 border border-stone-200">
+          <img class="platform-logo rounded-[3px]" src="assets/logos/xiaoyuzhou.png" alt="">小宇宙
         </span>
-        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium bg-pink-50 text-pink-700 border border-pink-200/60">
-          <span class="w-1.5 h-1.5 rounded-full bg-pink-500"></span>Bilibili (B站知识区)
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium bg-stone-50 text-stone-600 border border-stone-200">
+          <img class="platform-logo" src="assets/logos/bilibili.svg" alt="">B站
         </span>
-        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200/60">
-          <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>通用音频直链 (MP3/M4A)
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium bg-stone-50 text-stone-600 border border-stone-200">
+          音频文件与直链
         </span>
       </div>
 
       <!-- 输入栏 -->
       <div class="space-y-3">
-        <div class="flex items-center bg-[#fafaf9] border border-stone-300 rounded-xl p-1.5 focus-within:border-stone-800 focus-within:bg-white transition shadow-inner">
-          <input id="videoUrl" type="text" placeholder="粘贴链接：支持 YouTube 视频、Apple Podcasts、小宇宙播客、B站视频、音频直链..." 
-            class="flex-1 bg-transparent border-none px-3.5 py-2.5 text-xs sm:text-sm text-stone-900 focus:outline-none placeholder-stone-400">
-          <button onclick="pasteFromClipboard()" class="hidden sm:inline-block px-3 py-1.5 text-xs text-stone-600 hover:text-stone-900 bg-white border border-stone-200 hover:border-stone-300 rounded-lg transition font-medium mr-1">
+        <label for="videoUrl" class="block text-xs font-semibold text-stone-700">内容链接</label>
+        <div id="urlDropZone" class="flex items-center bg-[#fafaf9] border border-stone-200 rounded-xl p-1.5 focus-within:border-[#718778] focus-within:bg-white transition shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+          <input id="videoUrl" type="url" inputmode="url" autocomplete="url" placeholder="粘贴 YouTube、B站或播客链接"
+            class="flex-1 min-w-0 bg-transparent border-none px-3.5 py-2.5 text-xs sm:text-sm text-stone-900 focus:outline-none placeholder-stone-400">
+          <button type="button" onclick="pasteFromClipboard()" class="px-3 py-1.5 text-xs text-stone-600 hover:text-stone-900 bg-white border border-stone-200 hover:border-stone-300 rounded-lg transition font-medium mr-1">
             粘贴
           </button>
-          <button onclick="clearInput()" class="px-2.5 py-1.5 text-xs text-stone-400 hover:text-stone-600">
+          <button type="button" onclick="clearInput()" class="px-2.5 py-1.5 text-xs text-stone-400 hover:text-stone-600" aria-label="清空链接">
             清空
           </button>
         </div>
-
-        <!-- 快捷测试示例链接 -->
-        <div class="flex flex-wrap items-center gap-2 px-1 text-[11px] text-stone-500">
-          <span class="text-stone-400 font-medium">快捷填入测试：</span>
-          <button type="button" onclick="fillExample('https://www.bilibili.com/video/BV1BK411L7DJ')" class="hover:text-stone-900 underline decoration-stone-300 hover:decoration-stone-800 transition">B站罗翔精选</button>
-          <span class="text-stone-300">·</span>
-          <button type="button" onclick="fillExample('https://podcasts.apple.com/us/podcast/huberman-lab/id1545953110?i=1000503024844')" class="hover:text-stone-900 underline decoration-stone-300 hover:decoration-stone-800 transition">苹果播客长音频</button>
-          <span class="text-stone-300">·</span>
-          <button type="button" onclick="fillExample('https://www.xiaoyuzhoufm.com/episode/682fdf12fcbc2e206b5021ac')" class="hover:text-stone-900 underline decoration-stone-300 hover:decoration-stone-800 transition">小宇宙单集</button>
-          <span class="text-stone-300">·</span>
-          <button type="button" onclick="fillExample('https://www.youtube.com/watch?v=UF8uR6Z6KLc')" class="hover:text-stone-900 underline decoration-stone-300 hover:decoration-stone-800 transition">YouTube斯坦福演讲</button>
+        <div class="flex flex-wrap items-center justify-between gap-2 px-1 text-[11px] text-stone-500">
+          <span>支持拖入链接或音频文件</span>
+          <div class="flex flex-wrap items-center gap-3">
+            <button type="button" onclick="openProjectList()" class="min-h-11 font-semibold text-stone-700 hover:underline">我的项目</button>
+            <button type="button" onclick="document.getElementById('audioFile').click()" class="min-h-11 font-semibold text-[#294639] hover:underline">选择音频文件 ↗</button>
+          </div>
+          <input id="audioFile" type="file" accept=".mp3,.m4a,.wav,.aac,.ogg,.flac,.webm,audio/*" class="hidden" onchange="uploadAudioFile(this.files[0]); this.value = ''">
         </div>
 
-        <!-- 四档核心操作按钮 -->
+        <!-- 快捷链接 -->
+        <div class="flex flex-wrap items-center gap-2 px-1 text-[11px] text-stone-500">
+          <span class="text-stone-400 font-medium">快捷链接</span>
+          <button type="button" onclick="fillExample('https://www.bilibili.com/video/BV1BK411L7DJ')" class="hover:text-stone-900 underline decoration-stone-300 hover:decoration-stone-800 transition">B站</button>
+          <span class="text-stone-300">·</span>
+          <button type="button" onclick="fillExample('https://podcasts.apple.com/us/podcast/huberman-lab/id1545953110?i=1000503024844')" class="hover:text-stone-900 underline decoration-stone-300 hover:decoration-stone-800 transition">Apple Podcasts</button>
+          <span class="text-stone-300">·</span>
+          <button type="button" onclick="fillExample('https://www.xiaoyuzhoufm.com/episode/682fdf12fcbc2e206b5021ac')" class="hover:text-stone-900 underline decoration-stone-300 hover:decoration-stone-800 transition">小宇宙</button>
+          <span class="text-stone-300">·</span>
+          <button type="button" onclick="fillExample('https://www.youtube.com/watch?v=UF8uR6Z6KLc')" class="hover:text-stone-900 underline decoration-stone-300 hover:decoration-stone-800 transition">YouTube</button>
+        </div>
+
+        <!-- 保留四宫格操作布局 -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-          <button onclick="runConvert('raw')" class="flex flex-col items-start p-3.5 rounded-xl bg-[#fafaf9] hover:bg-stone-100/80 border border-stone-200 hover:border-stone-300 transition text-left group">
-            <span class="text-xs font-bold text-stone-900 mb-0.5">提取逐字稿</span>
-            <span class="text-[11px] text-stone-500">原声纯文本 · 导出 TXT</span>
+          <button onclick="runConvert('raw')" class="mode-card flex flex-col items-start p-4 rounded-xl bg-[#fafaf9] border border-stone-200 text-left group">
+            <span class="text-sm font-semibold text-stone-900 mb-1">原声全文</span>
+            <span class="text-xs text-stone-500">按原意整理的文本</span>
           </button>
-
-          <button onclick="runConvert('summary')" class="flex flex-col items-start p-3.5 rounded-xl bg-[#fafaf9] hover:bg-stone-100/80 border border-stone-200 hover:border-stone-300 transition text-left group">
-            <span class="text-xs font-bold text-stone-900 mb-0.5">核心事实简报</span>
-            <span class="text-[11px] text-stone-500">10秒速读 · 论点与数据</span>
+          <button onclick="runConvert('summary')" class="mode-card flex flex-col items-start p-4 rounded-xl bg-[#fafaf9] border border-stone-200 text-left group">
+            <span class="text-sm font-semibold text-stone-900 mb-1">核心要点</span>
+            <span class="text-xs text-stone-500">论点、依据与结论</span>
           </button>
-
-          <button onclick="runConvert('translate')" class="flex flex-col items-start p-3.5 rounded-xl bg-[#fafaf9] hover:bg-stone-100/80 border border-stone-200 hover:border-stone-300 transition text-left group">
-            <span class="text-xs font-bold text-stone-900 mb-0.5">中英双语精翻</span>
-            <span class="text-[11px] text-stone-500">严谨准确 · 保留段落脉络</span>
+          <button onclick="runConvert('translate')" class="mode-card flex flex-col items-start p-4 rounded-xl bg-[#fafaf9] border border-stone-200 text-left group">
+            <span class="text-sm font-semibold text-stone-900 mb-1">中文翻译</span>
+            <span class="text-xs text-stone-500">保留语境与段落</span>
           </button>
-
-          <button onclick="runConvert('rewrite')" class="btn-prize-hero flex flex-col items-start p-3.5 rounded-xl text-white text-left group relative overflow-hidden">
-            <div class="flex items-center gap-1.5 mb-0.5">
-              <span class="text-xs font-bold text-white tracking-wide">✨ AI 爆款改写</span>
-              <span class="text-[9px] bg-yellow-300/30 text-yellow-100 border border-yellow-200/40 px-1 py-0.2 rounded font-semibold">HOT</span>
-            </div>
-            <span class="text-[11px] text-yellow-100/90 font-medium">爆款钩子 · 小红书/公众号/短视频</span>
+          <button onclick="runConvert('rewrite')" class="mode-card primary flex flex-col items-start p-4 rounded-xl text-left group">
+            <span class="text-[15px] sm:text-base font-bold leading-tight mb-1">AI 爆款改写 ↗</span>
+            <span class="text-xs text-white font-medium">五个平台口播初稿</span>
           </button>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 pt-1 text-xs text-stone-600" aria-label="口播平台：抖音、小红书、视频号、TikTok、YouTube">
+          <span class="text-stone-500 font-medium mr-1">口播平台</span>
+          <span class="inline-flex items-center gap-1.5 rounded-md border border-stone-200 bg-white px-2.5 py-1"><img class="platform-logo" src="assets/logos/douyin.png" alt="">抖音</span>
+          <span class="inline-flex items-center gap-1.5 rounded-md border border-stone-200 bg-white px-2.5 py-1"><img class="platform-logo" src="assets/logos/xiaohongshu.svg" alt="">小红书</span>
+          <span class="inline-flex items-center gap-1.5 rounded-md border border-stone-200 bg-white px-2.5 py-1"><img class="platform-logo" src="assets/logos/shipinhao.png" alt="">视频号</span>
+          <span class="inline-flex items-center gap-1.5 rounded-md border border-stone-200 bg-white px-2.5 py-1"><img class="platform-logo" src="assets/logos/tiktok.svg" alt="">TikTok</span>
+          <span class="inline-flex items-center gap-1.5 rounded-md border border-stone-200 bg-white px-2.5 py-1"><img class="platform-logo" src="assets/logos/youtube.svg" alt="">YouTube</span>
         </div>
       </div>
 
@@ -249,25 +253,39 @@
         </div>
         <div class="flex items-center gap-1.5">
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-          <span>官方 CC 字幕 0 秒秒出</span>
+          <span>优先使用可用字幕</span>
         </div>
         <div class="flex items-center gap-1.5">
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-          <span>超长音频无损智能分片</span>
+          <span>长音频分段处理</span>
         </div>
         <div class="flex items-center gap-1.5">
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-          <span>同链接仅提取一次 · 浏览器高速缓存</span>
+          <span>同链接切换结果可复用</span>
         </div>
       </div>
     </section>
 
-    <!-- 热点精选池 (非时政精选) -->
+    <!-- 赞助位位于主要工作区之后，付费用户自动隐藏 -->
+    <div id="topAdBanner" class="hidden w-full mb-14 bg-white border border-stone-200 rounded-xl p-3 text-center">
+      <div class="flex items-center justify-between px-2 mb-1.5 text-[10px] text-stone-400 uppercase tracking-wider">
+        <span>Sponsored Content</span>
+        <button type="button" class="hover:text-stone-600" onclick="openPricing()">会员可关闭广告</button>
+      </div>
+      <ins class="adsbygoogle" style="display:block; min-height: 60px;" data-ad-client="ca-pub-6499357447763670" data-ad-slot="1234567890" data-ad-format="auto" data-full-width-responsive="true"></ins>
+    </div>
+
+    <!-- 全球热点榜单 -->
     <section id="trends" class="mb-12">
       <!-- 第一排：居中大标题与副标题 -->
       <div class="text-center max-w-2xl mx-auto mb-5">
-        <h2 class="text-xl sm:text-2xl font-bold text-stone-900 tracking-tight">全球与全网爆款热点精选</h2>
-        <p class="text-xs sm:text-sm text-stone-500 mt-1.5">每 2 小时同步 YouTube、B站与 Apple 播客的可验证内容，点击卡片即可提取</p>
+        <h2 class="text-2xl sm:text-3xl font-semibold text-stone-900 tracking-tight">全球最新热点</h2>
+        <div class="mt-3 inline-flex max-w-full flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-full border border-orange-200 bg-orange-50 px-3.5 py-1.5 text-xs sm:text-sm font-medium text-orange-800" aria-live="polite">
+          <span class="inline-block h-1.5 w-1.5 rounded-full bg-orange-500"></span>
+          <span>每 2 小时同步</span>
+          <span class="text-orange-300">·</span>
+          <span id="trendSyncStatus">正在查询同步状态</span>
+        </div>
       </div>
 
       <!-- 第二排：平台快捷筛选胶囊药丸 (Platform Pills) -->
@@ -276,13 +294,13 @@
           <span>🌐</span> 全部平台
         </button>
         <button onclick="switchPlatform('youtube')" class="plat-btn px-3.5 py-1.5 rounded-xl font-medium transition flex items-center gap-1.5 text-stone-600 hover:text-stone-900 hover:bg-stone-200/60" data-plat="youtube">
-          <span class="w-2 h-2 rounded-full bg-red-600"></span> YouTube
+          <img class="platform-logo" src="assets/logos/youtube.svg" alt=""> YouTube
         </button>
         <button onclick="switchPlatform('bilibili')" class="plat-btn px-3.5 py-1.5 rounded-xl font-medium transition flex items-center gap-1.5 text-stone-600 hover:text-stone-900 hover:bg-stone-200/60" data-plat="bilibili">
-          <span class="w-2 h-2 rounded-full bg-[#fb7299]"></span> B站知识区
+          <img class="platform-logo" src="assets/logos/bilibili.svg" alt=""> B站知识区
         </button>
         <button onclick="switchPlatform('podcast')" class="plat-btn px-3.5 py-1.5 rounded-xl font-medium transition flex items-center gap-1.5 text-stone-600 hover:text-stone-900 hover:bg-stone-200/60" data-plat="podcast">
-          <span class="w-2 h-2 rounded-full bg-[#8936df]"></span> Apple 播客
+          <img class="platform-logo" src="assets/logos/applepodcasts.svg" alt=""> Apple 播客
         </button>
       </div>
 
@@ -290,14 +308,41 @@
       <div class="flex flex-wrap items-center justify-center gap-2 mb-8" id="categoryTabs">
         <button onclick="switchCategory('all')" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-medium bg-stone-900 text-white shadow-xs" data-cat="all">全部领域</button>
         <button onclick="switchCategory('tech')" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-medium bg-white text-stone-600 border border-stone-200 hover:border-stone-300" data-cat="tech">前沿科技 & AI</button>
-        <button onclick="switchCategory('business')" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-medium bg-white text-stone-600 border border-stone-200 hover:border-stone-300" data-cat="business">商业创富 & 出海</button>
+        <button onclick="switchCategory('business')" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-medium bg-white text-stone-600 border border-stone-200 hover:border-stone-300" data-cat="business">商业与出海</button>
         <button onclick="switchCategory('podcast')" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-medium bg-white text-stone-600 border border-stone-200 hover:border-stone-300" data-cat="podcast">深度播客 & 访谈</button>
-        <button onclick="switchCategory('growth')" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-medium bg-white text-stone-600 border border-stone-200 hover:border-stone-300" data-cat="growth">认知思维 & 成长</button>
+        <button onclick="switchCategory('growth')" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-medium bg-white text-stone-600 border border-stone-200 hover:border-stone-300" data-cat="growth">学习与成长</button>
         <button onclick="switchCategory('lifestyle')" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-medium bg-white text-stone-600 border border-stone-200 hover:border-stone-300" data-cat="lifestyle">生活方式 & 技能</button>
       </div>
 
       <div id="trendsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
-        <div class="text-xs text-stone-400 py-12 text-center col-span-3">正在拉取热点数据...</div>
+        <div class="text-xs text-stone-400 py-12 text-center col-span-3">正在读取平台榜单...</div>
+      </div>
+    </section>
+
+    <!-- Premium 频道雷达：与全球热点榜单独立，按实际 RSS 同步状态展示 -->
+    <section id="radarSection" class="mb-12 rounded-2xl border border-stone-200 bg-white p-5 sm:p-8 shadow-xs">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2 mb-2">
+            <h2 class="text-xl sm:text-2xl font-semibold text-stone-900">爆款雷达</h2>
+            <span class="rounded-md bg-orange-50 px-2 py-1 text-[10px] font-semibold text-orange-700">Premium</span>
+          </div>
+          <p class="text-xs sm:text-sm text-stone-600 leading-relaxed">跟进 20 个已核对的科技、AI 与商业频道。频道更新与同步状态以实际抓取结果为准。</p>
+        </div>
+        <button type="button" onclick="openRadar()" class="min-h-11 shrink-0 rounded-lg bg-stone-900 px-4 text-xs font-semibold text-white hover:bg-stone-800">查看频道更新</button>
+      </div>
+      <div id="radarPanel" class="hidden mt-6 border-t border-stone-100 pt-5">
+        <p id="radarSyncStatus" role="status" aria-live="polite" class="text-xs text-stone-500 mb-4">正在查询同步状态</p>
+        <div id="radarCategoryTabs" class="flex flex-wrap gap-2 mb-5 text-xs">
+          <button type="button" data-radar-category="all" onclick="switchRadarCategory('all')" class="min-h-11 rounded-lg border border-stone-900 bg-stone-900 px-3 text-white">全部频道</button>
+          <button type="button" data-radar-category="ai" onclick="switchRadarCategory('ai')" class="min-h-11 rounded-lg border border-stone-200 px-3 text-stone-600">AI</button>
+          <button type="button" data-radar-category="tech" onclick="switchRadarCategory('tech')" class="min-h-11 rounded-lg border border-stone-200 px-3 text-stone-600">科技</button>
+          <button type="button" data-radar-category="business" onclick="switchRadarCategory('business')" class="min-h-11 rounded-lg border border-stone-200 px-3 text-stone-600">商业</button>
+          <button type="button" data-radar-category="growth" onclick="switchRadarCategory('growth')" class="min-h-11 rounded-lg border border-stone-200 px-3 text-stone-600">成长</button>
+        </div>
+        <div id="radarGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <p class="text-xs text-stone-500 py-6">正在读取已同步的视频…</p>
+        </div>
       </div>
     </section>
 
@@ -305,18 +350,18 @@
     <section id="guide" class="bg-white border border-stone-200 rounded-2xl p-6 sm:p-10 mb-12 space-y-8 shadow-xs">
       <div>
         <span class="text-xs font-semibold text-stone-400 uppercase tracking-wider block mb-1">Standard Workflow Guide</span>
-        <h2 class="text-xl font-bold text-stone-900 mb-2">如何将海外优质视频高效转化为中文爆款图文？</h2>
+        <h2 class="text-xl font-semibold text-stone-900 mb-2">从原声到成稿</h2>
         <p class="text-xs sm:text-sm text-stone-600 leading-relaxed">
-          全球每天产生海量高价值知识与创意。HotCopy 为内容创作者梳理出三步工业化创作流程：
+          三个步骤，让长内容更容易阅读、核对和再表达。
         </p>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div class="space-y-2 border-l-2 border-stone-900 pl-4">
           <span class="text-xs font-mono text-stone-400 font-semibold">01 / 提取</span>
-          <h3 class="text-sm font-bold text-stone-900">免翻直连获取逐字稿</h3>
+          <h3 class="text-sm font-bold text-stone-900">获取原声全文</h3>
           <p class="text-xs text-stone-600 leading-relaxed">
-            粘贴链接秒级解析，直接提取原声台词并过滤掉原作者的口头禅与套话，一键下载 TXT 保存到本地。
+            粘贴链接后读取可用字幕，或从音频整理文本。处理完成后可下载 TXT 留存。
           </p>
         </div>
 
@@ -324,15 +369,15 @@
           <span class="text-xs font-mono text-stone-400 font-semibold">02 / 提纯</span>
           <h3 class="text-sm font-bold text-stone-900">结构化梳理核心论据</h3>
           <p class="text-xs text-stone-600 leading-relaxed">
-            利用事实简报功能，自动摘录核心主旨、支撑数据与实操要点，彻底消除长视频的信息冗余。
+            把主要观点、论据与具体数据放到一起，方便回看与核对。
           </p>
         </div>
 
         <div class="space-y-2 border-l-2 border-stone-900 pl-4">
           <span class="text-xs font-mono text-stone-400 font-semibold">03 / 重塑</span>
-          <h3 class="text-sm font-bold text-stone-900">本土化爆款文案生成</h3>
+          <h3 class="text-sm font-bold text-stone-900">整理分发稿</h3>
           <p class="text-xs text-stone-600 leading-relaxed">
-            重构为符合小红书与短视频阅读习惯的高转化脚本，拟定前 3 秒黄金标题，成稿自动沉淀为语料资产。
+            在保留原意的前提下，分别整理国内与海外平台可继续编辑的口播文案。
           </p>
         </div>
       </div>
@@ -343,11 +388,15 @@
         <div class="space-y-3 text-xs text-stone-600">
           <div class="p-4 rounded-xl bg-[#fafaf9] border border-stone-200">
             <h4 class="font-bold text-stone-900 mb-1">使用 HotCopy 是否需要配置海外代理？</h4>
-            <p>不需要。所有的音视频流与字幕请求均由 HotCopy 海外高速节点集群代为执行，国内正常访问即可。</p>
+            <p>通常不需要自行配置代理。部分来源可能因平台限制而无法读取，遇到失败时可更换可访问的链接。</p>
+          </div>
+          <div class="p-4 rounded-xl bg-[#fafaf9] border border-stone-200">
+            <h4 class="font-bold text-stone-900 mb-1">可以上传本地音频吗？</h4>
+            <p>可以。支持常见音频格式，单个文件不超过 40 MB。上传后先生成原声全文，再按需要切换其他整理模式。</p>
           </div>
           <div class="p-4 rounded-xl bg-[#fafaf9] border border-stone-200">
             <h4 class="font-bold text-stone-900 mb-1">付费开通后如何享受去广告权益？</h4>
-            <p>通过安全网关结账后，系统根据注册邮箱自动升级账户等级。登录后前端自动彻底屏蔽所有 AdSense 广告展示。</p>
+            <p>订单同步到账号后，重新登录或刷新页面即可查看会员状态；会员页面不显示广告位。</p>
           </div>
         </div>
       </div>
@@ -367,66 +416,117 @@
           <a href="https://graph.eazyopc.com" target="_blank" class="hover:text-stone-900 transition">Graph 方格纸</a>
           <a href="https://whiteboard.eazyopc.com" target="_blank" class="hover:text-stone-900 transition">WhiteBoard 白板</a>
           <a href="https://kidsdraw.eazyopc.com" target="_blank" class="hover:text-stone-900 transition">KidsDraw 涂鸦</a>
-          <a href="admin.html" target="_blank" class="hover:text-stone-900 transition">管理后台</a>
         </div>
       </div>
       <p class="text-[11px] text-stone-400">
-        © 2026 EazyOPC HotCopy. All rights reserved. 简洁专注的内容工具矩阵 · 纯净隐私 · 零多余追踪。
+        © 2026 EazyOPC HotCopy. All rights reserved.
       </p>
     </footer>
   </main>
 
   <!-- 结果输出模态弹窗 -->
-  <div id="resultModal" class="fixed inset-0 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
-    <div class="bg-white border border-stone-200 rounded-2xl max-w-3xl w-full max-h-[88vh] flex flex-col p-6 shadow-xl">
-      <div class="flex justify-between items-center pb-3 border-b border-stone-100">
+  <div id="resultModal" role="dialog" aria-modal="true" aria-labelledby="resultTitle" class="fixed inset-0 bg-stone-900/55 flex items-center justify-center p-4 z-50 hidden" onclick="if (event.target === this) closeModal('resultModal')">
+    <div id="resultSheet" class="bg-white border border-stone-200 rounded-2xl max-w-3xl w-full max-h-[88vh] flex flex-col p-6 shadow-xl">
+      <div id="sheetHandle" class="hidden w-10 h-1 rounded-full bg-stone-300 mx-auto mb-4"></div>
+      <div id="resultHeader" class="flex justify-between items-center pb-3 border-b border-stone-100">
         <div>
-          <h3 id="resultTitle" class="font-bold text-sm text-stone-900">处理结果</h3>
-          <p id="resultMeta" class="text-[11px] text-stone-500 mt-0.5">准备就绪</p>
+          <h3 id="resultTitle" class="font-semibold text-base text-stone-900">处理结果</h3>
+          <p id="resultMeta" role="status" aria-live="polite" class="text-[11px] text-stone-500 mt-0.5">准备就绪</p>
         </div>
-        <button onclick="closeModal('resultModal')" class="w-7 h-7 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-600 flex items-center justify-center text-xs transition">✕</button>
+        <button onclick="closeModal('resultModal')" aria-label="关闭结果" class="w-8 h-8 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-600 flex items-center justify-center text-xs transition">✕</button>
       </div>
 
       <!-- 四大核心模式即时切换标签栏 (同链接仅提取一次，已生成模式 0 毫秒即显) -->
-      <div class="flex items-center gap-1.5 p-1 bg-stone-100/90 border border-stone-200/80 rounded-xl my-3 text-xs overflow-x-auto shrink-0">
+      <div id="resultTabs" class="flex items-center gap-1.5 p-1 bg-stone-100/90 border border-stone-200/80 rounded-xl my-3 text-xs overflow-x-auto shrink-0">
         <button id="modalTab_raw" onclick="switchModalTab('raw')" class="flex-1 min-w-[76px] py-1.5 px-2 rounded-lg font-semibold text-center transition flex items-center justify-center gap-1 bg-white text-stone-900 shadow-xs border border-stone-200/80">
-          <span>📄</span> 逐字稿 <span id="badge_raw" class="hidden text-[9px] px-1 py-0.2 rounded bg-emerald-100 text-emerald-700 font-mono font-bold">已存</span>
+          原声全文 <span id="badge_raw" class="hidden text-[9px] px-1 py-0.2 rounded bg-emerald-100 text-emerald-700 font-mono font-bold">已存</span>
         </button>
         <button id="modalTab_summary" onclick="switchModalTab('summary')" class="flex-1 min-w-[76px] py-1.5 px-2 rounded-lg font-medium text-center transition flex items-center justify-center gap-1 text-stone-600 hover:text-stone-900 hover:bg-stone-200/60">
-          <span>⚡</span> 核心简报 <span id="badge_summary" class="hidden text-[9px] px-1 py-0.2 rounded bg-emerald-100 text-emerald-700 font-mono font-bold">已存</span>
+          核心要点 <span id="badge_summary" class="hidden text-[9px] px-1 py-0.2 rounded bg-emerald-100 text-emerald-700 font-mono font-bold">已存</span>
         </button>
         <button id="modalTab_translate" onclick="switchModalTab('translate')" class="flex-1 min-w-[76px] py-1.5 px-2 rounded-lg font-medium text-center transition flex items-center justify-center gap-1 text-stone-600 hover:text-stone-900 hover:bg-stone-200/60">
-          <span>🌐</span> 双语精翻 <span id="badge_translate" class="hidden text-[9px] px-1 py-0.2 rounded bg-emerald-100 text-emerald-700 font-mono font-bold">已存</span>
+          中文翻译 <span id="badge_translate" class="hidden text-[9px] px-1 py-0.2 rounded bg-emerald-100 text-emerald-700 font-mono font-bold">已存</span>
         </button>
         <button id="modalTab_rewrite" onclick="switchModalTab('rewrite')" class="flex-1 min-w-[76px] py-1.5 px-2 rounded-lg font-medium text-center transition flex items-center justify-center gap-1 text-stone-600 hover:text-stone-900 hover:bg-stone-200/60">
-          <span>✨</span> AI爆款改写 <span id="badge_rewrite" class="hidden text-[9px] px-1 py-0.2 rounded bg-emerald-100 text-emerald-700 font-mono font-bold">已存</span>
+          AI 爆款改写 <span id="badge_rewrite" class="hidden text-[9px] px-1 py-0.2 rounded bg-emerald-100 text-emerald-700 font-mono font-bold">已存</span>
         </button>
       </div>
 
-      <div id="resultText" class="flex-1 overflow-y-auto bg-[#fafaf9] p-4 mb-4 rounded-xl text-xs sm:text-sm leading-relaxed whitespace-pre-wrap text-stone-800 border border-stone-200 font-mono select-text">
-        正在连接海外节点抓取并处理...
+      <div id="assetCreationTray" class="shrink-0 mb-3 rounded-xl border border-orange-100 bg-[#fff9f5] p-3 text-xs">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-2.5">
+          <span class="font-semibold text-stone-900">创作资产</span>
+          <div class="flex flex-wrap items-center gap-2">
+            <span id="assetQuotaBadge" class="text-[11px] text-stone-500" aria-live="polite">Pro / Premium</span>
+            <button id="assetLibraryButton" type="button" onclick="openAssetLibrary()" class="hidden text-[11px] font-medium text-orange-700 hover:underline min-h-11">我的资产</button>
+            <button id="projectListButton" type="button" onclick="openProjectList()" class="hidden text-[11px] font-medium text-orange-700 hover:underline min-h-11">我的项目</button>
+            <button id="projectSaveButton" type="button" onclick="showProjectSave()" class="hidden text-[11px] font-medium text-stone-800 hover:underline min-h-11">保存项目</button>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <button type="button" onclick="generateAsset('xiaohongshu')" class="asset-generate-btn min-h-11 rounded-lg border border-stone-200 bg-white px-2 text-stone-800 font-medium hover:border-orange-300 transition">小红书图文</button>
+          <select id="assetPlatform" aria-label="口播平台" class="min-h-11 rounded-lg border border-stone-200 bg-white px-2 text-stone-800 focus:outline-none focus:ring-2 focus:ring-orange-300">
+            <option value="douyin">抖音</option>
+            <option value="xiaohongshu">小红书</option>
+            <option value="shipinhao">视频号</option>
+            <option value="tiktok">TikTok</option>
+            <option value="youtube">YouTube</option>
+          </select>
+          <button type="button" onclick="generateAsset('short-video')" class="asset-generate-btn min-h-11 rounded-lg border border-stone-200 bg-white px-2 text-stone-800 font-medium hover:border-orange-300 transition">生成口播</button>
+          <button type="button" onclick="generateAsset('mindmap')" class="asset-generate-btn min-h-11 rounded-lg border border-stone-200 bg-white px-2 text-stone-800 font-medium hover:border-orange-300 transition">知识脑图</button>
+        </div>
+        <button id="productionKitButton" type="button" onclick="generateAsset('production-kit')" class="asset-generate-btn mt-2 min-h-11 w-full rounded-lg border border-orange-300 bg-white px-3 text-left font-semibold text-orange-800 hover:bg-orange-50 transition">生成全套制作包 <span class="font-normal text-stone-500">· 封面 / 分镜 / 图文 / 脑图</span></button>
+        <form id="projectSaveRow" class="hidden mt-2 flex flex-wrap gap-2" onsubmit="saveCurrentProject(); return false;">
+          <input id="projectTitleInput" aria-label="项目名称" maxlength="120" class="min-h-11 min-w-0 flex-1 rounded-lg border border-stone-200 bg-white px-3 text-xs text-stone-800" placeholder="给项目起个名字">
+          <button type="submit" class="min-h-11 rounded-lg bg-stone-900 px-4 text-xs font-medium text-white">确认保存</button>
+        </form>
+        <p id="assetSourceNotice" class="mt-2 text-[11px] text-stone-500">使用已打开的原声全文生成，不重复听译。</p>
+      </div>
+
+      <div id="assetResultPanel" class="hidden flex-1 min-h-[180px] overflow-y-auto bg-[#fafaf9] px-5 py-4 mb-4 rounded-xl border border-stone-200" aria-live="polite">
+        <div class="flex items-center justify-between gap-2 mb-3">
+          <h4 id="assetResultTitle" class="font-semibold text-sm text-stone-900">创作资产</h4>
+          <div class="flex flex-wrap items-center justify-end gap-2">
+            <button id="kitProjectSaveButton" type="button" onclick="saveProductionKitProject()" class="hidden min-h-11 rounded-lg bg-stone-900 px-3 text-xs font-medium text-white">保存为创作项目</button>
+            <button type="button" onclick="closeAssetResult()" class="text-xs text-stone-500 hover:text-stone-900 min-h-11 px-2">返回原结果</button>
+          </div>
+        </div>
+        <div id="assetResultBody" class="reading-pane"></div>
+        <div id="assetResultActions" class="hidden flex flex-wrap gap-2 mt-4 pt-3 border-t border-stone-200">
+          <button id="assetCopyMarkdownButton" type="button" onclick="copyAssetMarkdown()" class="min-h-11 rounded-lg border border-stone-300 bg-white px-3 text-xs font-medium">复制 Markdown</button>
+          <button id="assetDownloadMarkdownButton" type="button" onclick="downloadAssetMarkdown()" class="min-h-11 rounded-lg border border-stone-300 bg-white px-3 text-xs font-medium">下载 Markdown</button>
+          <button id="assetMermaidButton" type="button" onclick="downloadAssetMermaid()" class="hidden min-h-11 rounded-lg border border-stone-300 bg-white px-3 text-xs font-medium">下载 Mermaid</button>
+          <button id="assetPackageButton" type="button" onclick="createProductionPackage()" class="hidden min-h-11 rounded-lg bg-orange-600 px-3 text-xs font-medium text-white">生成视频制作包</button>
+          <button id="assetCopyPromptButton" type="button" onclick="copyAgentPrompt()" class="hidden min-h-11 rounded-lg border border-stone-300 bg-white px-3 text-xs font-medium">复制 Agent 指令</button>
+          <button id="assetSaveButton" type="button" onclick="saveAsset()" class="hidden min-h-11 rounded-lg bg-stone-900 px-3 text-xs font-medium text-white">保存到资产库</button>
+        </div>
+      </div>
+
+      <div id="progressPanel" class="hidden my-2 p-4 rounded-xl border border-stone-200 bg-[#fafaf9]" aria-live="polite">
+        <div class="flex items-center justify-between text-xs mb-4"><span id="progressLabel" class="font-semibold text-[#294639]">正在读取内容</span><span id="progressStep" class="text-stone-400 font-mono">01 / 03</span></div>
+        <div class="flex gap-1 mb-5" aria-hidden="true"><span class="progress-segment h-1 flex-1 rounded bg-[#294639]"></span><span class="progress-segment h-1 flex-1 rounded bg-stone-200"></span><span class="progress-segment h-1 flex-1 rounded bg-stone-200"></span></div>
+        <div class="space-y-3" aria-hidden="true"><div class="skeleton-line w-5/6"></div><div class="skeleton-line w-full"></div><div class="skeleton-line w-2/3"></div></div>
+      </div>
+      <div id="resultText" class="reading-pane flex-1 min-h-[180px] overflow-y-auto bg-[#fafaf9] px-5 py-4 mb-4 rounded-xl border border-stone-200 select-text">
+        结果会显示在这里。
       </div>
 
       <!-- 弹窗广告位 (免费用户展示) -->
-      <div id="modalAdBox" class="mb-3 text-center overflow-hidden bg-white p-2 rounded-lg border border-stone-200">
+      <div id="modalAdBox" class="hidden mb-3 text-center overflow-hidden bg-white p-2 rounded-lg border border-stone-200">
         <span class="text-[9px] text-stone-400 block mb-1">赞助商广告</span>
         <ins class="adsbygoogle"
              style="display:block"
              data-ad-client="ca-pub-6499357447763670"
              data-ad-slot="9876543210"
              data-ad-format="horizontal"></ins>
-        <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
       </div>
 
-      <div class="flex items-center justify-between gap-3 pt-3 border-t border-stone-100">
-        <span class="text-[11px] text-stone-400">口癖与无意义词已过滤</span>
-        <div class="flex gap-2">
-          <button onclick="downloadAsTxt()" class="bg-white hover:bg-stone-50 border border-stone-300 text-stone-700 px-3.5 py-2 rounded-lg text-xs font-semibold transition">
-            下载 TXT
-          </button>
-          <button onclick="copyResult()" class="bg-stone-900 hover:bg-stone-800 text-white px-4 py-2 rounded-lg text-xs font-semibold transition shadow-xs">
-            一键复制
-          </button>
+      <div id="resultActions" class="flex items-center justify-between gap-3 pt-3 border-t border-stone-100">
+        <span class="text-[11px] text-stone-400">请核对数字、专有名词与原始出处</span>
+        <div class="flex flex-wrap gap-2">
+          <button onclick="downloadAsTxt()" class="bg-white hover:bg-stone-50 border border-stone-300 text-stone-700 px-3 py-2 rounded-lg text-xs font-medium transition">TXT</button>
+          <button onclick="downloadAsMarkdown()" class="bg-white hover:bg-stone-50 border border-stone-300 text-stone-700 px-3 py-2 rounded-lg text-xs font-medium transition">Notion / MD</button>
+          <button onclick="downloadAsImage()" class="bg-white hover:bg-stone-50 border border-stone-300 text-stone-700 px-3 py-2 rounded-lg text-xs font-medium transition">长图</button>
+          <button onclick="copyResult()" class="bg-[#294639] hover:bg-[#203b2f] text-white px-4 py-2 rounded-lg text-xs font-semibold transition">复制 Markdown</button>
         </div>
       </div>
     </div>
@@ -451,10 +551,10 @@
             <div class="text-2xl font-black mt-2 mb-3 text-stone-900">$4.9 <span class="text-xs font-normal text-stone-400">/月</span></div>
             <ul class="text-xs text-stone-600 space-y-2">
               <li>✓ 每月 50 次额度</li>
-              <li>✓ <strong>全功能解锁 (含 AI 爆款改写)</strong></li>
+              <li>✓ <strong>开放全部整理模式</strong></li>
               <li>✓ 核心要点速读与双语精翻</li>
-              <li>✓ 支持一键导出 TXT 纯文本</li>
-              <li>✓ 纯净无广告极速体验</li>
+              <li>✓ 支持导出 TXT 与 Markdown</li>
+              <li>✓ 不显示广告</li>
             </ul>
           </div>
           <a id="btnPlanBasic" href="https://www.creem.io/payment/prod_6yBTQZmi3xEv0nLQ53Ka3e" target="_blank" class="block text-center mt-6 bg-white border border-stone-300 hover:border-stone-400 py-2 rounded-lg text-xs font-bold text-stone-800 transition">
@@ -466,14 +566,14 @@
         <div class="bg-white border-2 border-stone-900 p-5 rounded-xl flex flex-col justify-between shadow-xs">
           <div>
             <div class="text-xs font-bold text-stone-900 flex items-center justify-between">
-              <span>Pro 爆款版</span>
+              <span>Pro 专业版</span>
               <span class="text-[9px] bg-stone-900 text-white px-1.5 py-0.5 rounded font-semibold">推荐</span>
             </div>
             <div class="text-2xl font-black mt-2 mb-3 text-stone-900">$9.9 <span class="text-xs font-normal text-stone-400">/月</span></div>
             <ul class="text-xs text-stone-600 space-y-2">
               <li>✓ <strong>每月 100 次</strong>生成额度</li>
-              <li>✓ <strong>解锁 AI 爆款改写</strong></li>
-              <li>✓ 爆款钩子、公众号与短视频脚本</li>
+              <li>✓ <strong>开放 AI 爆款改写</strong></li>
+              <li>✓ 抖音、小红书、视频号及海外平台口播初稿</li>
               <li>✓ 优先处理通道</li>
               <li>✓ 永久纯净无广告</li>
             </ul>
@@ -506,10 +606,10 @@
         <div class="flex items-center justify-between mb-3">
           <div>
             <div class="text-xs font-bold text-stone-900 flex items-center gap-1.5">
-              <span>⚡ 创作者灵活加餐加油包</span>
+              <span>按需补充次数</span>
               <span class="text-[9px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded font-bold">一次性买断 • 免自动续费</span>
             </div>
-            <div class="text-[11px] text-stone-500 mt-0.5">不想按月绑卡订阅？按需单次充值，额度长效有效，随时提取爆款文案</div>
+            <div class="text-[11px] text-stone-500 mt-0.5">按需补充使用次数，无需调整当前订阅。</div>
           </div>
         </div>
 
@@ -565,10 +665,10 @@
       <div class="bg-[#fafaf9] border border-stone-200 p-4 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-3 text-left">
         <div>
           <div class="text-xs font-bold text-stone-800">已有授权卡密？</div>
-          <div class="text-[11px] text-stone-500">输入 EZPRO 开头卡密，立即兑换权益</div>
+          <div class="text-[11px] text-stone-500">输入已获得的 HC 授权码</div>
         </div>
         <div class="flex w-full sm:w-auto gap-2">
-          <input id="licenseCodeInput" type="text" placeholder="输入卡密 (如 EZPRO-...)" class="bg-white border border-stone-300 px-3 py-1.5 rounded-lg text-xs text-stone-800 uppercase focus:outline-none focus:border-stone-900 font-mono flex-1 sm:w-52">
+          <input id="licenseCodeInput" type="text" placeholder="HC-..." class="bg-white border border-stone-300 px-3 py-1.5 rounded-lg text-xs text-stone-800 uppercase focus:outline-none focus:border-stone-900 font-mono flex-1 sm:w-52">
           <button id="btnVerifyLicense" onclick="verifyLicense()" class="bg-stone-900 hover:bg-stone-800 text-white px-3.5 py-1.5 rounded-lg text-xs font-bold transition shrink-0">
             激活
           </button>
@@ -587,7 +687,7 @@
           HC
         </div>
         <h3 id="authTitle" class="text-lg font-bold text-stone-900">登录 HotCopy</h3>
-        <p id="authSubtitle" class="text-xs text-stone-500 mt-1">欢迎回来，创造者。</p>
+        <p id="authSubtitle" class="text-xs text-stone-500 mt-1">登录后继续整理内容。</p>
       </div>
 
       <form id="authForm" onsubmit="submitAuthForm(event)" class="space-y-3.5">
@@ -631,18 +731,85 @@
     let currentPlatform = 'all';
     let currentConvertedText = '';
     let allTrendsList = [];
+    let modalAdInitialized = false;
+    let adsAllowed = false;
+    let adsScriptReady = false;
+    let adsScriptPromise = null;
+    let authVerificationFailed = false;
 
-    function init() {
-      checkAuth();
+    function isConfiguredAdSlot(container) {
+      const slot = container?.querySelector('.adsbygoogle')?.dataset.adSlot;
+      return /^\d{10}$/.test(slot || '') && !['1234567890', '9876543210'].includes(slot);
+    }
+
+    function loadAdsScript() {
+      if (adsScriptPromise) return adsScriptPromise;
+      adsScriptPromise = new Promise(resolve => {
+        const script = document.createElement('script');
+        script.async = true;
+        script.crossOrigin = 'anonymous';
+        script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6499357447763670';
+        script.onload = () => { adsScriptReady = true; resolve(true); };
+        script.onerror = () => resolve(false);
+        document.head.appendChild(script);
+      });
+      return adsScriptPromise;
+    }
+
+    async function initializeAds() {
+      const topAd = document.getElementById('topAdBanner');
+      const modalAd = document.getElementById('modalAdBox');
+      if (window.location.hostname !== 'hotcopy.eazyopc.com' || authVerificationFailed || currentUser?.plan && currentUser.plan !== 'free') {
+        topAd?.remove();
+        modalAd?.remove();
+        return;
+      }
+
+      adsAllowed = true;
+      const topConfigured = isConfiguredAdSlot(topAd);
+      const modalConfigured = isConfiguredAdSlot(modalAd);
+      if (!topConfigured) topAd?.remove();
+      if (!modalConfigured) modalAd?.remove();
+      if (!topConfigured && !modalConfigured) return;
+      if (topConfigured) topAd?.classList.remove('hidden');
+      if (modalConfigured) modalAd?.classList.remove('hidden');
+      if (!await loadAdsScript()) {
+        adsAllowed = false;
+        topAd?.remove();
+        modalAd?.remove();
+        return;
+      }
+      if (topConfigured) (window.adsbygoogle = window.adsbygoogle || []).push({});
+    }
+
+    function initModalAd() {
+      const modalAd = document.getElementById('modalAdBox');
+      if (!adsAllowed || !adsScriptReady || !isConfiguredAdSlot(modalAd) || modalAdInitialized) return;
+      modalAdInitialized = true;
+      requestAnimationFrame(() => { (window.adsbygoogle = window.adsbygoogle || []).push({}); });
+    }
+
+    async function init() {
+      if (['localhost', '127.0.0.1'].includes(window.location.hostname)) {
+        document.getElementById('topAdBanner').classList.add('hidden');
+        document.getElementById('modalAdBox').classList.add('hidden');
+      }
+      await checkAuth();
+      await initializeAds();
       loadAllTrends();
+      initDropZone();
+      initResultSheet();
 
       // 监听从 Creem 支付完成重定向回来的回调
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get('payment') === 'success' || urlParams.get('status') === 'success') {
         window.history.replaceState({}, document.title, window.location.pathname);
-        showToast('🎉 支付成功！系统正在同步您的会员权益，请稍候...');
+        showToast('订单页面已返回，正在查询会员状态');
         setTimeout(() => { checkAuth(); }, 1200);
-        setTimeout(() => { checkAuth(); showToast('✨ 会员权益与额度已成功激活！'); }, 3500);
+        setTimeout(async () => {
+          const user = await checkAuth();
+          showToast(user && user.plan !== 'free' ? '会员状态已更新' : '会员状态尚未更新，请稍后刷新');
+        }, 3500);
       }
     }
 
@@ -653,7 +820,7 @@
     }
 
     async function checkAuth() {
-      if (!token) return;
+      if (!token) return null;
       try {
         const res = await fetch(`${API_BASE}/api/auth/me`, {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -661,33 +828,30 @@
         if (!res.ok) throw new Error();
         currentUser = await res.json();
 
-        // 会员去广告
+        // 付费方案移除广告节点，且初始化阶段不会加载广告脚本。
         if (currentUser.plan !== 'free') {
           const topAd = document.getElementById('topAdBanner');
           const modalAd = document.getElementById('modalAdBox');
-          if (topAd) topAd.style.display = 'none';
-          if (modalAd) modalAd.style.display = 'none';
+          topAd?.remove();
+          modalAd?.remove();
         }
 
         document.getElementById('authArea').innerHTML = `
           <div class="flex items-center gap-2">
-            <span class="text-xs text-stone-600 font-medium">${currentUser.email.split('@')[0]}</span>
-            <span class="text-[10px] px-1.5 py-0.5 rounded font-bold bg-stone-100 text-stone-800 border border-stone-200">${currentUser.plan.toUpperCase()}</span>
-            <span class="text-xs text-stone-700 font-mono font-medium">${currentUser.used_count}/${currentUser.monthly_limit}</span>
+            <span class="hidden sm:inline text-xs text-stone-600 font-medium">${escapeHtml(currentUser.email.split('@')[0])}</span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded font-bold bg-stone-100 text-stone-800 border border-stone-200">${escapeHtml(currentUser.plan.toUpperCase())}</span>
+            <span class="hidden sm:inline text-xs text-stone-700 font-mono font-medium">${currentUser.used_count}/${currentUser.monthly_limit}</span>
             <button onclick="openPricing()" class="text-xs bg-stone-900 hover:bg-stone-800 text-white px-2.5 py-1 rounded-md font-medium transition">升级</button>
             <button onclick="logout()" class="text-xs text-stone-400 hover:text-stone-600 ml-1">退出</button>
           </div>
         `;
+        return currentUser;
       } catch {
+        authVerificationFailed = true;
         localStorage.removeItem('token');
         token = null;
+        return null;
       }
-    }
-
-    function escapeTrendHtml(value) {
-      return String(value ?? '').replace(/[&<>"']/g, char => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-      })[char]);
     }
 
     function trendVideoUrl(item) {
@@ -702,68 +866,115 @@
       const apple = item.platform === 'podcast' && item.source === 'apple-podcast-chart'
         ? /^(\d+)\?i=(\d+)$/.exec(id) : null;
       if (apple) return `https://podcasts.apple.com/us/podcast/id${apple[1]}?i=${apple[2]}`;
+      if (item.platform === 'xiaoyuzhou' && item.source === 'xiaoyuzhou-verified' &&
+          /^[0-9a-f]{24}$/.test(id)) return `https://www.xiaoyuzhoufm.com/episode/${id}`;
       return null;
     }
 
     function renderCardHtml(item) {
       const videoUrl = trendVideoUrl(item);
       if (!videoUrl) return '';
-      const coverUrl = /^https:\/\//.test(item.cover_url || '') ? escapeTrendHtml(item.cover_url) : '';
-      const platformName = { youtube: 'YouTube', bilibili: 'B站', podcast: 'Apple Podcasts' }[item.platform];
+      const plat = item.platform;
+      const coverUrl = /^https:\/\//i.test(item.cover_url || '') ? escapeHtml(item.cover_url) : '';
+      const platName = { bilibili: 'B站', xiaoyuzhou: '小宇宙', podcast: 'Apple Podcasts', youtube: 'YouTube' }[plat] || '音视频';
+      const platLogo = { bilibili: 'bilibili.svg', xiaoyuzhou: 'xiaoyuzhou.png', podcast: 'applepodcasts.svg', youtube: 'youtube.svg' }[plat] || '';
       return `
-        <article data-url="${escapeTrendHtml(videoUrl)}" class="flex flex-col overflow-hidden rounded-xl border border-stone-200 bg-white">
-          <div class="relative h-40 bg-stone-100">
-            ${coverUrl ? `<img src="${coverUrl}" alt="" loading="lazy" class="h-40 w-full object-cover">` : ''}
-            <span class="absolute left-2 top-2 rounded bg-white/95 px-2 py-1 text-[10px] font-semibold text-stone-800">${platformName}</span>
-          </div>
-          <div class="flex flex-1 flex-col justify-between p-4">
-            <div>
-              <h4 class="mb-2 line-clamp-2 text-sm font-bold text-stone-900">${escapeTrendHtml(item.title)}</h4>
-              <p class="mb-3 text-xs text-stone-500">${escapeTrendHtml(item.intro || '来源已同步')}</p>
-              <div class="mb-3 flex items-center rounded-lg border border-stone-200 bg-stone-50">
-                <input readonly value="${escapeTrendHtml(videoUrl)}" onclick="this.select()" aria-label="内容链接"
-                  class="min-w-0 flex-1 bg-transparent px-2 py-2 text-[10px] text-stone-600">
-                <button type="button" onclick="copyCardUrl(this.closest('[data-url]').dataset.url, this)"
-                  class="min-h-11 border-l border-stone-200 px-2 text-xs font-medium text-stone-700"><span class="copy-status">填入链接</span></button>
+      <div data-url="${escapeHtml(videoUrl)}" class="bg-white border border-stone-200 rounded-xl overflow-hidden flex flex-col hover:border-stone-300 hover:shadow-md transition duration-200 group">
+        <div class="relative overflow-hidden bg-stone-100">
+          <img src="${coverUrl}" alt="" class="w-full h-40 object-cover transition duration-200" loading="lazy">
+          <span class="absolute top-2 left-2 inline-flex items-center gap-1.5 text-[10px] bg-white/95 text-stone-800 px-2.5 py-1 rounded font-semibold">${platLogo ? `<img class="platform-logo" src="assets/logos/${platLogo}" alt="">` : ''}${platName}</span>
+        </div>
+        <div class="p-4 flex-1 flex flex-col justify-between">
+          <div>
+            <h4 class="text-xs font-bold line-clamp-2 mb-1.5 text-stone-900 leading-snug">
+              ${escapeHtml(String(item.title_cn || item.title || '未命名内容'))}
+            </h4>
+            <!-- 完整视频源链接展示与一键填入栏 -->
+            <div class="mt-3 mb-3">
+              <div class="text-[10px] text-stone-400 font-medium mb-1">内容链接</div>
+              <div class="flex items-center bg-[#fafaf9] border border-stone-200/90 rounded-lg overflow-hidden focus-within:border-stone-400 focus-within:bg-white transition group/link shadow-2xs">
+                <input type="text" readonly value="${escapeHtml(videoUrl)}"
+                  onclick="this.select()"
+                  class="bg-transparent text-[10px] font-mono text-stone-600 px-2 py-1.5 flex-1 focus:outline-none select-all cursor-text min-w-0"
+                  title="完整链接（点击全选）">
+                <button type="button" onclick="copyCardUrl(this)"
+                  class="bg-white hover:bg-stone-50 border-l border-stone-200 px-2.5 py-1.5 text-[11px] font-semibold text-[#294639] shrink-0 transition">
+                  <span class="copy-status">填入链接</span>
+                </button>
               </div>
             </div>
-            <div class="grid grid-cols-3 gap-2 border-t border-stone-100 pt-3 text-xs">
-              <button type="button" onclick="runConvertCard(this, 'raw')" class="min-h-11 rounded-lg border border-stone-200 bg-stone-50">原声</button>
-              <button type="button" onclick="runConvertCard(this, 'summary')" class="min-h-11 rounded-lg border border-stone-200 bg-stone-50">简报</button>
-              <button type="button" onclick="runConvertCard(this, 'rewrite')" class="min-h-11 rounded-lg bg-stone-900 font-semibold text-white">AI 爆款</button>
-            </div>
           </div>
-        </article>`;
+
+          <div class="grid grid-cols-3 gap-1.5 pt-2 border-t border-stone-100 text-[11px]">
+            <button onclick="runConvertCard(this, 'raw')"
+              class="bg-[#fafaf9] hover:bg-stone-100 border border-stone-200 py-1.5 rounded-lg text-stone-700 font-medium transition text-center">
+              原声
+            </button>
+            <button onclick="runConvertCard(this, 'summary')"
+              class="bg-[#fafaf9] hover:bg-stone-100 border border-stone-200 py-1.5 rounded-lg text-stone-700 font-medium transition text-center">
+              简报
+            </button>
+            <button onclick="runConvertCard(this, 'rewrite')"
+              class="bg-[#294639] hover:bg-[#203b2f] text-white py-1.5 rounded-lg font-semibold transition text-center flex items-center justify-center gap-1">
+              <span>AI 爆款</span>
+            </button>
+          </div>
+        </div>
+      </div>`;
     }
 
     function filterAndRenderTrends() {
       const grid = document.getElementById('trendsGrid');
       let filtered = allTrendsList;
-      if (currentPlatform !== 'all') filtered = filtered.filter(item => item.platform === currentPlatform);
-      if (currentCategory !== 'all') filtered = filtered.filter(item => item.category === currentCategory);
+      if (currentPlatform !== 'all') {
+        filtered = filtered.filter(item => (item.platform || 'youtube').toLowerCase() === currentPlatform.toLowerCase());
+      }
+      if (currentCategory !== 'all') {
+        filtered = filtered.filter(item => item.category === currentCategory);
+      }
       const cards = filtered.map(renderCardHtml).filter(Boolean);
-      grid.innerHTML = cards.length ? cards.join('')
-        : '<div class="col-span-3 py-12 text-center text-xs text-stone-400">当前平台暂无已同步的可用内容，请稍后再看。</div>';
+      if (cards.length === 0) {
+        grid.innerHTML = '<div class="text-xs text-stone-400 col-span-3 py-12 text-center">当前平台暂无已同步的榜单内容，可切换平台或直接粘贴链接。</div>';
+      } else {
+        grid.innerHTML = cards.join('');
+      }
     }
 
-    function runConvertCard(el, mode) {
-      runConvertDirect(el.closest('[data-url]').dataset.url, mode, true);
-    }
-
+    let trendInitialRetries = 0;
     async function loadAllTrends() {
       const grid = document.getElementById('trendsGrid');
+      const status = document.getElementById('trendSyncStatus');
       grid.style.opacity = '0.5';
       grid.style.pointerEvents = 'none';
 
       try {
-        const res = await fetch(`${API_BASE}/api/trends?category=all&platform=all`);
-        if (!res.ok) throw new Error('热点接口不可用');
+        const [res, statusRes] = await Promise.all([
+          fetch(`${API_BASE}/api/trends?category=all&platform=all`),
+          fetch(`${API_BASE}/api/trends/status`)
+        ]);
+        if (!res.ok || !statusRes.ok) throw new Error('热点接口不可用');
         const list = await res.json();
+        const sync = await statusRes.json();
         if (!Array.isArray(list)) throw new Error('热点数据格式异常');
         allTrendsList = list.filter(item => trendVideoUrl(item));
+        const successful = (sync.sources || []).filter(source => source.succeeded_at);
+        const failed = (sync.sources || []).some(source => source.status === 'error');
+        const latest = Math.max(0, ...successful.map(source => Number(source.succeeded_at) || 0));
+        if (latest) {
+          const time = new Intl.DateTimeFormat('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(latest));
+          const stale = Date.now() - latest > 3 * 60 * 60 * 1000;
+          status.textContent = `${stale ? '最近成功同步' : '最近同步'} ${time}${stale ? '，更新延迟' : failed ? '，部分来源暂未更新' : ''}`;
+        } else {
+          status.textContent = '等待首次成功同步';
+        }
         filterAndRenderTrends();
+        if (!allTrendsList.length && trendInitialRetries < 3) {
+          trendInitialRetries += 1;
+          setTimeout(loadAllTrends, 15000);
+        }
       } catch (err) {
         console.error('loadAllTrends error:', err);
+        status.textContent = '同步状态暂不可用';
         grid.innerHTML = '<div class="text-xs text-stone-400 col-span-3 py-12 text-center">热点数据加载异常，请稍后刷新重试</div>';
       } finally {
         grid.style.opacity = '1';
@@ -795,18 +1006,21 @@
       filterAndRenderTrends();
     }
 
-    function copyCardUrl(url, el) {
+    function runConvertCard(el, mode) {
+      runConvertDirect(el.closest('[data-url]').dataset.url, mode, true);
+    }
+
+    function copyCardUrl(el) {
+      const url = el.closest('[data-url]').dataset.url;
       const input = document.getElementById('videoUrl');
       input.value = url;
       
       const statusEl = el.querySelector('.copy-status');
       if (statusEl) {
-        const orig = statusEl.innerHTML;
-        statusEl.innerHTML = '✓ 已填入';
-        statusEl.className = 'copy-status text-[11px] font-bold text-emerald-600 shrink-0 ml-1.5';
+        const orig = statusEl.textContent;
+        statusEl.textContent = '已填入';
         setTimeout(() => {
-          statusEl.innerHTML = orig;
-          statusEl.className = 'copy-status text-[11px] font-semibold text-rose-600 shrink-0 ml-1.5';
+          statusEl.textContent = orig;
         }, 2000);
       }
 
@@ -816,7 +1030,7 @@
       
       input.scrollIntoView({ behavior: 'smooth', block: 'center' });
       input.focus();
-      showToast('已复制视频链接并自动填入上方输入框！');
+      showToast('链接已填入，请核对来源');
     }
 
     function showToast(msg, placement = 'bottom') {
@@ -842,12 +1056,173 @@
       const input = document.getElementById('videoUrl');
       input.value = url;
       input.focus();
-      showToast('已填入测试链接，直接点击下方模式即可开始解析！');
+      showToast('链接已填入');
+    }
+
+    function initDropZone() {
+      const zone = document.getElementById('urlDropZone');
+      zone.addEventListener('dragover', event => { event.preventDefault(); zone.classList.add('drop-active'); });
+      zone.addEventListener('dragleave', event => { if (!zone.contains(event.relatedTarget)) zone.classList.remove('drop-active'); });
+      zone.addEventListener('drop', event => {
+        event.preventDefault();
+        zone.classList.remove('drop-active');
+        if (event.dataTransfer.files.length) {
+          uploadAudioFile(event.dataTransfer.files[0]);
+          return;
+        }
+        const value = event.dataTransfer.getData('text/uri-list') || event.dataTransfer.getData('text/plain');
+        if (value && /^https?:\/\//i.test(value.trim())) {
+          document.getElementById('videoUrl').value = value.trim();
+          showToast('链接已填入');
+        } else showToast('请拖入可访问的音视频链接');
+      });
+    }
+
+    const sourceLabels = {};
+
+    async function uploadAudioFile(file) {
+      if (!file) return;
+      if (!/\.(mp3|m4a|wav|aac|ogg|flac|webm)$/i.test(file.name)) return showToast('支持 MP3、M4A、WAV、AAC、OGG、FLAC 和 WebM 音频');
+      if (file.size > 40 * 1024 * 1024) return showToast('音频文件不能超过 40 MB');
+      if (!token) { openAuthModal('login'); return showToast('登录后可上传音频'); }
+      if (typeof cancelAssetGeneration === 'function') cancelAssetGeneration();
+      if (typeof closeAssetResult === 'function') closeAssetResult();
+      if (activeRequest) activeRequest.abort();
+      activeRequest = new AbortController();
+      const version = ++requestVersion;
+      const modal = document.getElementById('resultModal');
+      modal.classList.remove('hidden');
+      initModalAd();
+      activeModalUrl = '';
+      currentConvertedText = '';
+      document.getElementById('resultTitle').textContent = '上传音频';
+      document.getElementById('resultMeta').textContent = `${file.name} · 最多 40 MB`;
+      document.getElementById('resultText').textContent = '';
+      setResultActionsEnabled(false);
+      setProgress(1, '正在上传并转录音频');
+      try {
+        const response = await fetch(`${API_BASE}/api/upload-audio`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/octet-stream' },
+          body: file,
+          signal: activeRequest.signal
+        });
+        if (version !== requestVersion) return;
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || '上传失败');
+        sourceLabels[data.source] = file.name;
+        clientCache[data.source + '::raw'] = data.content;
+        try { sessionStorage.setItem('hc_client_cache', JSON.stringify(clientCache)); } catch (e) {}
+        runConvertDirect(data.source, 'raw');
+        checkAuth();
+      } catch (error) {
+        if (error.name === 'AbortError' || version !== requestVersion) return;
+        document.getElementById('progressPanel').classList.add('hidden');
+        document.getElementById('resultText').textContent = `音频未处理完成：${error.message}`;
+        document.getElementById('resultMeta').textContent = '上传或转录失败';
+        setResultActionsEnabled(true);
+      } finally {
+        if (version === requestVersion) activeRequest = null;
+      }
+    }
+
+    function initResultSheet() {
+      const handle = document.getElementById('sheetHandle');
+      const sheet = document.getElementById('resultSheet');
+      handle.classList.add('sm:hidden');
+      handle.classList.remove('hidden');
+      let startY = 0;
+      let startX = 0;
+      let pointerId = null;
+      sheet.addEventListener('pointerdown', event => {
+        if (!event.target.closest('#sheetHandle, #resultHeader')) return;
+        pointerId = event.pointerId;
+        startY = event.clientY;
+        startX = event.clientX;
+      });
+      sheet.addEventListener('pointerup', event => {
+        if (pointerId !== event.pointerId) return;
+        pointerId = null;
+        const dy = event.clientY - startY;
+        const dx = event.clientX - startX;
+        if (dy > 75 && Math.abs(dy) > Math.abs(dx) * 1.5) dismissResultSheet();
+      });
+      sheet.addEventListener('pointercancel', () => { pointerId = null; });
+      document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && !document.getElementById('resultModal').classList.contains('hidden')) closeModal('resultModal');
+      });
+    }
+
+    async function dismissResultSheet() {
+      const sheet = document.getElementById('resultSheet');
+      if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        try { await sheet.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(110%)' }], { duration: 190, easing: 'ease-out' }).finished; } catch (e) {}
+      }
+      closeModal('resultModal');
     }
 
     let activeModalUrl = '';
     let activeModalMode = 'raw';
     const clientCache = {};
+    let activeRequest = null;
+    let requestVersion = 0;
+
+    function escapeHtml(value) {
+      return value.replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+    }
+
+    function inlineMarkdown(value) {
+      return escapeHtml(value)
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/\b(\d{1,2}:\d{2}(?::\d{2})?)\b/g, '<span class="timestamp">$1</span>');
+    }
+
+    function renderMarkdown(value) {
+      const lines = value.replace(/\r\n?/g, '\n').split('\n');
+      const out = [];
+      let list = '';
+      const closeList = () => { if (list) { out.push(`</${list}>`); list = ''; } };
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) { closeList(); continue; }
+        const heading = trimmed.match(/^(#{1,3})\s+(.+)$/);
+        const ordered = trimmed.match(/^\d+[.)]\s+(.+)$/);
+        const unordered = trimmed.match(/^[-*•]\s+(.+)$/);
+        if (heading) { closeList(); out.push(`<h${heading[1].length}>${inlineMarkdown(heading[2])}</h${heading[1].length}>`); }
+        else if (ordered || unordered) {
+          const next = ordered ? 'ol' : 'ul';
+          if (list !== next) { closeList(); out.push(`<${next}>`); list = next; }
+          out.push(`<li>${inlineMarkdown((ordered || unordered)[1])}</li>`);
+        } else if (trimmed.startsWith('> ')) { closeList(); out.push(`<blockquote>${inlineMarkdown(trimmed.slice(2))}</blockquote>`); }
+        else { closeList(); out.push(`<p>${inlineMarkdown(trimmed)}</p>`); }
+      }
+      closeList();
+      return out.join('');
+    }
+
+    function setProgress(step, label) {
+      const panel = document.getElementById('progressPanel');
+      panel.classList.remove('hidden');
+      document.getElementById('progressLabel').textContent = label;
+      document.getElementById('progressStep').textContent = `0${step} / 03`;
+      panel.querySelectorAll('.progress-segment').forEach((el, index) => {
+        el.className = `progress-segment h-1 flex-1 rounded ${index < step ? 'bg-[#294639]' : 'bg-stone-200'}`;
+      });
+    }
+
+    function showResult(text) {
+      const box = document.getElementById('resultText');
+      box.innerHTML = renderMarkdown(text);
+      document.getElementById('progressPanel').classList.add('hidden');
+    }
+
+    function setResultActionsEnabled(enabled) {
+      document.querySelectorAll('#resultActions button').forEach(button => {
+        button.disabled = !enabled;
+        button.classList.toggle('opacity-40', !enabled);
+      });
+    }
 
     try {
       const saved = sessionStorage.getItem('hc_client_cache');
@@ -888,15 +1263,21 @@
 
     function runConvert(mode) {
       const url = document.getElementById('videoUrl').value.trim();
-      if (!url) return alert('请先输入或粘贴视频链接');
+      if (!url) { document.getElementById('videoUrl').focus(); return showToast('请先粘贴内容链接'); }
       runConvertDirect(url, mode);
     }
 
     async function runConvertDirect(url, mode, fromTrendCard = false) {
       if (!token) return openAuthModal('login');
+      if (typeof cancelAssetGeneration === 'function') cancelAssetGeneration();
+      if (typeof closeAssetResult === 'function') closeAssetResult();
+      if (activeRequest) activeRequest.abort();
+      activeRequest = new AbortController();
+      const version = ++requestVersion;
       
       activeModalUrl = url;
       activeModalMode = mode;
+      if (typeof onAddonSourceChange === 'function') onAddonSourceChange(url);
       updateActiveTabUI(mode);
       updateTabBadges(url);
 
@@ -906,22 +1287,26 @@
       const title = document.getElementById('resultTitle');
       
       modal.classList.remove('hidden');
+      initModalAd();
 
-      const modeName = mode === 'raw' ? '逐字稿原声' : mode === 'summary' ? '核心事实简报' : mode === 'translate' ? '双语精翻' : 'AI 爆款改写';
-      title.innerText = `${modeName} · 处理结果`;
+      const modeName = { raw: '原声全文', summary: '核心要点', translate: '中文翻译', rewrite: 'AI 爆款改写' }[mode] || '处理结果';
+      title.textContent = modeName;
 
       // 1. 命中浏览器前端高速缓存 (0 毫秒即显，无需再调模型或网络！)
       const cacheKey = url + '::' + mode;
       if (clientCache[cacheKey]) {
         currentConvertedText = clientCache[cacheKey];
-        box.innerText = currentConvertedText;
-        meta.innerText = `⚡ 浏览器高速缓存直出 · 共 ${currentConvertedText.length} 字 (无需重复调用模型)`;
+        showResult(currentConvertedText);
+        setResultActionsEnabled(true);
+        meta.textContent = `${sourceLabels[url] ? sourceLabels[url] + ' · ' : ''}已保存于本次浏览 · ${currentConvertedText.length} 字`;
         return;
       }
 
       // 2. 未命中前端缓存：调用云端节点（底层音频仅提取一次，后续各模式秒级直出）
-      box.innerText = '正在调动云端节点解析处理（底层原声音频仅提取一次并缓存，后续切换秒级直出）...\n';
-      meta.innerText = `正在处理: ${modeName}`;
+      box.textContent = '';
+      setResultActionsEnabled(false);
+      setProgress(1, '正在读取来源并整理原声');
+      meta.textContent = '正在处理，请保持页面开启';
       currentConvertedText = '';
 
       try {
@@ -931,8 +1316,10 @@
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify({ url, mode })
+          body: JSON.stringify({ url, mode }),
+          signal: activeRequest.signal
         });
+        if (version !== requestVersion) return;
 
         if (!res.ok) {
           let errorMsg = '请求异常';
@@ -950,29 +1337,38 @@
           throw new Error(errorMsg);
         }
 
+        setProgress(2, '正在准备结果');
+
         const contentType = res.headers.get('content-type') || '';
         if (contentType.includes('text/plain') && res.body) {
           const reader = res.body.getReader();
           const decoder = new TextDecoder();
-          box.innerText = '';
+          let received = false;
+          let lastRenderAt = 0;
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
+            if (version !== requestVersion) { await reader.cancel(); return; }
             const chunk = decoder.decode(value, { stream: true });
             currentConvertedText += chunk;
-            box.innerText += chunk;
-            box.scrollTop = box.scrollHeight;
+            if (!received) { setProgress(3, '正在接收结果'); received = true; }
+            if (performance.now() - lastRenderAt > 80) {
+              showResult(currentConvertedText);
+              lastRenderAt = performance.now();
+            }
           }
+          currentConvertedText += decoder.decode();
+          if (/\n\n处理中断:\s*/.test(currentConvertedText)) throw new Error(currentConvertedText.split(/处理中断:\s*/).pop());
+          showResult(currentConvertedText);
         } else {
           const text = await res.text();
+          if (version !== requestVersion) return;
           currentConvertedText = text;
-          box.innerText = text;
+          showResult(text);
         }
 
-        if (/\n\n处理中断:\s*/.test(currentConvertedText)) {
-          throw new Error(currentConvertedText.split(/处理中断:\s*/).pop());
-        }
-        if (!currentConvertedText.trim()) throw new Error('未收到有效内容');
+        if (!currentConvertedText.trim()) throw new Error('未收到有效内容，请稍后重试');
+
         // 存入前端缓存与浏览器会话存储
         clientCache[cacheKey] = currentConvertedText;
         try {
@@ -980,45 +1376,104 @@
         } catch (e) {}
 
         updateTabBadges(url);
-        meta.innerText = `处理完成 · 共 ${currentConvertedText.length} 字 (已缓存至浏览器)`;
+        meta.textContent = `${sourceLabels[url] ? sourceLabels[url] + ' · ' : ''}处理完成 · ${currentConvertedText.length} 字`;
+        setResultActionsEnabled(true);
         checkAuth();
       } catch (e) {
+        if (e.name === 'AbortError' || version !== requestVersion) return;
         if (fromTrendCard && /404|下架|不存在|限制访问|无法访问|无效链接/i.test(e.message || '')) {
           showToast('该内容源已被原作者下架或限制访问，请尝试其他热点', 'top');
         }
-        box.innerText = `处理中断: ${e.message}`;
-        meta.innerText = '处理失败';
+        document.getElementById('progressPanel').classList.add('hidden');
+        box.textContent = `处理未完成：${e.message}`;
+        meta.textContent = '处理未完成';
+        currentConvertedText = '';
+        setResultActionsEnabled(true);
+      } finally {
+        if (version === requestVersion) activeRequest = null;
       }
     }
 
     function downloadAsTxt() {
-      if (!currentConvertedText) return alert('当前没有可下载的文本');
-      const blob = new Blob([currentConvertedText], { type: 'text/plain;charset=utf-8' });
+      if (!currentConvertedText) return showToast('当前没有可导出的内容');
+      downloadBlob(new Blob([currentConvertedText], { type: 'text/plain;charset=utf-8' }), 'txt');
+    }
+
+    function downloadBlob(blob, extension) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `HotCopy_${Date.now()}.txt`;
+      a.download = `HotCopy_${activeModalMode}_${Date.now()}.${extension}`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
 
-    function copyResult() {
-      if (!currentConvertedText) return alert('内容为空');
-      navigator.clipboard.writeText(currentConvertedText).then(() => {
-        alert('文案已复制到剪贴板');
-      }).catch(() => {
-        alert('复制失败，请手动全选复制');
-      });
+    function downloadAsMarkdown() {
+      if (!currentConvertedText) return showToast('当前没有可导出的内容');
+      const title = document.getElementById('resultTitle').textContent;
+      const source = sourceLabels[activeModalUrl] || activeModalUrl;
+      const markdown = `# ${title}\n\n${currentConvertedText}\n\n来源：${source}\n`;
+      downloadBlob(new Blob([markdown], { type: 'text/markdown;charset=utf-8' }), 'md');
+      showToast('已下载 Markdown 文件，可导入 Notion');
+    }
+
+    function downloadAsImage() {
+      if (!currentConvertedText) return showToast('当前没有可导出的内容');
+      const width = 900;
+      const padding = 64;
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.font = '25px sans-serif';
+      const lines = [];
+      for (const paragraph of currentConvertedText.replace(/^#{1,3}\s+/gm, '').replace(/\*\*/g, '').split('\n')) {
+        let line = '';
+        for (const char of paragraph) {
+          if (ctx.measureText(line + char).width > width - padding * 2) { lines.push(line); line = char; }
+          else line += char;
+        }
+        lines.push(line);
+      }
+      const height = 235 + lines.length * 39;
+      if (height > 15000) return showToast('内容过长，请使用 TXT 或 Markdown 导出');
+      canvas.width = width * 2;
+      canvas.height = height * 2;
+      ctx.scale(2, 2);
+      ctx.fillStyle = '#faf9f6';
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = '#294639';
+      ctx.font = '600 16px sans-serif';
+      ctx.fillText('HOTCOPY  /  CONTENT NOTE', padding, 70);
+      ctx.fillStyle = '#20271f';
+      ctx.font = '600 40px sans-serif';
+      ctx.fillText(document.getElementById('resultTitle').textContent, padding, 132);
+      ctx.fillStyle = '#a9b4aa';
+      ctx.fillRect(padding, 160, width - padding * 2, 1);
+      ctx.fillStyle = '#292825';
+      ctx.font = '25px sans-serif';
+      lines.forEach((line, index) => ctx.fillText(line, padding, 210 + index * 39));
+      canvas.toBlob(blob => {
+        if (blob) downloadBlob(blob, 'png');
+        else showToast('长图生成失败，请重试');
+      }, 'image/png');
+    }
+
+    async function copyResult() {
+      if (!currentConvertedText) return showToast('当前没有可复制的内容');
+      try {
+        await navigator.clipboard.writeText(currentConvertedText);
+        showToast('Markdown 已复制');
+      } catch { showToast('复制失败，请选中文本后手动复制'); }
     }
 
     async function pasteFromClipboard() {
       try {
         const text = await navigator.clipboard.readText();
-        if (text) document.getElementById('videoUrl').value = text;
+        if (text) { document.getElementById('videoUrl').value = text.trim(); showToast('链接已填入'); }
       } catch {
         document.getElementById('videoUrl').focus();
+        showToast('请使用系统粘贴命令输入链接');
       }
     }
 
@@ -1027,7 +1482,10 @@
     }
 
     function openPricing() { document.getElementById('pricingModal').classList.remove('hidden'); }
-    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+      if (id === 'resultModal' && activeRequest) { activeRequest.abort(); activeRequest = null; requestVersion++; }
+    }
     function logout() { localStorage.removeItem('token'); location.reload(); }
 
     let currentAuthMode = 'login'; // 'login' or 'register'
@@ -1051,7 +1509,7 @@
     function updateAuthModalUI() {
       const isLogin = currentAuthMode === 'login';
       document.getElementById('authTitle').innerText = isLogin ? '登录 HotCopy' : '免费注册 HotCopy';
-      document.getElementById('authSubtitle').innerText = isLogin ? '欢迎回来，创造者。' : '注册即送 3 次免费体验额度，开启高效创作。';
+      document.getElementById('authSubtitle').innerText = isLogin ? '登录后继续整理内容。' : '注册后可试用 3 次。';
       document.getElementById('authSubmitBtn').innerText = isLogin ? '登录' : '立即注册';
       document.getElementById('authToggleText').innerText = isLogin ? '还没有账号？' : '已有 HotCopy 账号？';
       document.getElementById('authToggleBtn').innerText = isLogin ? '立即免费注册' : '直接登录';
@@ -1104,7 +1562,10 @@
       if (!token) return openAuthModal('login');
       const input = document.getElementById('licenseCodeInput');
       const code = input.value.trim();
-      if (!code) return alert('请输入卡密');
+      if (!code) return showToast('请输入授权码');
+
+      const button = document.getElementById('btnVerifyLicense');
+      button.disabled = true;
 
       try {
         const res = await fetch(`${API_BASE}/api/auth/activate`, {
@@ -1117,16 +1578,20 @@
         });
         const data = await res.json();
         if (res.ok) {
-          alert(data.message || '卡密激活成功！');
+          showToast(data.message || '授权码已兑换');
+          input.value = '';
           closeModal('pricingModal');
           checkAuth();
         } else {
-          alert(data.error || '激活失败');
+          showToast(data.error || '授权码兑换失败');
         }
       } catch (err) {
-        alert('激活失败: ' + err.message);
+        showToast('授权码兑换失败，请稍后重试');
+      } finally {
+        button.disabled = false;
       }
     }
   </script>
+  <script src="./addons.js"></script>
 </body>
 </html>

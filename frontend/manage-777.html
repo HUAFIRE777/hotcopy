@@ -560,7 +560,9 @@
   </div>
 
   <script>
-    const API = 'https://api.eazyopc.com';
+    const API = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+      ? 'http://localhost:3001'
+      : 'https://api.eazyopc.com';
     let currentAdminToken = sessionStorage.getItem('hotcopy_admin_token') || '';
     let currentAdminUser = sessionStorage.getItem('hotcopy_admin_user') || 'huafire';
     let currentAdminKey = sessionStorage.getItem('hotcopy_admin_key') || '';
@@ -837,10 +839,30 @@
       refreshAllData();
     }
 
-    // 导出 SFT 数据集
-    function downloadDataset() {
-      const authQuery = currentAdminToken ? `token=${encodeURIComponent(currentAdminToken)}` : `x-admin-key=${encodeURIComponent(currentAdminKey)}`;
-      window.open(`${API}/api/admin/export-dataset?${authQuery}`);
+    // 导出 SFT 数据集，管理员凭据只通过请求头发送。
+    async function downloadDataset() {
+      try {
+        const res = await fetch(`${API}/api/admin/export-dataset`, {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({})
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || '导出失败，请重新登录后重试');
+        }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'hotcopy_sft_dataset.jsonl';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      } catch (error) {
+        alert(error.message || '导出失败，请稍后重试');
+      }
     }
 
     // 保存 Cookies
