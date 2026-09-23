@@ -10,10 +10,7 @@
   2. 💡 **核心要点提炼 (速读)**：提炼结构化事实简报，10 秒扫完视频核心论点与数据。
   3. 🌐 **双语精准精翻**：自然流畅中文直翻，保留时间脉络。
   4. 🚀 **AI 爆款改写**：重塑为符合小红书/短视频口播逻辑的中文高转化文案。
-- **三大非时政热点池 (150 条精选素材)**：
-  - 科技前沿 / AI应用 (50 条)
-  - 商业搞钱 / 独立出海 (50 条)
-  - 认知成长 / 生活科学 (50 条)
+- **全球热点活水**：YouTube 从雷达数据库读取真实频道视频；B站使用知识区公开榜单；Apple Podcasts 只展示可验证的单集音频。每两小时同步一次，失效来源不会继续展示。
 - **双重商业变现闭环**：
   - **Google AdSense**：免费用户展示规范广告位 (`ca-pub-6499357447763670`)。
   - **Creem.io 会员订阅**：三档方案（基础版 $4.9、Pro版 $9.9、高级版 $19.9），打通 Webhook 自动发货与卡密激活，会员全站自动去广告。
@@ -27,7 +24,8 @@
 HotCopy/
 ├── backend/
 │   ├── server.js              # 核心后端 API（鉴权、定时抓取、Groq转写、流式生成、Creem回调、SFT双写）
-│   ├── trends_data.js         # 150 条非时政精选热点数据源
+│   ├── trends_live.js         # 热点来源校验与雷达读取
+│   ├── clean_trends.js        # 历史伪数据清理（默认只预览，--apply 前备份）
 │   ├── package.json           # 后端依赖配置
 │   ├── .env.example           # 环境变量示例
 │   └── database.sqlite        # SQLite 数据库（自动建表）
@@ -40,6 +38,8 @@ HotCopy/
     ├── _headers               # Cloudflare Pages 响应头
     └── favicon.svg            # 专属品牌矢量图标
 ```
+
+历史伪数据清理：先运行 `node backend/clean_trends.js` 查看删除数量，确认后运行 `node backend/clean_trends.js --apply`。执行前会将数据库备份到 `backend/.backups/`；雷达数据库由附加服务维护，默认路径为 `backend/addons/addons.sqlite`，可通过 `ADDONS_DB_PATH` 指定。
 
 ## 🚀 部署指南
 

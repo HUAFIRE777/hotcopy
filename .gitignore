@@ -3,3 +3,4 @@ database.sqlite
 database.sqlite-journal
 .DS_Store
 .env
+.backups/

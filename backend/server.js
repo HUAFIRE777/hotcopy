@@ -11,7 +11,7 @@ const axios = require('axios');
 const FormData = require('form-data');
 const crypto = require('crypto');
 const { YoutubeTranscript } = require('youtube-transcript');
-const { TECH_TRENDS, BUSINESS_TRENDS, PODCAST_TRENDS, GROWTH_TRENDS, LIFESTYLE_TRENDS } = require('./trends_data');
+const { validTrend, readRadarTrends, TREND_MAX_AGE_MS } = require('./trends_live');
 require('dotenv').config();
 
 const app = express();
@@ -210,85 +210,123 @@ app.post('/api/auth/activate', authenticate, (req, res) => {
   res.status(400).json({ error: '无效卡密，请检查输入或在上方购买' });
 });
 
-try {
-  db.prepare('ALTER TABLE trends ADD COLUMN hot_badge TEXT').run();
-} catch (e) {}
+const trendColumns = new Set(db.prepare('PRAGMA table_info(trends)').all().map(column => column.name));
+if (!trendColumns.has('duration')) db.exec('ALTER TABLE trends ADD COLUMN duration TEXT');
+if (!trendColumns.has('intro')) db.exec('ALTER TABLE trends ADD COLUMN intro TEXT');
+if (!trendColumns.has('hot_badge')) db.exec('ALTER TABLE trends ADD COLUMN hot_badge TEXT');
+if (!trendColumns.has('source')) db.exec('ALTER TABLE trends ADD COLUMN source TEXT');
+db.exec(`
+  CREATE TABLE IF NOT EXISTS trend_sync (
+    platform TEXT PRIMARY KEY,
+    attempted_at INTEGER,
+    succeeded_at INTEGER,
+    status TEXT NOT NULL
+  );
+`);
 
-// ---------------- 定时任务：2 小时同步全球热点 ----------------
+// ---------------- 每两小时同步可核验的平台榜单 ----------------
+const TREND_INTERVAL_MS = 2 * 60 * 60 * 1000;
+const trendInsert = db.prepare(`
+  INSERT INTO trends (platform, category, video_id, title, title_cn, cover_url, updated_at, duration, intro, hot_badge, source)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`);
+
+function trendCategory(name = '') {
+  if (/科技|数码|科学|计算机|AI|知识/.test(name)) return 'tech';
+  if (/财经|商业|职场/.test(name)) return 'business';
+  if (/生活|美食|运动|旅行|手工/.test(name)) return 'lifestyle';
+  return 'growth';
+}
+
+async function fetchBilibiliTrends() {
+  const { data } = await axios.get('https://api.bilibili.com/x/web-interface/ranking/v2', {
+    params: { rid: 36, type: 'all' }, timeout: 12000,
+    headers: { 'User-Agent': 'Mozilla/5.0' }
+  });
+  if (data?.code !== 0 || !Array.isArray(data.data?.list)) throw new Error('B站榜单不可用');
+  return data.data.list.filter(item => /^BV[a-zA-Z0-9]{10}$/.test(item.bvid || '') && item.title)
+    .slice(0, 24).map(item => ({
+      platform: 'bilibili', category: trendCategory(item.tname), video_id: item.bvid,
+      title: item.title, cover_url: (item.pic || '').replace(/^http:/, 'https:'),
+      intro: item.tname || '', source: 'bilibili-knowledge-ranking'
+    }));
+}
+
+async function fetchAppleTrends() {
+  const { data } = await axios.get('https://rss.applemarketingtools.com/api/v2/us/podcasts/top/10/podcasts.json', { timeout: 12000 });
+  const shows = data?.feed?.results;
+  if (!Array.isArray(shows) || !shows.length) throw new Error('Apple 播客榜单不可用');
+  const episodes = await Promise.allSettled(shows.slice(0, 8).map(async show => {
+    if (!/^\d+$/.test(show.id || '')) return null;
+    const result = await axios.get('https://itunes.apple.com/lookup', {
+      params: { id: show.id, entity: 'podcastEpisode', limit: 1 }, timeout: 12000
+    });
+    const episode = result.data?.results?.find(item => item.wrapperType === 'podcastEpisode');
+    const episodeId = episode?.trackViewUrl?.match(/[?&]i=(\d+)/)?.[1];
+    if (!episodeId || !episode.trackName || Number(episode.collectionId) !== Number(show.id) ||
+        !/^https:\/\/podcasts\.apple\.com\//.test(episode.trackViewUrl || '') ||
+        !/^https:\/\//.test(episode.episodeUrl || '')) return null;
+    try {
+      const probe = await axios.get(episode.episodeUrl, {
+        responseType: 'stream', timeout: 8000, maxRedirects: 3,
+        headers: { Range: 'bytes=0-0' }
+      });
+      const contentType = probe.headers['content-type'] || '';
+      probe.data.destroy();
+      if (!/(audio|octet-stream)/i.test(contentType)) return null;
+    } catch { return null; }
+    return {
+      platform: 'podcast', category: 'podcast', video_id: `${show.id}?i=${episodeId}`,
+      title: episode.trackName, cover_url: episode.artworkUrl600 || show.artworkUrl100,
+      intro: show.name, source: 'apple-podcast-chart'
+    };
+  }));
+  return episodes.filter(result => result.status === 'fulfilled' && result.value).map(result => result.value);
+}
+
+async function fetchYouTubeTrends() {
+  return readRadarTrends();
+}
+
 async function updateTrendsJob() {
-  db.prepare('DELETE FROM trends').run();
-  const stmt = db.prepare(`
-    INSERT OR REPLACE INTO trends (platform, category, video_id, title, title_cn, cover_url, updated_at, duration, intro, hot_badge)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
-  pruneExcessCache();
-  const cacheStmt = db.prepare('INSERT OR IGNORE INTO copies_cache (video_id, mode, content, created_at) VALUES (?, ?, ?, ?)');
-
-  const insertList = (list, cat) => {
-    for (const item of list) {
-      const platform = item.platform || 'youtube';
-      const cover = item.cover_url || (
-        platform === 'youtube' ? `https://img.youtube.com/vi/${item.video_id}/hqdefault.jpg` :
-        'https://images.unsplash.com/photo-1518770660439-4636190af475?w=640&q=80'
-      );
-      
-      // 为每个视频生成真实的自然时长与精准导读
-      const techDurs = ["14:28", "18:45", "22:10", "12:35", "09:50", "27:14", "16:05", "31:20"];
-      const busiDurs = ["16:40", "21:15", "13:50", "28:30", "19:05", "24:45", "11:20", "35:10"];
-      const podDurs  = ["45:18", "58:32", "1:12:45", "38:20", "1:04:15", "42:50", "51:10", "1:25:40"];
-      const growDurs = ["13:25", "17:40", "08:55", "22:15", "15:30", "19:48", "11:05", "26:30"];
-      const lifeDurs = ["09:40", "14:15", "11:50", "18:25", "07:35", "16:10", "13:05", "21:40"];
-
-      const durPool = cat === "podcast" || platform === "podcast" || platform === "xiaoyuzhou" ? podDurs : cat === "business" ? busiDurs : cat === "growth" ? growDurs : cat === "lifestyle" ? lifeDurs : techDurs;
-      let hash = 0;
-      for (let i = 0; i < (item.video_id || '').length; i++) hash = (hash * 31 + item.video_id.charCodeAt(i)) >>> 0;
-      const duration = item.duration || durPool[hash % durPool.length];
-      
-      const intro = item.intro || (
-        platform === "xiaoyuzhou" ? "聚焦前沿商业、独立开发与认知跃迁的深度中文播客对话，干货高密度输出。" :
-        platform === "bilibili" ? "B站硬核知识区精选长视频，深度拆解技术原理、商业本质与思维模型。" :
-        platform === "podcast" ? "全球顶级领袖与学者对谈实录，提炼底层认知、科学健康与前沿科技趋势。" :
-        cat === "podcast" ? "深度长谈实录：拆解关于核心商业决策、底层技术范式与未来红利的深度思辨。" :
-        cat === "business" ? "揭秘海外创作者从 0 到 10 万美金 MRR 的实战打法与商业变现闭环。" :
-        cat === "growth" ? "解构顶级精英心智行为模型，掌握高确定性认知跃迁与自我进化体系。" :
-        cat === "lifestyle" ? "分享数字游民高效自律工作流与极简高产出生活的日常落地指南。" :
-        "深度拆解前沿团队的工程化落地范式、全流程实战代码与核心逻辑。"
-      );
-
-      const hotBadge = item.hot_badge || (
-        platform === 'bilibili' ? '🔥 B站热门' :
-        platform === 'xiaoyuzhou' ? '⭐ 小宇宙热播' :
-        platform === 'podcast' ? '⭐ 播客精选' :
-        '🔥 热门精选'
-      );
-
-      stmt.run(platform, cat, item.video_id, item.title, item.title_cn, cover, Date.now(), duration, intro, hotBadge);
-      if (item.raw_content) {
-        cacheStmt.run(item.video_id, 'raw', item.raw_content, Date.now());
-      }
-      if (item.summary_content) {
-        cacheStmt.run(item.video_id, 'summary', item.summary_content, Date.now());
-      }
-      if (item.rewrite_content) {
-        cacheStmt.run(item.video_id, 'rewrite', item.rewrite_content, Date.now());
-      }
+  const sources = [
+    ['bilibili', fetchBilibiliTrends],
+    ['podcast', fetchAppleTrends],
+    ['youtube', fetchYouTubeTrends]
+  ];
+  await Promise.all(sources.map(async ([platform, fetcher]) => {
+    const attemptedAt = Date.now();
+    try {
+      const items = await fetcher();
+      const validItems = items.filter(validTrend);
+      if (!validItems.length) throw new Error('榜单未返回可核验条目');
+      const syncedAt = Date.now();
+      db.transaction(() => {
+        db.prepare('DELETE FROM trends WHERE platform = ?').run(platform);
+        for (const item of validItems) {
+          trendInsert.run(item.platform, item.category, item.video_id, item.title, null,
+            item.cover_url, syncedAt, '', item.intro, '', item.source);
+        }
+        db.prepare(`INSERT INTO trend_sync (platform, attempted_at, succeeded_at, status)
+          VALUES (?, ?, ?, 'ok') ON CONFLICT(platform) DO UPDATE SET
+          attempted_at = excluded.attempted_at, succeeded_at = excluded.succeeded_at, status = 'ok'`)
+          .run(platform, attemptedAt, syncedAt);
+      })();
+    } catch (error) {
+      db.prepare(`INSERT INTO trend_sync (platform, attempted_at, succeeded_at, status)
+        VALUES (?, ?, NULL, 'error') ON CONFLICT(platform) DO UPDATE SET
+        attempted_at = excluded.attempted_at, status = 'error'`).run(platform, attemptedAt);
+      console.warn(`[Trends] ${platform} 同步失败: ${error.message}`);
     }
-  };
-
-  insertList(TECH_TRENDS, 'tech');
-  insertList(BUSINESS_TRENDS, 'business');
-  insertList(PODCAST_TRENDS, 'podcast');
-  insertList(GROWTH_TRENDS, 'growth');
-  insertList(LIFESTYLE_TRENDS, 'lifestyle');
+  }));
 }
 cron.schedule('0 */2 * * *', updateTrendsJob);
 
 app.get('/api/trends', (req, res) => {
   const category = req.query.category || 'all';
   const platform = req.query.platform || 'all';
-  let query = 'SELECT * FROM trends WHERE 1=1';
-  const params = [];
+  let query = 'SELECT * FROM trends WHERE source IS NOT NULL AND updated_at >= ?';
+  const params = [Date.now() - TREND_MAX_AGE_MS];
   if (category !== 'all') {
     query += ' AND category = ?';
     params.push(category);
@@ -297,9 +335,14 @@ app.get('/api/trends', (req, res) => {
     query += ' AND platform = ?';
     params.push(platform);
   }
-  query += ' ORDER BY id ASC LIMIT 100';
-  const list = db.prepare(query).all(...params);
+  query += ' ORDER BY updated_at DESC, id ASC LIMIT 100';
+  const list = db.prepare(query).all(...params).filter(validTrend);
   res.json(list);
+});
+
+app.get('/api/trends/status', (req, res) => {
+  const sources = db.prepare('SELECT platform, attempted_at, succeeded_at, status FROM trend_sync').all();
+  res.json({ interval_ms: TREND_INTERVAL_MS, sources });
 });
 
 

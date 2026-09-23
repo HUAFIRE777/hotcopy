@@ -267,7 +267,7 @@
       <!-- 第一排：居中大标题与副标题 -->
       <div class="text-center max-w-2xl mx-auto mb-5">
         <h2 class="text-xl sm:text-2xl font-bold text-stone-900 tracking-tight">全球与全网爆款热点精选</h2>
-        <p class="text-xs sm:text-sm text-stone-500 mt-1.5">每 2 小时自动同步四大平台优质内容源，点击下方链接即可一键复制并自动填入上方输入框</p>
+        <p class="text-xs sm:text-sm text-stone-500 mt-1.5">每 2 小时同步 YouTube、B站与 Apple 播客的可验证内容，点击卡片即可提取</p>
       </div>
 
       <!-- 第二排：平台快捷筛选胶囊药丸 (Platform Pills) -->
@@ -280,9 +280,6 @@
         </button>
         <button onclick="switchPlatform('bilibili')" class="plat-btn px-3.5 py-1.5 rounded-xl font-medium transition flex items-center gap-1.5 text-stone-600 hover:text-stone-900 hover:bg-stone-200/60" data-plat="bilibili">
           <span class="w-2 h-2 rounded-full bg-[#fb7299]"></span> B站知识区
-        </button>
-        <button onclick="switchPlatform('xiaoyuzhou')" class="plat-btn px-3.5 py-1.5 rounded-xl font-medium transition flex items-center gap-1.5 text-stone-600 hover:text-stone-900 hover:bg-stone-200/60" data-plat="xiaoyuzhou">
-          <span class="w-2 h-2 rounded-full bg-[#00c8b3]"></span> 小宇宙播客
         </button>
         <button onclick="switchPlatform('podcast')" class="plat-btn px-3.5 py-1.5 rounded-xl font-medium transition flex items-center gap-1.5 text-stone-600 hover:text-stone-900 hover:bg-stone-200/60" data-plat="podcast">
           <span class="w-2 h-2 rounded-full bg-[#8936df]"></span> Apple 播客
@@ -687,125 +684,70 @@
       }
     }
 
-    function renderCardHtml(item) {
-      let videoUrl = item.video_id || '';
-      const plat = (item.platform || 'youtube').toLowerCase();
-      if (videoUrl.startsWith('http://') || videoUrl.startsWith('https://')) {
-        // already full URL
-      } else if (plat === 'youtube') {
-        videoUrl = `https://www.youtube.com/watch?v=${item.video_id}`;
-      } else if (plat === 'bilibili') {
-        videoUrl = `https://www.bilibili.com/video/${item.video_id}`;
-      } else if (plat === 'xiaoyuzhou') {
-        videoUrl = `https://www.xiaoyuzhoufm.com/episode/${item.video_id}`;
-      } else if (plat === 'podcast') {
-        videoUrl = `https://podcasts.apple.com/us/podcast/id${item.video_id}`;
+    function escapeTrendHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      })[char]);
+    }
+
+    function trendVideoUrl(item) {
+      const id = String(item?.video_id || '');
+      if (!item?.title || !item?.source) return null;
+      if (item.platform === 'youtube' && item.source === 'youtube-radar' &&
+          /^[\w-]{11}$/.test(id) && !['dQw4w9WgXcQ', 'jNQXAC9IVRw', '9bZkp7q19f0'].includes(id)) {
+        return `https://www.youtube.com/watch?v=${id}`;
       }
+      if (item.platform === 'bilibili' && item.source === 'bilibili-knowledge-ranking' &&
+          /^BV[a-zA-Z0-9]{10}$/.test(id)) return `https://www.bilibili.com/video/${id}`;
+      const apple = item.platform === 'podcast' && item.source === 'apple-podcast-chart'
+        ? /^(\d+)\?i=(\d+)$/.exec(id) : null;
+      if (apple) return `https://podcasts.apple.com/us/podcast/id${apple[1]}?i=${apple[2]}`;
+      return null;
+    }
 
-      const platBadge = plat === 'bilibili' ? { name: 'BILIBILI', bg: 'bg-[#fb7299] text-white', icon: '🌸' } :
-                        plat === 'xiaoyuzhou' ? { name: '小宇宙', bg: 'bg-[#00c8b3] text-white', icon: '🔷' } :
-                        plat === 'podcast' ? { name: 'APPLE 播客', bg: 'bg-[#8936df] text-white', icon: '🟣' } :
-                        { name: 'YOUTUBE', bg: 'bg-red-600 text-white', icon: '🔴' };
-
-      const hotBadge = item.hot_badge || (
-        plat === 'bilibili' ? '🔥 B站热门' :
-        plat === 'xiaoyuzhou' ? '⭐ 小宇宙热播' :
-        plat === 'podcast' ? '⭐ 播客精选' :
-        '🔥 热门精选'
-      );
-
-      const durPool = plat === 'podcast' || plat === 'xiaoyuzhou' || item.category === 'podcast' 
-                      ? ["45:18", "58:32", "1:12:45", "38:20", "51:10"] 
-                      : item.category === 'business' ? ["16:40", "21:15", "13:50", "28:30", "24:45"]
-                      : item.category === 'growth' ? ["13:25", "17:40", "08:55", "22:15", "19:48"]
-                      : item.category === 'lifestyle' ? ["09:40", "14:15", "11:50", "18:25", "16:10"]
-                      : ["14:28", "18:45", "22:10", "12:35", "09:50", "27:14", "16:05"];
-      let h = 0;
-      for (let i = 0; i < (item.video_id || '').length; i++) h = (h * 31 + item.video_id.charCodeAt(i)) >>> 0;
-      const duration = item.duration || durPool[h % durPool.length];
-      const intro = item.intro || (
-        plat === 'xiaoyuzhou' ? '聚焦前沿商业、独立开发与认知跃迁的深度中文播客对话，干货高密度输出。' :
-        plat === 'bilibili' ? 'B站硬核知识区精选长视频，梳理深层技术原理、商业本质与思维模型。' :
-        plat === 'podcast' ? '全球顶级领袖与学者对谈实录，提炼底层认知、科学健康与前沿科技趋势。' :
-        item.category === 'business' ? '剖析海外独立开发与流量出海变现打法，拆解商业闭环与实操要点。' :
-        item.category === 'growth' ? '解构高效学习心智与行为模型，掌握可持续自我跃迁的高确定性底层杠杆。' :
-        item.category === 'lifestyle' ? '分享数字游民高效自律生活与创作习惯，打造自由高产出的个人生活方式。' :
-        '深入拆解前沿团队的工程化落地范式、全流程实战代码与核心逻辑。'
-      );
+    function renderCardHtml(item) {
+      const videoUrl = trendVideoUrl(item);
+      if (!videoUrl) return '';
+      const coverUrl = /^https:\/\//.test(item.cover_url || '') ? escapeTrendHtml(item.cover_url) : '';
+      const platformName = { youtube: 'YouTube', bilibili: 'B站', podcast: 'Apple Podcasts' }[item.platform];
       return `
-      <div class="bg-white border border-stone-200 rounded-xl overflow-hidden flex flex-col hover:border-stone-300 hover:shadow-md transition duration-200 group">
-        <div class="relative overflow-hidden bg-stone-100">
-          <img src="${item.cover_url}" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1518770660439-4636190af475?w=640&q=80';" class="w-full h-40 object-cover group-hover:scale-102 transition duration-200" loading="lazy">
-          <span class="absolute top-2 left-2 text-[10px] ${platBadge.bg} px-2 py-0.5 rounded font-bold shadow-xs flex items-center gap-1">
-            <span>${platBadge.icon}</span>
-            <span>${platBadge.name}</span>
-          </span>
-          <span class="absolute top-2 right-2 text-[10px] bg-black/75 backdrop-blur-xs text-amber-300 font-semibold px-2 py-0.5 rounded shadow-xs">
-            ${hotBadge}
-          </span>
-          <span class="absolute bottom-2 right-2 text-[10px] bg-black/80 backdrop-blur-xs text-white px-1.5 py-0.5 rounded font-mono font-medium shadow-xs tracking-tight">
-            ${duration}
-          </span>
-        </div>
-        <div class="p-4 flex-1 flex flex-col justify-between">
-          <div>
-            <h4 class="text-xs font-bold line-clamp-2 mb-1.5 text-stone-900 leading-snug">
-              ${item.title_cn || item.title}
-            </h4>
-            <p class="text-[11px] text-stone-500 line-clamp-2 mb-3 leading-relaxed">
-              ${intro}
-            </p>
-
-            <!-- 完整视频源链接展示与一键填入栏 -->
-            <div class="mb-3">
-              <div class="text-[10px] text-stone-400 font-medium mb-1">源链接</div>
-              <div class="flex items-center bg-[#fafaf9] border border-stone-200/90 rounded-lg overflow-hidden focus-within:border-stone-400 focus-within:bg-white transition group/link shadow-2xs">
-                <input type="text" readonly value="${videoUrl}" 
-                  onclick="this.select()" 
-                  class="bg-transparent text-[10px] font-mono text-stone-600 px-2 py-1.5 flex-1 focus:outline-none select-all cursor-text min-w-0" 
-                  title="完整链接（点击全选）">
-                <button type="button" onclick="copyCardUrl('${videoUrl}', this)" 
-                  class="bg-white hover:bg-rose-50 border-l border-stone-200 px-2.5 py-1.5 text-[11px] font-semibold text-rose-600 hover:text-rose-700 shrink-0 flex items-center gap-1 transition">
-                  <svg class="w-3 h-3 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-                  <span class="copy-status">复制填入</span>
-                </button>
+        <article data-url="${escapeTrendHtml(videoUrl)}" class="flex flex-col overflow-hidden rounded-xl border border-stone-200 bg-white">
+          <div class="relative h-40 bg-stone-100">
+            ${coverUrl ? `<img src="${coverUrl}" alt="" loading="lazy" class="h-40 w-full object-cover">` : ''}
+            <span class="absolute left-2 top-2 rounded bg-white/95 px-2 py-1 text-[10px] font-semibold text-stone-800">${platformName}</span>
+          </div>
+          <div class="flex flex-1 flex-col justify-between p-4">
+            <div>
+              <h4 class="mb-2 line-clamp-2 text-sm font-bold text-stone-900">${escapeTrendHtml(item.title)}</h4>
+              <p class="mb-3 text-xs text-stone-500">${escapeTrendHtml(item.intro || '来源已同步')}</p>
+              <div class="mb-3 flex items-center rounded-lg border border-stone-200 bg-stone-50">
+                <input readonly value="${escapeTrendHtml(videoUrl)}" onclick="this.select()" aria-label="内容链接"
+                  class="min-w-0 flex-1 bg-transparent px-2 py-2 text-[10px] text-stone-600">
+                <button type="button" onclick="copyCardUrl(this.closest('[data-url]').dataset.url, this)"
+                  class="min-h-11 border-l border-stone-200 px-2 text-xs font-medium text-stone-700"><span class="copy-status">填入链接</span></button>
               </div>
             </div>
+            <div class="grid grid-cols-3 gap-2 border-t border-stone-100 pt-3 text-xs">
+              <button type="button" onclick="runConvertCard(this, 'raw')" class="min-h-11 rounded-lg border border-stone-200 bg-stone-50">原声</button>
+              <button type="button" onclick="runConvertCard(this, 'summary')" class="min-h-11 rounded-lg border border-stone-200 bg-stone-50">简报</button>
+              <button type="button" onclick="runConvertCard(this, 'rewrite')" class="min-h-11 rounded-lg bg-stone-900 font-semibold text-white">AI 爆款</button>
+            </div>
           </div>
-
-          <div class="grid grid-cols-3 gap-1.5 pt-2 border-t border-stone-100 text-[11px]">
-            <button onclick="runConvertDirect('${videoUrl}', 'raw')" 
-              class="bg-[#fafaf9] hover:bg-stone-100 border border-stone-200 py-1.5 rounded-lg text-stone-700 font-medium transition text-center">
-              原声
-            </button>
-            <button onclick="runConvertDirect('${videoUrl}', 'summary')" 
-              class="bg-[#fafaf9] hover:bg-stone-100 border border-stone-200 py-1.5 rounded-lg text-stone-700 font-medium transition text-center">
-              简报
-            </button>
-            <button onclick="runConvertDirect('${videoUrl}', 'rewrite')" 
-              class="btn-prize-card text-white py-1.5 rounded-lg font-bold shadow-xs hover:shadow transition text-center flex items-center justify-center gap-1">
-              <span>✨</span>
-              <span>AI改写</span>
-            </button>
-          </div>
-        </div>
-      </div>`;
+        </article>`;
     }
 
     function filterAndRenderTrends() {
       const grid = document.getElementById('trendsGrid');
       let filtered = allTrendsList;
-      if (currentPlatform !== 'all') {
-        filtered = filtered.filter(item => (item.platform || 'youtube').toLowerCase() === currentPlatform.toLowerCase());
-      }
-      if (currentCategory !== 'all') {
-        filtered = filtered.filter(item => item.category === currentCategory);
-      }
-      if (filtered.length === 0) {
-        grid.innerHTML = '<div class="text-xs text-stone-400 col-span-3 py-12 text-center">当前组合下暂无该平台精选卡片，可点击上方「全部平台」或直接在输入框粘贴任意链接！</div>';
-      } else {
-        grid.innerHTML = filtered.map(renderCardHtml).join('');
-      }
+      if (currentPlatform !== 'all') filtered = filtered.filter(item => item.platform === currentPlatform);
+      if (currentCategory !== 'all') filtered = filtered.filter(item => item.category === currentCategory);
+      const cards = filtered.map(renderCardHtml).filter(Boolean);
+      grid.innerHTML = cards.length ? cards.join('')
+        : '<div class="col-span-3 py-12 text-center text-xs text-stone-400">当前平台暂无已同步的可用内容，请稍后再看。</div>';
+    }
+
+    function runConvertCard(el, mode) {
+      runConvertDirect(el.closest('[data-url]').dataset.url, mode, true);
     }
 
     async function loadAllTrends() {
@@ -815,8 +757,10 @@
 
       try {
         const res = await fetch(`${API_BASE}/api/trends?category=all&platform=all`);
+        if (!res.ok) throw new Error('热点接口不可用');
         const list = await res.json();
-        allTrendsList = list;
+        if (!Array.isArray(list)) throw new Error('热点数据格式异常');
+        allTrendsList = list.filter(item => trendVideoUrl(item));
         filterAndRenderTrends();
       } catch (err) {
         console.error('loadAllTrends error:', err);
@@ -875,7 +819,7 @@
       showToast('已复制视频链接并自动填入上方输入框！');
     }
 
-    function showToast(msg) {
+    function showToast(msg, placement = 'bottom') {
       let toast = document.getElementById('floatingToast');
       if (!toast) {
         toast = document.createElement('div');
@@ -883,7 +827,9 @@
         toast.className = 'fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-stone-900/95 backdrop-blur-sm text-white text-xs font-medium px-4 py-2.5 rounded-xl shadow-xl transition-all duration-300 pointer-events-none opacity-0 translate-y-3 flex items-center gap-2 border border-stone-700';
         document.body.appendChild(toast);
       }
-      toast.innerHTML = `<span>✨</span><span>${msg}</span>`;
+      toast.textContent = msg;
+      toast.classList.toggle('top-6', placement === 'top');
+      toast.classList.toggle('bottom-6', placement !== 'top');
       toast.classList.remove('opacity-0', 'translate-y-3');
       toast.classList.add('opacity-100', 'translate-y-0');
       setTimeout(() => {
@@ -946,7 +892,7 @@
       runConvertDirect(url, mode);
     }
 
-    async function runConvertDirect(url, mode) {
+    async function runConvertDirect(url, mode, fromTrendCard = false) {
       if (!token) return openAuthModal('login');
       
       activeModalUrl = url;
@@ -1023,6 +969,10 @@
           box.innerText = text;
         }
 
+        if (/\n\n处理中断:\s*/.test(currentConvertedText)) {
+          throw new Error(currentConvertedText.split(/处理中断:\s*/).pop());
+        }
+        if (!currentConvertedText.trim()) throw new Error('未收到有效内容');
         // 存入前端缓存与浏览器会话存储
         clientCache[cacheKey] = currentConvertedText;
         try {
@@ -1033,6 +983,9 @@
         meta.innerText = `处理完成 · 共 ${currentConvertedText.length} 字 (已缓存至浏览器)`;
         checkAuth();
       } catch (e) {
+        if (fromTrendCard && /404|下架|不存在|限制访问|无法访问|无效链接/i.test(e.message || '')) {
+          showToast('该内容源已被原作者下架或限制访问，请尝试其他热点', 'top');
+        }
         box.innerText = `处理中断: ${e.message}`;
         meta.innerText = '处理失败';
       }

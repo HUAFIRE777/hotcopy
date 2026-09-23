@@ -51,7 +51,8 @@ HotCopy/
 │   └── index.html             # 前端完整代码（UI 模板、模态框、趋势流、交互 JS）
 ├── backend/
 │   ├── server.js              # 后端 Express 主入口、路由鉴权、流抓取与 LLM 管道
-│   ├── trends_data.js         # 100 条全网趋势热点种子数据集（支持 4 大平台分类筛选）
+│   ├── trends_live.js         # 热点来源校验与真实雷达读取
+│   ├── clean_trends.js        # 历史伪数据清理（预览、备份、执行）
 │   ├── database.sqlite        # SQLite 生产数据库
 │   └── package.json           # 依赖项清单
 └── HANDOVER_FOR_CODEX.md      # 本交接指南
@@ -149,11 +150,12 @@ cd /Users/huafire777/Desktop/program/HotCopy/frontend
 ```bash
 # 1. 语法静态检查 (保证 0 语法报错)
 node -c backend/server.js
-node -c backend/trends_data.js
+node -c backend/trends_live.js
+node -c backend/clean_trends.js
 
 # 2. 将改动同步至生产服务器 /opt/hotcopy
 scp backend/server.js root@139.180.190.183:/opt/hotcopy/
-scp backend/trends_data.js root@139.180.190.183:/opt/hotcopy/
+scp backend/trends_live.js backend/clean_trends.js root@139.180.190.183:/opt/hotcopy/
 
 # 3. 生产服务 0 停机热重载
 ssh root@139.180.190.183 "pm2 reload hotcopy-backend"
