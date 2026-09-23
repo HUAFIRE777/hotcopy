@@ -899,8 +899,94 @@ async function openRadar() {
   loadRadar();
 }
 
+async function openMemberCenter() {
+  if (!token) return openAuthModal('login');
+  if (!currentUser) await checkAuth();
+  if (!currentUser) return openAuthModal('login');
+  const panel = document.getElementById('memberCenter');
+  panel.classList.remove('hidden');
+  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const expiry = Number(currentUser.expires_at);
+  const expiryLabel = expiry >= Date.parse('9999-01-01') ? '长期有效'
+    : expiry > 0 ? `有效至 ${new Intl.DateTimeFormat('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(expiry))}` : '未开通';
+  document.getElementById('memberSummary').textContent =
+    `${currentUser.email} · ${currentUser.plan.toUpperCase()} · ${expiryLabel} · 本月使用 ${currentUser.used_count}/${currentUser.monthly_limit}`;
+  document.getElementById('memberRadarTools').classList.toggle('hidden', currentUser.plan !== 'premium');
+  if (currentUser.plan === 'premium') await loadMemberChannels();
+}
+
+async function loadMemberChannels() {
+  const list = document.getElementById('customChannelList');
+  const status = document.getElementById('customChannelStatus');
+  try {
+    const response = await fetch(`${ADDONS_API_BASE}/api/addons/radar/channels`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!response.ok) throw new Error('暂时无法读取追踪频道');
+    const data = await response.json();
+    const channels = Array.isArray(data.channels) ? data.channels : [];
+    const custom = channels.filter(item => item.is_custom);
+    const presets = document.getElementById('presetChannelList');
+    presets.replaceChildren();
+    for (const item of channels.filter(channel => !channel.is_custom)) {
+      const label = document.createElement('span');
+      label.className = 'rounded-md bg-blue-50 px-2.5 py-1.5 text-xs text-stone-700';
+      label.textContent = item.channel_name;
+      presets.appendChild(label);
+    }
+    status.textContent = `精选 ${channels.length - custom.length} 个 · 自选 ${custom.length}/5 · 每 30 分钟检查`;
+    list.replaceChildren();
+    for (const item of custom) {
+      const row = document.createElement('div');
+      row.className = 'flex min-w-0 items-center justify-between gap-3 rounded-lg border border-stone-200 bg-white p-3';
+      const name = document.createElement('span');
+      name.className = 'truncate text-sm font-medium text-stone-800';
+      name.textContent = item.channel_name;
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'min-h-11 shrink-0 text-xs text-red-700';
+      remove.textContent = '取消追踪';
+      remove.addEventListener('click', () => removeRadarChannel(item.channel_id));
+      row.append(name, remove);
+      list.appendChild(row);
+    }
+  } catch (error) { status.textContent = error.message; }
+}
+
+async function addRadarChannel(event) {
+  event.preventDefault();
+  const form = document.getElementById('customChannelForm');
+  const button = form.querySelector('button');
+  const status = document.getElementById('customChannelStatus');
+  button.disabled = true;
+  status.textContent = '正在核验频道…';
+  try {
+    const response = await fetch(`${ADDONS_API_BASE}/api/addons/radar/channels`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: document.getElementById('customChannelUrl').value.trim() })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || '添加失败');
+    form.reset();
+    await loadMemberChannels();
+    status.textContent += ' · 已加入追踪，待下一轮抓取';
+    if (!document.getElementById('radarPanel').classList.contains('hidden')) loadRadar();
+  } catch (error) { status.textContent = error.message; }
+  finally { button.disabled = false; }
+}
+
+async function removeRadarChannel(channelId) {
+  const response = await fetch(`${ADDONS_API_BASE}/api/addons/radar/channels/${encodeURIComponent(channelId)}`, {
+    method: 'DELETE', headers: { Authorization: `Bearer ${token}` }
+  });
+  if (!response.ok) return showToast('取消追踪失败，请稍后重试');
+  await loadMemberChannels();
+  if (!document.getElementById('radarPanel').classList.contains('hidden')) loadRadar();
+}
+
 function switchRadarCategory(category) {
-  if (!['all', 'ai', 'tech', 'business', 'growth'].includes(category)) return;
+  if (!['all', 'ai', 'tech', 'business', 'growth', 'custom'].includes(category)) return;
   activeRadarCategory = category;
   document.querySelectorAll('[data-radar-category]').forEach(button => {
     const selected = button.dataset.radarCategory === category;

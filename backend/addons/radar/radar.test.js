@@ -7,12 +7,31 @@ const Database = require('better-sqlite3');
 const { openDatabase } = require('../db');
 const { createWorker } = require('../worker');
 const { SEED_CREATORS, seedCreators } = require('./seed_creators');
+const { canonicalChannelUrl, resolveChannel } = require('./resolve_channel');
 const {
   parseYouTubeFeed, parseYtDlpPlaylist, fetchChannelFeed, fetchChannelWithYtDlp,
   CHANNEL_ID_PATTERN
 } = require('./youtube_rss');
 
 const FIRE_ID = 'UCsBjURrPoezykLs9EqgamOA';
+
+test('自选频道只接受 YouTube 主页并以无 shell 的参数数组解析', async () => {
+  assert.equal(canonicalChannelUrl('https://www.youtube.com/@Fireship/videos?view=0'),
+    'https://www.youtube.com/@Fireship/videos');
+  assert.equal(canonicalChannelUrl('https://evil.example/@Fireship'), null);
+  assert.equal(canonicalChannelUrl('https://www.youtube.com/watch?v=abcdefghijk'), null);
+  let called = false;
+  const result = await resolveChannel('https://www.youtube.com/@Fireship', {
+    execFileImpl: async (_binary, args, options) => {
+      called = true;
+      assert.equal(options.shell, false);
+      assert.equal(args.at(-1), 'https://www.youtube.com/@Fireship/videos');
+      return { stdout: JSON.stringify({ channel_id: FIRE_ID, title: 'Fireship' }) };
+    }
+  });
+  assert.equal(called, true);
+  assert.equal(result.channelId, FIRE_ID);
+});
 const FEED_XML = `<?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom" xmlns:yt="http://www.youtube.com/xml/schemas/2015" xmlns:media="http://search.yahoo.com/mrss/">
   <link rel="self" href="https://www.youtube.com/feeds/videos.xml?channel_id=${FIRE_ID}"/>

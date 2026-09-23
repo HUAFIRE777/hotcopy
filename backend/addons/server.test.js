@@ -72,7 +72,11 @@ async function setup(t) {
         sections: [1, 2, 3].map(number => ({ subtitle: `要点${number}`, body: '具体内容' })),
         tags: ['#内容', '#创作', '#图文', '#视频', '#工作流']
       };
-    }
+    },
+    resolveChannel: async () => ({
+      channelId: 'UC1234567890123456789012', name: '自选频道',
+      url: 'https://www.youtube.com/channel/UC1234567890123456789012'
+    })
   });
   const server = app.listen(0, '127.0.0.1');
   await once(server, 'listening');
@@ -95,13 +99,13 @@ async function setup(t) {
   return { db, request, modelCalls, authCalls };
 }
 
-test('独立库建立八张表，鉴权走核心 /api/auth/me，Basic 不消耗模型额度', async t => {
+test('独立库建立九张表，鉴权走核心 /api/auth/me，Basic 不消耗模型额度', async t => {
   const { db, request, modelCalls, authCalls } = await setup(t);
   const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")
     .all().map(row => row.name).sort();
   assert.deepEqual(tables, [
     'asset_library', 'asset_usage', 'creation_project_assets', 'creation_projects',
-    'radar_creators', 'radar_inbox', 'radar_videos', 'radar_view_snapshots'
+    'radar_creators', 'radar_inbox', 'radar_videos', 'radar_view_snapshots', 'user_radar_channels'
   ]);
   assert.equal((await request('/assets/xiaohongshu', 'basic', { raw_text: RAW_TEXT })).status, 403);
   assert.equal((await request('/assets/xiaohongshu', 'invalid', { raw_text: RAW_TEXT })).status, 401);
@@ -383,4 +387,26 @@ test('雷达只给 Premium，空库不伪造播放量与视频', async t => {
   db.prepare('UPDATE radar_videos SET latest_views = ? WHERE video_id = ?').run(1900000, 'abcdefghijk');
   const withViews = await request('/radar/inbox?category=tech', 'premium-a', null, 'GET');
   assert.equal(withViews.data.items[0].latest_views, 1900000);
+});
+
+test('自选频道仅归所属会员，取消后停止无订阅频道轮询', async t => {
+  const { db, request } = await setup(t);
+  const url = 'https://www.youtube.com/@example';
+  assert.equal((await request('/radar/channels', 'pro', { url })).status, 403);
+  assert.equal((await request('/radar/channels', 'premium-a', { url })).status, 201);
+  const own = await request('/radar/channels', 'premium-a', null, 'GET');
+  const other = await request('/radar/channels', 'premium-b', null, 'GET');
+  assert.equal(own.data.channels.length, 21);
+  assert.equal(own.data.channels.filter(channel => channel.is_custom).length, 1);
+  assert.equal(other.data.channels.length, 20);
+  const id = 'UC1234567890123456789012';
+  db.prepare(`INSERT INTO radar_videos
+    (video_id, channel_id, category, title, video_url, published_at, first_seen_at)
+    VALUES (?, ?, 'custom', ?, ?, ?, ?)`).run('qwerty12345', id, '自选视频',
+    'https://www.youtube.com/watch?v=qwerty12345', Date.now(), Date.now());
+  assert.equal((await request('/radar/inbox?category=custom', 'premium-a', null, 'GET')).data.items.length, 1);
+  assert.equal((await request('/radar/inbox?category=all', 'premium-b', null, 'GET')).data.items.length, 0);
+  assert.equal((await request(`/radar/channels/${id}`, 'premium-b', null, 'DELETE')).data.removed, false);
+  assert.equal((await request(`/radar/channels/${id}`, 'premium-a', null, 'DELETE')).data.removed, true);
+  assert.equal(db.prepare('SELECT is_active FROM radar_creators WHERE channel_id = ?').get(id).is_active, 0);
 });

@@ -60,6 +60,15 @@ function openDatabase(filename = process.env.ADDONS_DB_PATH || DEFAULT_DB_PATH) 
       UNIQUE(user_key, video_id)
     );
 
+    CREATE TABLE IF NOT EXISTS user_radar_channels (
+      user_key TEXT NOT NULL,
+      channel_id TEXT NOT NULL REFERENCES radar_creators(channel_id),
+      created_at INTEGER NOT NULL,
+      PRIMARY KEY (user_key, channel_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_user_radar_channels_channel
+      ON user_radar_channels(channel_id);
+
     CREATE TABLE IF NOT EXISTS asset_usage (
       user_key TEXT NOT NULL,
       billing_month TEXT NOT NULL,

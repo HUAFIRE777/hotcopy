@@ -50,13 +50,13 @@ test('YouTube 热点只取近期成功同步的真实雷达视频并排除占位
   const radar = new Database(file);
   const now = Date.now();
   radar.exec(`
-    CREATE TABLE radar_creators (channel_id TEXT PRIMARY KEY, channel_name TEXT, is_active INTEGER, last_success_at INTEGER);
+    CREATE TABLE radar_creators (channel_id TEXT PRIMARY KEY, channel_name TEXT, is_active INTEGER, last_success_at INTEGER, curated_rank INTEGER DEFAULT 1);
     CREATE TABLE radar_videos (video_id TEXT PRIMARY KEY, channel_id TEXT, title TEXT, video_url TEXT,
       thumbnail_url TEXT, category TEXT, latest_views INTEGER, published_at INTEGER, first_seen_at INTEGER);
   `);
-  radar.prepare('INSERT INTO radar_creators VALUES (?, ?, ?, ?)').run('channel-a', '真实频道', 1, now);
-  radar.prepare('INSERT INTO radar_creators VALUES (?, ?, ?, ?)').run('channel-b', '第二频道', 1, now);
-  radar.prepare('INSERT INTO radar_creators VALUES (?, ?, ?, ?)').run('channel-old', '失联频道', 1, now - 7 * 60 * 60 * 1000);
+  radar.prepare('INSERT INTO radar_creators (channel_id, channel_name, is_active, last_success_at) VALUES (?, ?, ?, ?)').run('channel-a', '真实频道', 1, now);
+  radar.prepare('INSERT INTO radar_creators (channel_id, channel_name, is_active, last_success_at) VALUES (?, ?, ?, ?)').run('channel-b', '第二频道', 1, now);
+  radar.prepare('INSERT INTO radar_creators (channel_id, channel_name, is_active, last_success_at) VALUES (?, ?, ?, ?)').run('channel-old', '失联频道', 1, now - 7 * 60 * 60 * 1000);
   const insert = radar.prepare('INSERT INTO radar_videos VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
   insert.run('AbCdEfGhI12', 'channel-a', '真实视频', 'https://www.youtube.com/watch?v=AbCdEfGhI12',
     null, 'ai', 12345, 0, now);

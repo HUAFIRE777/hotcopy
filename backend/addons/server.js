@@ -8,11 +8,13 @@ const { callModel, PLATFORMS } = require('./assets/generate');
 const { buildProductionPackage } = require('./assets/production_package');
 const { createProjectStore, projectId, ProjectError } = require('./projects/store');
 const { seedCreators } = require('./radar/seed_creators');
+const { resolveChannel: resolveYouTubeChannel } = require('./radar/resolve_channel');
 
 const MAX_RAW_CHARS = 40000;
 const MAX_CONCURRENT_GENERATIONS = 2;
 
-function createApp({ db, config, fetchImpl = fetch, modelCall = callModel }) {
+function createApp({ db, config, fetchImpl = fetch, modelCall = callModel,
+  resolveChannel = resolveYouTubeChannel }) {
   seedCreators(db);
   const app = express();
   const quota = createQuota(db);
@@ -148,15 +150,16 @@ function createApp({ db, config, fetchImpl = fetch, modelCall = callModel }) {
     next();
   }
 
-  router.get('/radar/status', requireRadarPremium, (_req, res) => {
+  router.get('/radar/status', requireRadarPremium, (req, res) => {
     const status = db.prepare(`
       SELECT COUNT(*) AS channel_count,
         SUM(CASE WHEN last_success_at > 0 THEN 1 ELSE 0 END) AS synced_channels,
         SUM(CASE WHEN last_error_code IS NOT NULL THEN 1 ELSE 0 END) AS failed_channels,
         MAX(last_checked_at) AS last_checked_at,
         MAX(last_success_at) AS last_success_at
-      FROM radar_creators WHERE is_active = 1
-    `).get();
+      FROM radar_creators c WHERE c.is_active = 1 AND (c.curated_rank <= 20 OR EXISTS (
+        SELECT 1 FROM user_radar_channels u WHERE u.channel_id = c.channel_id AND u.user_key = ?))
+    `).get(req.addonUser.key);
     const failed = Number(status.failed_channels) || 0;
     const synced = Number(status.synced_channels) || 0;
     res.json({
@@ -171,18 +174,70 @@ function createApp({ db, config, fetchImpl = fetch, modelCall = callModel }) {
     });
   });
 
-  router.get('/radar/channels', requireRadarPremium, (_req, res) => {
+  router.get('/radar/channels', requireRadarPremium, (req, res) => {
     const channels = db.prepare(`
-      SELECT channel_id, channel_name, category, channel_url, curated_rank,
-        last_checked_at, last_success_at, last_error_code
-      FROM radar_creators WHERE is_active = 1 ORDER BY curated_rank ASC
-    `).all();
+      SELECT c.channel_id, c.channel_name, c.category, c.channel_url, c.curated_rank,
+        c.last_checked_at, c.last_success_at, c.last_error_code,
+        EXISTS(SELECT 1 FROM user_radar_channels u WHERE u.channel_id = c.channel_id
+          AND u.user_key = ?) AS is_custom
+      FROM radar_creators c WHERE c.is_active = 1 AND (c.curated_rank <= 20 OR EXISTS (
+        SELECT 1 FROM user_radar_channels u WHERE u.channel_id = c.channel_id AND u.user_key = ?))
+      ORDER BY c.curated_rank ASC, c.channel_name ASC
+    `).all(req.addonUser.key, req.addonUser.key);
     res.json({ success: true, channels });
+  });
+
+  router.post('/radar/channels', requireRadarPremium, async (req, res) => {
+    try {
+      const input = req.body?.url;
+      if (typeof input !== 'string' || input.length > 300) return res.status(400).json({ error: '频道链接无效' });
+      const current = db.prepare('SELECT COUNT(*) AS total FROM user_radar_channels WHERE user_key = ?')
+        .get(req.addonUser.key).total;
+      if (current >= 5) return res.status(409).json({ error: '每位会员最多自选 5 个频道' });
+      const channel = await resolveChannel(input);
+      const curated = db.prepare('SELECT curated_rank FROM radar_creators WHERE channel_id = ?')
+        .get(channel.channelId);
+      if (curated && curated.curated_rank <= 20) return res.status(409).json({ error: '该频道已在精选 20 频道中' });
+      const changed = db.transaction(() => {
+        const count = db.prepare('SELECT COUNT(*) AS total FROM user_radar_channels WHERE user_key = ?')
+          .get(req.addonUser.key).total;
+        if (count >= 5) return false;
+        db.prepare(`INSERT INTO radar_creators
+          (channel_id, category, channel_name, channel_url, curated_rank, is_active,
+           verified_source, verified_at)
+          VALUES (?, 'custom', ?, ?, 1000, 1, ?, ?)
+          ON CONFLICT(channel_id) DO UPDATE SET is_active = 1`)
+          .run(channel.channelId, channel.name, channel.url, input.trim(), Date.now());
+        db.prepare('INSERT OR IGNORE INTO user_radar_channels (user_key, channel_id, created_at) VALUES (?, ?, ?)')
+          .run(req.addonUser.key, channel.channelId, Date.now());
+        return true;
+      })();
+      if (!changed) return res.status(409).json({ error: '每位会员最多自选 5 个频道' });
+      return res.status(201).json({ success: true, channel });
+    } catch (error) {
+      return res.status(400).json({ error: error.message === '请粘贴 YouTube 博主的 @主页或 /channel/ 链接'
+        ? error.message : '无法核验频道，请检查 YouTube 主页链接后重试' });
+    }
+  });
+
+  router.delete('/radar/channels/:id', requireRadarPremium, (req, res) => {
+    const channelId = req.params.id;
+    if (!/^UC[A-Za-z0-9_-]{22}$/.test(channelId)) return res.status(400).json({ error: '频道 ID 无效' });
+    const removed = db.transaction(() => {
+      const result = db.prepare('DELETE FROM user_radar_channels WHERE user_key = ? AND channel_id = ?')
+        .run(req.addonUser.key, channelId);
+      if (result.changes) db.prepare(`UPDATE radar_creators SET is_active = 0
+        WHERE channel_id = ? AND curated_rank > 20 AND NOT EXISTS
+          (SELECT 1 FROM user_radar_channels WHERE channel_id = ?)`)
+        .run(channelId, channelId);
+      return result.changes;
+    })();
+    return res.json({ success: true, removed: Boolean(removed) });
   });
 
   router.get('/radar/inbox', requireRadarPremium, (req, res) => {
     const category = typeof req.query.category === 'string' ? req.query.category : 'all';
-    if (!['all', 'ai', 'tech', 'business', 'growth'].includes(category)) {
+    if (!['all', 'ai', 'tech', 'business', 'growth', 'custom'].includes(category)) {
       return res.status(400).json({ error: '未知监控领域' });
     }
     const items = db.prepare(`
@@ -192,10 +247,12 @@ function createApp({ db, config, fetchImpl = fetch, modelCall = callModel }) {
         v.latest_views
       FROM radar_videos v
       JOIN radar_creators c ON c.channel_id = v.channel_id
-      WHERE c.is_active = 1 AND (? = 'all' OR v.category = ?)
+      WHERE c.is_active = 1 AND (c.curated_rank <= 20 OR EXISTS (
+        SELECT 1 FROM user_radar_channels u WHERE u.channel_id = c.channel_id AND u.user_key = ?))
+        AND (? = 'all' OR v.category = ?)
       ORDER BY COALESCE(NULLIF(v.published_at, 0), v.first_seen_at) DESC,
         v.first_seen_at DESC LIMIT 60
-    `).all(category, category);
+    `).all(req.addonUser.key, category, category);
     return res.json({ success: true, items });
   });
 

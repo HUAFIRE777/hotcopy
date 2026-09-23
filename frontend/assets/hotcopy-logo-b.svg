@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 352 80" role="img" aria-label="HotCopy">
+  <path d="M15 5h31l15 15v34a5 5 0 0 1-5 5H15a8 8 0 0 1-8-8V13a8 8 0 0 1 8-8Z" fill="#1555D7"/>
+  <path d="M45 5v11a5 5 0 0 0 5 5h11L45 5Z" fill="#89B6FF"/>
+  <rect x="14" y="16" width="39" height="35" rx="3" fill="#fff"/>
+  <path d="M29 22c-1.9-1.1-4.3.3-4.3 2.5v19c0 2.2 2.4 3.6 4.3 2.5l17-9.5c1.9-1.1 1.9-3.9 0-5L29 22Z" fill="#F26442"/>
+  <text x="78" y="52" fill="#20201f" font-family="Arial, Helvetica, sans-serif" font-size="43" font-weight="700" letter-spacing="-1.4">HotCopy</text>
+</svg>

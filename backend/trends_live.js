@@ -83,7 +83,7 @@ function readRadarTrends({ dbPath = process.env.ADDONS_DB_PATH || path.join(__di
               COALESCE(v.latest_views, 0) DESC) AS channel_rank
         FROM radar_videos v
         JOIN radar_creators c ON c.channel_id = v.channel_id
-        WHERE c.is_active = 1 AND c.last_success_at >= ?
+        WHERE c.is_active = 1 AND c.curated_rank <= 20 AND c.last_success_at >= ?
       )
       SELECT * FROM ranked WHERE channel_rank <= 3
       ORDER BY COALESCE(NULLIF(published_at, 0), first_seen_at) DESC,
