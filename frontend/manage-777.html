@@ -3,24 +3,30 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HotCopy 数字化集群管控中枢 • 超级管理端</title>
+  <meta name="robots" content="noindex, nofollow">
+  <title>HotCopy · 管理工作台</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
     body {
-      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: #fbfbfa;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background-color: #f6f5f1;
       color: #1c1917;
     }
-    .font-mono {
-      font-family: 'JetBrains Mono', monospace;
-    }
+    :focus-visible { outline: 2px solid #e7583e; outline-offset: 2px; }
     .nav-item.active {
-      background-color: #f5f5f4;
+      background-color: #fff0e9;
       color: #0c0a09;
       font-weight: 700;
-      border-right: 3px solid #e11d48;
+      box-shadow: inset 3px 0 #f26442;
     }
+    @media (max-width: 767px) {
+      #adminSidebar { position: fixed; z-index: 41; top: 0; bottom: 0; left: 0; width: min(19rem, 86vw); height: 100dvh; transform: translateX(-102%); transition: transform .2s ease; overflow-y: auto; }
+      #adminSidebar.open { transform: translateX(0); }
+      #sidebarBackdrop.open { display: block; }
+      .admin-table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .admin-table-scroll table { min-width: 650px; }
+    }
+    @media (prefers-reduced-motion: reduce) { #adminSidebar { transition: none; } }
   </style>
 </head>
 <body class="min-h-screen flex flex-col antialiased">
@@ -54,47 +60,58 @@
     </div>
   </div>
 
-  <!-- 主布局：左侧导航栏 + 右侧暖白内容区 -->
-  <div class="flex-1 flex overflow-hidden">
+  <div class="md:hidden sticky top-0 z-30 flex items-center justify-between border-b border-stone-200 bg-[#f6f5f1]/95 px-4 py-3 backdrop-blur">
+    <button type="button" onclick="toggleSidebar(true)" aria-label="打开管理导航" class="min-h-11 min-w-11 rounded-xl border border-stone-200 bg-white text-xl">☰</button>
+    <span class="font-bold tracking-tight">HotCopy <span class="font-normal text-stone-500">管理工作台</span></span>
+    <a href="/" target="_blank" rel="noopener" class="min-h-11 flex items-center text-xs text-orange-700">前台 ↗</a>
+  </div>
+  <div id="sidebarBackdrop" onclick="toggleSidebar(false)" class="hidden fixed inset-0 z-40 bg-stone-950/40 md:hidden"></div>
+  <!-- 主布局 -->
+  <div class="flex-1 flex min-h-0">
     
     <!-- 左侧菜单栏 -->
-    <aside class="w-64 bg-white border-r border-stone-200/90 flex flex-col justify-between shrink-0 h-screen sticky top-0">
+    <aside id="adminSidebar" class="w-64 bg-white border-r border-stone-200/90 flex flex-col justify-between shrink-0 h-screen sticky top-0">
       <div>
         <!-- 品牌标识 -->
         <div class="p-6 border-b border-stone-100 flex items-center gap-3">
-          <div class="w-8 h-8 rounded-lg bg-stone-900 text-white flex items-center justify-center font-black text-sm">
+          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-[#f04b3f] to-[#ff8a3d] text-white flex items-center justify-center font-black text-sm">
             H
           </div>
           <div>
             <div class="font-bold text-sm tracking-tight text-stone-900 flex items-center gap-1.5">
               <span>HotCopy</span>
-              <span class="text-[9px] bg-rose-50 text-rose-600 font-bold px-1.5 py-0.5 rounded border border-rose-100">STEALTH</span>
+              <span class="text-[9px] bg-orange-50 text-orange-700 font-bold px-1.5 py-0.5 rounded border border-orange-100">管理</span>
             </div>
-            <div class="text-[10px] text-stone-400 font-mono">v1.3.0 • 3-Node Mesh</div>
+            <div class="text-[10px] text-stone-400">创作与运营工作台</div>
           </div>
+          <button type="button" onclick="toggleSidebar(false)" aria-label="关闭管理导航" class="md:hidden ml-auto min-h-11 min-w-11 rounded-lg text-stone-500 text-xl">×</button>
         </div>
 
         <!-- 菜单分组 -->
         <nav class="p-3 space-y-1 text-xs font-medium text-stone-600">
           <button onclick="switchTab('tabOverview')" id="btnTabOverview" class="nav-item active w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg transition text-left">
             <svg class="w-4 h-4 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-            <span>数字化总览与营收</span>
+            <span>运营总览</span>
           </button>
 
           <button onclick="switchTab('tabServers')" id="btnTabServers" class="nav-item w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg transition text-left">
             <svg class="w-4 h-4 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path></svg>
-            <span class="flex-1">三台服务器监控</span>
-            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span class="flex-1">服务状态</span>
           </button>
 
           <button onclick="switchTab('tabApi')" id="btnTabApi" class="nav-item w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg transition text-left">
             <svg class="w-4 h-4 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-            <span>API 调用与成本精算</span>
+            <span>调用与成本</span>
           </button>
 
           <button onclick="switchTab('tabUsers')" id="btnTabUsers" class="nav-item w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg transition text-left">
             <svg class="w-4 h-4 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-            <span>用户与会员管控</span>
+            <span>用户与会员</span>
+          </button>
+
+          <button onclick="switchTab('tabProducts')" id="btnTabProducts" class="nav-item w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg transition text-left">
+            <svg class="w-4 h-4 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7h16M4 12h16M4 17h16"/></svg>
+            <span>前台功能</span>
           </button>
 
           <button onclick="switchTab('tabCookies')" id="btnTabCookies" class="nav-item w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg transition text-left">
@@ -135,14 +152,14 @@
     </aside>
 
     <!-- 右侧内容主视区 (暖白背景) -->
-    <main class="flex-1 overflow-y-auto p-8 max-w-7xl mx-auto w-full">
+    <main class="flex-1 min-w-0 overflow-y-auto p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
 
       <!-- ================= 标签页 1：总览与财务 ================= -->
       <div id="tabOverview" class="tab-content space-y-6">
-        <div class="flex justify-between items-center">
+        <div class="flex flex-wrap justify-between items-start gap-3">
           <div>
-            <h1 class="text-xl font-bold text-stone-900 tracking-tight">数字化运营总览</h1>
-            <p class="text-xs text-stone-500 mt-0.5">实时订阅营收、每日平摊入账与单次成本折算指标</p>
+            <h1 class="text-2xl font-bold text-stone-900 tracking-tight">运营总览</h1>
+            <p class="text-xs text-stone-500 mt-1">会员、生成量与收入估算 · 数据来自核心服务</p>
           </div>
           <button onclick="refreshAllData()" class="bg-white border border-stone-200 hover:bg-stone-50 text-stone-700 text-xs px-3.5 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 shadow-2xs">
             <svg class="w-3.5 h-3.5 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
@@ -153,27 +170,27 @@
         <!-- 4 核心财务卡片 -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div class="bg-white border border-stone-200/80 p-5 rounded-2xl shadow-2xs">
-            <div class="text-[11px] font-semibold text-stone-400 uppercase tracking-wider">月度订阅营收 (MRR)</div>
+            <div class="text-[11px] font-semibold text-stone-400 uppercase tracking-wider">按当前会员数估算月收入</div>
             <div class="text-2xl font-black mt-2 text-stone-900" id="cardMrrUSD">$0.00</div>
             <div class="text-[11px] text-stone-500 mt-1" id="cardMrrCNY">折合 ¥0.00 元</div>
           </div>
 
           <div class="bg-white border border-stone-200/80 p-5 rounded-2xl shadow-2xs">
-            <div class="text-[11px] font-semibold text-stone-400 uppercase tracking-wider">每日折算营收 (Daily)</div>
+            <div class="text-[11px] font-semibold text-stone-400 uppercase tracking-wider">月收入日均折算</div>
             <div class="text-2xl font-black mt-2 text-emerald-600" id="cardDailyRevenue">$0.00</div>
-            <div class="text-[11px] text-emerald-700/80 mt-1" id="cardDailyRevenueCNY">每日平摊入账 ¥0.00</div>
+            <div class="text-[11px] text-emerald-700/80 mt-1" id="cardDailyRevenueCNY">日均估算 ¥0.00</div>
           </div>
 
           <div class="bg-white border border-stone-200/80 p-5 rounded-2xl shadow-2xs">
-            <div class="text-[11px] font-semibold text-stone-400 uppercase tracking-wider">全系统日均总成本</div>
+            <div class="text-[11px] font-semibold text-stone-400 uppercase tracking-wider">日成本粗估</div>
             <div class="text-2xl font-black mt-2 text-stone-700" id="cardDailyCost">$0.80</div>
-            <div class="text-[11px] text-stone-400 mt-1">服务器 + Groq API 平摊</div>
+            <div class="text-[11px] text-stone-400 mt-1">按现有固定公式，非实际账单</div>
           </div>
 
           <div class="bg-white border border-stone-200/80 p-5 rounded-2xl shadow-2xs bg-gradient-to-br from-white to-rose-50/30">
-            <div class="text-[11px] font-semibold text-rose-500 uppercase tracking-wider">预计运营毛利率</div>
-            <div class="text-2xl font-black mt-2 text-rose-600" id="cardMargin">95.0%</div>
-            <div class="text-[11px] text-stone-500 mt-1">纯利空间极其充沛</div>
+            <div class="text-[11px] font-semibold text-orange-700 uppercase tracking-wider">活跃付费会员</div>
+            <div class="text-2xl font-black mt-2 text-orange-700" id="cardPaidUsers">—</div>
+            <div class="text-[11px] text-stone-500 mt-1">Basic / Pro / Premium</div>
           </div>
         </div>
 
@@ -197,15 +214,15 @@
           </div>
 
           <div class="bg-white border border-stone-200/80 p-5 rounded-2xl shadow-2xs">
-            <div class="text-xs font-bold text-stone-700 mb-3">生成调用次数</div>
+            <div class="text-xs font-bold text-stone-700 mb-3">核心内容记录</div>
             <div class="flex items-baseline gap-4">
               <div>
                 <div class="text-2xl font-black text-stone-900" id="statTodayCalls">0</div>
-                <div class="text-[11px] text-stone-400 mt-0.5">今日调用 (次)</div>
+                <div class="text-[11px] text-stone-400 mt-0.5">今日新增缓存</div>
               </div>
               <div class="border-l border-stone-200 pl-4">
                 <div class="text-2xl font-black text-stone-700" id="statTotalCalls">0</div>
-                <div class="text-[11px] text-stone-400 mt-0.5">历史累计生成</div>
+                <div class="text-[11px] text-stone-400 mt-0.5">核心累计口径</div>
               </div>
             </div>
           </div>
@@ -228,127 +245,71 @@
       <!-- ================= 标签页 2：三台服务器集群监控 ================= -->
       <div id="tabServers" class="tab-content hidden space-y-6">
         <div>
-          <h1 class="text-xl font-bold text-stone-900 tracking-tight">三台服务器集群网络监控</h1>
-          <p class="text-xs text-stone-500 mt-0.5">监控 Singapore 与 US 跨洋多节点拓扑架构与实时负载</p>
+          <h1 class="text-xl font-bold text-stone-900 tracking-tight">服务状态</h1>
+          <p class="text-xs text-stone-500 mt-0.5">主服务负载来自当前服务器；附加服务通过健康接口检查</p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-5" id="serverCardsContainer">
-          <!-- 动态注入三台服务器卡片 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5" id="serverCardsContainer">
         </div>
-
-        <!-- 集群容灾与网络状态说明 -->
-        <div class="bg-white border border-stone-200/80 p-5 rounded-2xl text-xs text-stone-600 space-y-2">
-          <div class="font-bold text-stone-800 text-sm flex items-center gap-1.5">
-            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-            集群拓扑健康自评：极佳 (All Nodes Synchronized)
-          </div>
-          <p>• <strong>Server 1 (139.180.190.183 新加坡)</strong>：承接 Cloudflare 流量与所有的 YouTube/TikTok 官方字幕抓取、Whisper 语音流降维转写。配备自动磁盘碎片 GC 守卫。</p>
-          <p>• <strong>Server 2 (207.246.82.12 美国)</strong>：TikTok 专属原生 IP 代理矩阵与 Creem 国际支付网关 Webhook 接收节点。</p>
-          <p>• <strong>Server 3 (45.77.173.164 美国)</strong>：高价值自媒体 SFT 语料跨洋冷备机与心跳巡检看门狗。</p>
-        </div>
+        <p class="text-xs text-stone-500">远端节点没有独立实时探针，因此这里不展示写死的在线状态与负载。</p>
       </div>
 
       <!-- ================= 标签页 3：API 与成本精算 ================= -->
       <div id="tabApi" class="tab-content hidden space-y-6">
         <div>
           <h1 class="text-xl font-bold text-stone-900 tracking-tight">API 调用量与成本精算账本</h1>
-          <p class="text-xs text-stone-500 mt-0.5">Groq Whisper-Large-V3 与 Qwen 27B 真实消耗与账单折算</p>
+          <p class="text-xs text-stone-500 mt-0.5">从核心缓存统计的处理量；Token 与成本为估算值</p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div class="bg-white border border-stone-200/80 p-5 rounded-2xl">
-            <div class="text-xs font-bold text-stone-500">Groq Whisper 语音转录</div>
-            <div class="text-2xl font-black mt-2 text-stone-900" id="apiWhisperCount">0 次</div>
-            <div class="text-[11px] text-stone-400 mt-1">目前处于 Groq 开发者免费额度内</div>
+            <div class="text-xs font-bold text-stone-500">原声逐字稿缓存</div>
+            <div class="text-2xl font-black mt-2 text-stone-900" id="apiWhisperCount">0 条</div>
+            <div class="text-[11px] text-stone-400 mt-1">缓存条数，不等于 Whisper API 调用次数</div>
           </div>
 
           <div class="bg-white border border-stone-200/80 p-5 rounded-2xl">
-            <div class="text-xs font-bold text-stone-500">Qwen 27B 文本大模型改写</div>
-            <div class="text-2xl font-black mt-2 text-stone-900" id="apiLlmCount">0 次</div>
+            <div class="text-xs font-bold text-stone-500">非原声生成缓存</div>
+            <div class="text-2xl font-black mt-2 text-stone-900" id="apiLlmCount">0 条</div>
             <div class="text-[11px] text-stone-400 mt-1" id="apiTokenCount">约消耗 0 Tokens</div>
           </div>
 
-          <div class="bg-white border border-stone-200/80 p-5 rounded-2xl bg-emerald-50/40 border-emerald-100">
-            <div class="text-xs font-bold text-emerald-800">当前累计节省 API 费用</div>
-            <div class="text-2xl font-black mt-2 text-emerald-600">约 ¥1,280+ 元</div>
-            <div class="text-[11px] text-emerald-700 mt-1">相比全走商业付费 API 的节省额</div>
+          <div class="bg-white border border-stone-200/80 p-5 rounded-2xl">
+            <div class="text-xs font-bold text-stone-500">统计口径</div>
+            <div class="text-sm font-semibold mt-3 text-stone-800">核心生成缓存</div>
+            <div class="text-[11px] text-stone-500 mt-2">制作包、项目和雷达由附加服务独立存储，当前核心统计不包含它们。</div>
           </div>
         </div>
 
-        <!-- 成本深度拆解对照表 -->
-        <div class="bg-white border border-stone-200/80 rounded-2xl overflow-hidden shadow-2xs">
-          <div class="p-4 border-b border-stone-100 font-bold text-xs text-stone-800">单次长视频成本利润核算对照</div>
-          <table class="w-full text-xs text-left">
-            <thead class="bg-[#fafaf9] text-stone-500 border-b border-stone-100">
-              <tr>
-                <th class="p-3.5">视频规格</th>
-                <th class="p-3.5">字幕通道</th>
-                <th class="p-3.5">语音听写通道</th>
-                <th class="p-3.5">AI 改写耗费</th>
-                <th class="p-3.5">你的总成本</th>
-                <th class="p-3.5">用户付你</th>
-                <th class="p-3.5">净利润率</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-stone-100 text-stone-700">
-              <tr>
-                <td class="p-3.5 font-medium">15 分钟标准视频</td>
-                <td class="p-3.5 text-emerald-600 font-semibold">0 元 (官方字幕)</td>
-                <td class="p-3.5 text-stone-400">免调用</td>
-                <td class="p-3.5">0.003 元</td>
-                <td class="p-3.5 font-mono">¥0.003</td>
-                <td class="p-3.5 font-mono text-stone-900 font-bold">¥0.70</td>
-                <td class="p-3.5 text-emerald-600 font-bold">99.5%</td>
-              </tr>
-              <tr>
-                <td class="p-3.5 font-medium">30 分钟无字幕视频 (如小Lin说)</td>
-                <td class="p-3.5 text-stone-400">作者已关</td>
-                <td class="p-3.5 text-rose-600 font-semibold">Groq Whisper (免费层)</td>
-                <td class="p-3.5">0.008 元</td>
-                <td class="p-3.5 font-mono">¥0.008</td>
-                <td class="p-3.5 font-mono text-stone-900 font-bold">¥1.40 (扣2次)</td>
-                <td class="p-3.5 text-emerald-600 font-bold">99.4%</td>
-              </tr>
-              <tr>
-                <td class="p-3.5 font-medium">1 小时以上长播客 (如 Sam Altman)</td>
-                <td class="p-3.5 text-emerald-600 font-semibold">0 元 (官方字幕)</td>
-                <td class="p-3.5 text-stone-400">免调用</td>
-                <td class="p-3.5">0.025 元</td>
-                <td class="p-3.5 font-mono">¥0.025</td>
-                <td class="p-3.5 font-mono text-stone-900 font-bold">¥2.10 (扣3次)</td>
-                <td class="p-3.5 text-emerald-600 font-bold">98.8%</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <div class="rounded-2xl border border-stone-200 bg-white p-5 text-xs leading-relaxed text-stone-600">实际成本请以 Groq、模型服务和服务器账单核对；旧版固定利润率表没有真实计费依据，已从工作台移除。</div>
       </div>
 
       <!-- ================= 标签页 4：用户与会员管控 ================= -->
       <div id="tabUsers" class="tab-content hidden space-y-6">
-        <div class="flex justify-between items-center">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h1 class="text-xl font-bold text-stone-900 tracking-tight">用户与会员管理</h1>
             <p class="text-xs text-stone-500 mt-0.5">监控注册账户、使用配额与手动授权会员</p>
           </div>
           
           <!-- 手动授权会员卡片入口 -->
-          <div class="flex items-center gap-2">
-            <input id="targetEmail" type="email" placeholder="输入用户邮箱" class="bg-white border border-stone-300 rounded-lg px-3 py-1.5 text-xs text-stone-800 focus:outline-none focus:border-stone-900 w-52 font-mono">
-            <select id="targetPlan" class="bg-white border border-stone-300 rounded-lg px-2.5 py-1.5 text-xs text-stone-800 focus:outline-none focus:border-stone-900 font-medium">
+          <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+            <input id="targetEmail" type="email" placeholder="输入用户邮箱" class="min-h-11 bg-white border border-stone-300 rounded-lg px-3 text-xs text-stone-800 focus:outline-none focus:border-stone-900 w-full sm:w-52 font-mono">
+            <select id="targetPlan" class="min-h-11 bg-white border border-stone-300 rounded-lg px-2.5 text-xs text-stone-800 focus:outline-none focus:border-stone-900 font-medium">
               <option value="basic">基础版 (50次/月)</option>
               <option value="pro" selected>专业版 (100次/月)</option>
               <option value="premium">旗舰版 (300次/月)</option>
             </select>
-            <button onclick="manualUpgrade()" class="bg-stone-900 hover:bg-stone-800 text-white text-xs px-3.5 py-1.5 rounded-lg font-medium transition">
+            <button onclick="manualUpgrade()" class="min-h-11 bg-stone-900 hover:bg-stone-800 text-white text-xs px-3.5 rounded-lg font-medium transition">
               一键授权
             </button>
           </div>
         </div>
 
-        <div class="bg-white border border-stone-200/80 rounded-2xl overflow-hidden shadow-2xs">
+        <div class="admin-table-scroll bg-white border border-stone-200/80 rounded-2xl shadow-2xs">
           <div class="p-4 border-b border-stone-100 flex justify-between items-center">
             <span class="font-bold text-xs text-stone-800">最新注册用户列表</span>
-            <span class="text-[11px] text-stone-400">仅展示近期活跃记录</span>
+            <span class="text-[11px] text-stone-400">最近注册的 100 位用户</span>
           </div>
           <table class="w-full text-xs text-left">
             <thead class="bg-[#fafaf9] text-stone-500 border-b border-stone-100">
@@ -367,9 +328,41 @@
         </div>
       </div>
 
+      <!-- 与当前前台一致的功能入口和真实状态 -->
+      <div id="tabProducts" class="tab-content hidden space-y-6">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 class="text-2xl font-bold text-stone-900 tracking-tight">前台功能</h1>
+            <p class="text-xs text-stone-500 mt-1">从管理工作台快速检查用户当前看到的功能</p>
+          </div>
+          <a href="/" target="_blank" rel="noopener" class="min-h-11 inline-flex items-center rounded-xl bg-stone-900 px-4 text-xs font-semibold text-white">打开前台 ↗</a>
+        </div>
+        <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <a href="/#trends" target="_blank" rel="noopener" class="rounded-2xl border border-stone-200 bg-white p-5 hover:border-orange-300 transition">
+            <div class="text-xs font-semibold text-orange-700">发现选题</div>
+            <h2 class="mt-2 text-lg font-bold">全球热点</h2>
+            <p class="mt-2 text-xs leading-relaxed text-stone-500">查看 YouTube、B 站和播客素材；同步任务每 2 小时运行一次。</p>
+            <div id="trendServiceState" class="mt-4 text-xs font-semibold text-stone-500">正在检查同步状态…</div>
+          </a>
+          <a href="/#radarSection" target="_blank" rel="noopener" class="rounded-2xl border border-stone-200 bg-white p-5 hover:border-orange-300 transition">
+            <div class="text-xs font-semibold text-orange-700">Premium</div>
+            <h2 class="mt-2 text-lg font-bold">频道雷达</h2>
+            <p class="mt-2 text-xs leading-relaxed text-stone-500">追踪已收录频道的新视频；用户可从雷达进入提取与制作。</p>
+            <div id="addonServiceState" class="mt-4 text-xs font-semibold text-stone-500">正在检查附加服务…</div>
+          </a>
+          <a href="/" target="_blank" rel="noopener" class="rounded-2xl border border-stone-200 bg-white p-5 hover:border-orange-300 transition">
+            <div class="text-xs font-semibold text-orange-700">创作资产</div>
+            <h2 class="mt-2 text-lg font-bold">制作包与项目</h2>
+            <p class="mt-2 text-xs leading-relaxed text-stone-500">用户在提取结果中生成口播、图文、脑图与制作包；Premium 可保存项目。</p>
+            <div class="mt-4 text-xs font-semibold text-stone-500">在前台结果页使用</div>
+          </a>
+        </div>
+        <p class="text-xs text-stone-500">健康检查仅验证接口响应，不能代替逐条素材提取和用户端功能验收。</p>
+      </div>
+
       <!-- ================= 标签页 5：YouTube 通行证 Cookies 维护 ================= -->
       <div id="tabCookies" class="tab-content hidden space-y-6">
-        <div class="flex justify-between items-center">
+        <div class="flex flex-wrap justify-between items-start gap-3">
           <div>
             <h1 class="text-xl font-bold text-stone-900 tracking-tight">YouTube 凭证与备用切换</h1>
             <p class="text-xs text-stone-500 mt-0.5">主用与两套备用独立管理；仅在明确的认证故障后自动尝试下一套</p>
@@ -381,7 +374,7 @@
         </div>
 
         <div class="bg-white border border-stone-200/80 p-6 rounded-2xl space-y-5">
-          <div class="flex items-center justify-between pb-4 border-b border-stone-100">
+          <div class="flex flex-wrap items-start justify-between gap-3 pb-4 border-b border-stone-100">
             <div>
               <div class="font-bold text-stone-900 text-sm">当前提取链路</div>
               <div class="text-xs text-stone-500 mt-0.5" id="cookieStatusDetails">正在读取状态...</div>
@@ -402,7 +395,7 @@
             <textarea id="cookiesTextarea" rows="8" placeholder="# Netscape HTTP Cookie File&#10;.youtube.com  TRUE  /  TRUE  1789000000  LOGIN_INFO  ..." class="w-full bg-[#fafaf9] border border-stone-200 rounded-xl p-3 text-xs font-mono text-stone-800 focus:outline-none focus:border-stone-900 focus:bg-white transition"></textarea>
           </div>
 
-          <div class="flex justify-between items-center pt-2">
+          <div class="flex flex-wrap justify-between items-center gap-3 pt-2">
             <span class="text-[11px] text-stone-400">凭证仅存于服务器受限文件；后台不会显示文件内容。保存后无需重启。</span>
             <button onclick="saveCookiesFromTab()" class="bg-stone-900 hover:bg-stone-800 text-white font-semibold text-xs px-5 py-2.5 rounded-xl transition shadow-xs">
               立即热更新通行证
@@ -453,7 +446,7 @@
             </div>
             <div class="text-xs text-stone-600 leading-relaxed space-y-1.5 pl-8">
               <p>• <strong>数据存储</strong>：所有用户、额度及沉淀的清洗后爆款短视频语料存放在 <code class="font-mono bg-stone-100 px-1 py-0.5 rounded">/opt/hotcopy/database.sqlite</code>。</p>
-              <p>• <strong>资产变现与微调</strong>：点击本后台顶部「导出 JSONL」按钮，即可一键下载符合 OpenAI / Qwen 微调规范的标准 SFT 数据集，这是你应用最有价值的技术壁垒！</p>
+              <p>• <strong>导出语料</strong>：在「运营总览」中使用「导出 JSONL」。导出前请确认数据使用授权与内容质量。</p>
             </div>
           </div>
 
@@ -464,7 +457,7 @@
               <h3 class="font-bold text-stone-900 text-sm">Creem 国际支付网关白帽合规与 Webhook 自动发货规范</h3>
             </div>
             <div class="text-xs text-stone-600 leading-relaxed space-y-2 pl-8">
-              <p>• <strong>白帽风控合规命名原则</strong>：严禁出现 <code class="font-mono bg-rose-50 text-rose-600 px-1 py-0.5 rounded">Download</code>、<code class="font-mono bg-rose-50 text-rose-600 px-1 py-0.5 rounded">Scraper</code>、<code class="font-mono bg-rose-50 text-rose-600 px-1 py-0.5 rounded">Rip</code> 等侵权词；统一采用 <code class="font-mono bg-stone-100 px-1 py-0.5 rounded">AI Copywriting</code>、<code class="font-mono bg-stone-100 px-1 py-0.5 rounded">Audio-to-text Transcript</code>、<code class="font-mono bg-stone-100 px-1 py-0.5 rounded">Creator Workspace</code> 等正规 SaaS 生产力工具名，100% 免疫人工与机审抽查。</p>
+              <p>• <strong>商品描述</strong>：准确描述实际交付的创作与转录功能，避免使用与产品不符的承诺；支付平台审核以其实际规则为准。</p>
               <p>• <strong>Delivery 字段留空准则</strong>：Delivery 用于交付电子书或压缩包下载，HotCopy 属于线上云服务，权益发货完全由服务端实时 Webhook 完成，因此 <strong>Delivery 必须保持留空 (Nothing to deliver yet)</strong>。</p>
               <p>• <strong>Return URL (付款成功重定向)</strong>：统一填写 <code class="font-mono bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.5 rounded border border-emerald-200">https://hotcopy.eazyopc.com/?payment=success</code>，用户在 Creem 刷卡完成后自动跳回主站，主站会自动捕获该参数弹出庆祝通知并自动刷新用户配额。</p>
               <p>• <strong>Webhook 自动发货端点</strong>：在 Creem 的 Developers ➜ Webhooks 中填入 <code class="font-mono bg-stone-100 px-1 py-0.5 rounded">https://api.eazyopc.com/api/webhook/creem</code>，勾选 <code class="font-mono bg-stone-100 px-1 py-0.5 rounded">checkout.completed</code> 与 <code class="font-mono bg-stone-100 px-1 py-0.5 rounded">subscription.created</code>，即可实现毫秒级自动充值发货。</p>
@@ -539,13 +532,13 @@
             <div class="bg-white border border-stone-200/80 p-6 rounded-2xl shadow-2xs space-y-3">
               <div class="font-bold text-stone-900 text-sm flex items-center gap-2">
                 <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                隐蔽入口防御架构 (Anti-Bot Stealth)
+                管理入口与访问控制
               </div>
               <div class="text-xs text-stone-600 leading-relaxed space-y-2">
                 <p>• <strong>为何废弃常规 /admin 入口？</strong><br>
-                互联网上 99% 的黑客自动化人机脚本与漏洞探测器会不间断扫描主流路径（如 <code class="font-mono bg-stone-100 px-1 py-0.5 rounded">/admin</code>、<code class="font-mono bg-stone-100 px-1 py-0.5 rounded">/wp-admin</code>、<code class="font-mono bg-stone-100 px-1 py-0.5 rounded">/manage</code>）。</p>
+                常见管理路径会被自动化扫描。管理入口仍须依赖服务端鉴权与密码保护。</p>
                 <p>• <strong>假死 404 伪装机制</strong>：<br>
-                我们将常规的 <code class="font-mono bg-stone-100 px-1 py-0.5 rounded">/admin</code> 替换为伪装的 404 Not Found 假死响应，网络爬虫探测到后会认定该站点不存在管理后台而自动放弃。</p>
+                特定入口路径只能减少误访问，不能代替服务端访问控制。</p>
                 <p>• <strong>你的独享专属管理路径</strong>：<br>
                 <span class="font-mono text-rose-600 font-bold bg-rose-50 px-2 py-0.5 rounded border border-rose-100">https://hotcopy.eazyopc.com/manage-777</span><br>
                 建议将此网址加入浏览器私密书签，避免泄露。</p>
@@ -567,6 +560,9 @@
   <script>
     const API = ['localhost', '127.0.0.1'].includes(window.location.hostname)
       ? 'http://localhost:3001'
+      : 'https://api.eazyopc.com';
+    const ADDON_API = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+      ? 'http://localhost:3002'
       : 'https://api.eazyopc.com';
     let currentAdminToken = sessionStorage.getItem('hotcopy_admin_token') || '';
     let currentAdminUser = sessionStorage.getItem('hotcopy_admin_user') || 'huafire';
@@ -667,6 +663,7 @@
 
         document.getElementById('loginGate').classList.add('hidden');
         loadCookiesStatus();
+        loadProductStatus();
         return true;
       } catch (e) {
         return false;
@@ -752,9 +749,9 @@
       document.getElementById('cardMrrUSD').innerText = `$${(data.financials?.mrrUSD || 0).toFixed(2)}`;
       document.getElementById('cardMrrCNY').innerText = `折合 ¥${data.financials?.mrrCNY || '0.00'} 元`;
       document.getElementById('cardDailyRevenue').innerText = `$${(data.financials?.dailyRevenueUSD || 0).toFixed(2)}`;
-      document.getElementById('cardDailyRevenueCNY').innerText = `每日平摊入账 ¥${data.financials?.dailyRevenueCNY || '0.00'}`;
+      document.getElementById('cardDailyRevenueCNY').innerText = `日均估算 ¥${data.financials?.dailyRevenueCNY || '0.00'}`;
       document.getElementById('cardDailyCost').innerText = `$${(data.financials?.dailyCostUSD || 0).toFixed(2)}`;
-      document.getElementById('cardMargin').innerText = data.financials?.margin || '95.0%';
+      document.getElementById('cardPaidUsers').innerText = data.paidUsers || 0;
 
       // 统计指标
       document.getElementById('statTotalUsers').innerText = data.totalUsers || 0;
@@ -767,31 +764,31 @@
       document.getElementById('statSftCount').innerText = data.sftDataCount || 0;
 
       // API 标签页
-      document.getElementById('apiWhisperCount').innerText = `${data.usage?.whisperCalls || 0} 次`;
-      document.getElementById('apiLlmCount').innerText = `${data.usage?.llmCalls || 0} 次`;
+      document.getElementById('apiWhisperCount').innerText = `${data.usage?.whisperCalls || 0} 条`;
+      document.getElementById('apiLlmCount').innerText = `${data.usage?.llmCalls || 0} 条`;
       document.getElementById('apiTokenCount').innerText = `约消耗 ${(data.usage?.estimatedTokens || 0).toLocaleString()} Tokens`;
 
-      // 渲染三台服务器
+      // 核心接口仅提供主服务器的实际系统指标，其他节点的值是旧版静态样例。
       const sContainer = document.getElementById('serverCardsContainer');
-      if (data.servers && sContainer) {
-        sContainer.innerHTML = data.servers.map(s => `
+      if (data.servers?.length && sContainer) {
+        const s = data.servers[0];
+        sContainer.innerHTML = `
           <div class="bg-white border border-stone-200/80 p-5 rounded-2xl shadow-2xs space-y-3">
             <div class="flex justify-between items-center">
-              <span class="font-bold text-xs text-stone-900">${s.name}</span>
-              <span class="flex items-center gap-1.5 text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                在线 ${s.ping}
-              </span>
+              <span class="font-bold text-xs text-stone-900">核心 API 所在服务器</span>
+              <span class="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">接口响应正常</span>
             </div>
-            <div class="text-[11px] text-stone-500 font-mono">${s.ip} • ${s.region}</div>
+            <div class="text-[11px] text-stone-500">以下为服务器系统数据，不包含历史写死的 ping 与磁盘值</div>
             <div class="text-[11px] text-stone-600 bg-[#fafaf9] p-2.5 rounded-xl border border-stone-100 space-y-1">
-              <div class="flex justify-between"><span>CPU 负载:</span><span class="font-mono font-medium">${s.cpu}</span></div>
-              <div class="flex justify-between"><span>内存占用:</span><span class="font-mono font-medium">${s.memory}</span></div>
-              <div class="flex justify-between"><span>磁盘状态:</span><span class="font-mono font-medium">${s.disk}</span></div>
+              <div class="flex justify-between"><span>系统负载:</span><span class="font-mono font-medium">${escapeHtml(s.cpu)}</span></div>
+              <div class="flex justify-between"><span>内存占用:</span><span class="font-mono font-medium">${escapeHtml(s.memory)}</span></div>
             </div>
-            <div class="text-[10px] text-stone-400 truncate">${s.role}</div>
           </div>
-        `).join('');
+          <div class="bg-white border border-stone-200/80 p-5 rounded-2xl space-y-3">
+            <div class="font-bold text-xs text-stone-900">附加服务</div>
+            <p class="text-xs text-stone-500">雷达、制作包与创作项目</p>
+            <p id="addonHealthCard" class="text-xs font-semibold text-stone-500">正在检查…</p>
+          </div>`;
       }
 
       // 渲染用户列表
@@ -799,16 +796,16 @@
       if (data.users && uList) {
         uList.innerHTML = data.users.map(u => `
           <tr class="hover:bg-stone-50/80 transition">
-            <td class="p-3 font-mono text-stone-500">#${u.id}</td>
-            <td class="p-3 font-medium text-stone-800">${u.email}</td>
+            <td class="p-3 font-mono text-stone-500">#${escapeHtml(u.id)}</td>
+            <td class="p-3 font-medium text-stone-800">${escapeHtml(u.email)}</td>
             <td class="p-3">
               <span class="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
                 u.plan === 'premium' ? 'bg-amber-100 text-amber-800' :
                 u.plan === 'pro' ? 'bg-rose-100 text-rose-800' :
                 u.plan === 'basic' ? 'bg-blue-100 text-blue-800' : 'bg-stone-100 text-stone-600'
-              }">${u.plan}</span>
+              }">${escapeHtml(u.plan)}</span>
             </td>
-            <td class="p-3 font-mono font-medium">${u.used_count} / ${u.monthly_limit}</td>
+            <td class="p-3 font-mono font-medium">${escapeHtml(u.used_count)} / ${escapeHtml(u.monthly_limit)}</td>
             <td class="p-3 text-stone-400 text-[11px]">${new Date(u.expires_at).toLocaleDateString()}</td>
           </tr>
         `).join('');
@@ -826,6 +823,40 @@
       const btnId = 'btn' + tabId.charAt(0).toUpperCase() + tabId.slice(1);
       const btn = document.getElementById(btnId);
       if (btn) btn.classList.add('active');
+      toggleSidebar(false);
+    }
+
+    function toggleSidebar(open) {
+      document.getElementById('adminSidebar').classList.toggle('open', open);
+      document.getElementById('sidebarBackdrop').classList.toggle('open', open);
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+    }
+
+    async function loadProductStatus() {
+      const trend = document.getElementById('trendServiceState');
+      const addon = document.getElementById('addonServiceState');
+      const card = document.getElementById('addonHealthCard');
+      const checks = await Promise.allSettled([
+        fetch(`${API}/api/trends/status`, { cache: 'no-store' }).then(async response => {
+          if (!response.ok) throw new Error('接口不可用');
+          return response.json();
+        }),
+        fetch(`${ADDON_API}/api/addons/health`, { cache: 'no-store' }).then(async response => {
+          if (!response.ok) throw new Error('接口不可用');
+          return response.json();
+        })
+      ]);
+      if (checks[0].status === 'fulfilled') {
+        const sources = checks[0].value.sources || [];
+        const latest = sources.filter(item => item.succeeded_at).sort((a, b) => b.succeeded_at - a.succeeded_at)[0];
+        trend.textContent = latest ? `最近成功同步：${new Date(latest.succeeded_at).toLocaleString()}` : '接口可用 · 暂无成功同步记录';
+      } else trend.textContent = '同步状态暂不可读取';
+      const healthy = checks[1].status === 'fulfilled' && checks[1].value.ok === true;
+      addon.textContent = healthy ? '附加服务接口可用' : '附加服务接口暂不可用';
+      if (card) card.textContent = addon.textContent;
     }
 
     // 手动调整套餐
