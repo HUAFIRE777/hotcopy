@@ -77,4 +77,6 @@ test('YouTube 热点只取近期成功同步的真实雷达视频并排除占位
   assert.equal(trends[0].source, 'youtube-radar');
   assert.equal(trends[0].category, 'tech');
   assert.equal(trends[0].cover_url, 'https://i.ytimg.com/vi/AbCdEfGhI12/hqdefault.jpg');
+  assert.equal(trends[0].views_count, 12345);
+  assert.equal(trends[0].views_updated_at, now);
 });

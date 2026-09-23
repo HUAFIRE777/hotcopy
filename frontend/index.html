@@ -19,6 +19,7 @@
   <meta property="og:title" content="HotCopy · 原声提取与 AI 爆款改写" />
   <meta property="og:description" content="提取原声并整理成抖音、小红书、视频号、TikTok 与 YouTube 的口播文案初稿。" />
   <meta property="og:image" content="https://hotcopy.eazyopc.com/favicon.svg" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -126,9 +127,7 @@
     <div class="max-w-5xl mx-auto px-4 sm:px-6 h-15 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <a href="/" class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-lg bg-[#294639] text-white flex items-center justify-center font-bold text-sm tracking-tighter">
-            HC
-          </div>
+          <img src="assets/hotcopy-mark.svg" alt="" class="w-8 h-8 shrink-0" />
           <div class="flex items-baseline gap-1.5">
             <span class="font-bold text-base tracking-tight text-stone-900">HotCopy</span>
             <span class="brand-subtitle hidden sm:inline text-xs text-stone-500 font-normal">内容工作台</span>
@@ -314,10 +313,40 @@
         <button onclick="switchCategory('podcast')" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-medium bg-white text-stone-600 border border-stone-200 hover:border-stone-300" data-cat="podcast">深度播客 & 访谈</button>
         <button onclick="switchCategory('growth')" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-medium bg-white text-stone-600 border border-stone-200 hover:border-stone-300" data-cat="growth">学习与成长</button>
         <button onclick="switchCategory('lifestyle')" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-medium bg-white text-stone-600 border border-stone-200 hover:border-stone-300" data-cat="lifestyle">生活方式 & 技能</button>
+        <button onclick="switchCategory('university')" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-medium bg-white text-stone-600 border border-stone-200 hover:border-stone-300" data-cat="university">世界名校公开课</button>
       </div>
 
       <div id="trendsGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
         <div class="text-xs text-stone-400 py-12 text-center col-span-3">正在读取平台榜单...</div>
+      </div>
+      <div id="universityCourses" class="hidden space-y-5">
+        <div class="rounded-2xl border border-blue-100 bg-[#f4f7ff] p-5 sm:p-6">
+          <h3 class="text-lg font-bold text-stone-900">世界名校公开课</h3>
+          <p class="mt-1 text-xs leading-relaxed text-stone-600">以 QS 2027 世界排名前 50 为候选范围，只展示已核对的学校公开课程入口。课程由学校官网提供；能否直接提取逐字稿取决于具体视频链接。</p>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+          <a href="https://ocw.mit.edu/courses/6-0001-introduction-to-computer-science-and-programming-in-python-fall-2016/" target="_blank" rel="noopener noreferrer" class="group rounded-2xl border border-stone-200 bg-white p-5 transition hover:border-blue-300 hover:shadow-sm">
+            <span class="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#1555d7] text-sm font-black text-white">MIT</span>
+            <div class="mt-4 text-[11px] font-semibold text-blue-700">QS 2027 · #1</div>
+            <h4 class="mt-1 text-base font-bold text-stone-900">计算机科学与 Python 编程</h4>
+            <p class="mt-2 text-xs leading-relaxed text-stone-500">MIT OpenCourseWare · 含公开课视频与学习材料</p>
+            <span class="mt-4 inline-block text-xs font-semibold text-blue-700">查看学校课程 ↗</span>
+          </a>
+          <a href="https://pll.harvard.edu/catalog/free" target="_blank" rel="noopener noreferrer" class="group rounded-2xl border border-stone-200 bg-white p-5 transition hover:border-blue-300 hover:shadow-sm">
+            <span class="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#a51c30] text-sm font-black text-white">H</span>
+            <div class="mt-4 text-[11px] font-semibold text-blue-700">QS 2027 · #5</div>
+            <h4 class="mt-1 text-base font-bold text-stone-900">哈佛免费课程目录</h4>
+            <p class="mt-2 text-xs leading-relaxed text-stone-500">Harvard Professional &amp; Lifelong Learning · 按学科浏览</p>
+            <span class="mt-4 inline-block text-xs font-semibold text-blue-700">查看学校课程 ↗</span>
+          </a>
+          <a href="https://oyc.yale.edu/courses" target="_blank" rel="noopener noreferrer" class="group rounded-2xl border border-stone-200 bg-white p-5 transition hover:border-blue-300 hover:shadow-sm">
+            <span class="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-[#00356b] text-sm font-black text-white">Y</span>
+            <div class="mt-4 text-[11px] font-semibold text-blue-700">QS 2027 · =16</div>
+            <h4 class="mt-1 text-base font-bold text-stone-900">Open Yale Courses</h4>
+            <p class="mt-2 text-xs leading-relaxed text-stone-500">耶鲁公开课程 · 视频、音频与课程逐字稿</p>
+            <span class="mt-4 inline-block text-xs font-semibold text-blue-700">查看学校课程 ↗</span>
+          </a>
+        </div>
       </div>
     </section>
 
@@ -799,6 +828,9 @@
       await checkAuth();
       await initializeAds();
       loadAllTrends();
+      setInterval(() => {
+        if (document.visibilityState === 'visible') loadAllTrends({ silent: true });
+      }, 5 * 60 * 1000);
       initDropZone();
       initResultSheet();
 
@@ -879,6 +911,12 @@
       const plat = item.platform;
       const coverUrl = /^https:\/\//i.test(item.cover_url || '') ? escapeHtml(item.cover_url) : 'assets/trend-cover-fallback.svg';
       const duration = formatTrendDuration(item.duration);
+      const views = Number(item.views_count);
+      const viewsLabel = Number.isSafeInteger(views) && views >= 0 && item.views_count != null
+        ? `${formatTrendViews(views)} 次播放` : '播放量待同步';
+      const viewsTime = Number(item.views_updated_at);
+      const updatedLabel = Number.isFinite(viewsTime) && viewsTime > 0
+        ? ` · 最近抓取 ${new Intl.DateTimeFormat('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(viewsTime))}` : '';
       const platName = { bilibili: 'B站', xiaoyuzhou: '小宇宙', podcast: 'Apple Podcasts', youtube: 'YouTube' }[plat] || '音视频';
       const platLogo = { bilibili: 'bilibili.svg', xiaoyuzhou: 'xiaoyuzhou.png', podcast: 'applepodcasts.svg', youtube: 'youtube.svg' }[plat] || '';
       return `
@@ -893,6 +931,7 @@
             <h4 class="text-xs font-bold line-clamp-2 mb-1.5 text-stone-900 leading-snug">
               ${escapeHtml(String(item.title_cn || item.title || '未命名内容'))}
             </h4>
+            <div class="text-[10px] text-stone-500 tabular-nums">${viewsLabel}${viewsLabel !== '播放量待同步' ? updatedLabel : ''}</div>
             <!-- 完整视频源链接展示与一键填入栏 -->
             <div class="mt-3 mb-3">
               <div class="text-[10px] text-stone-400 font-medium mb-1">内容链接</div>
@@ -912,15 +951,15 @@
           <div class="grid grid-cols-3 gap-1.5 pt-2 border-t border-stone-100 text-[11px]">
             <button onclick="runConvertCard(this, 'raw')"
               class="bg-[#fafaf9] hover:bg-stone-100 border border-stone-200 py-1.5 rounded-lg text-stone-700 font-medium transition text-center">
-              原声
+              原文
             </button>
             <button onclick="runConvertCard(this, 'summary')"
               class="bg-[#fafaf9] hover:bg-stone-100 border border-stone-200 py-1.5 rounded-lg text-stone-700 font-medium transition text-center">
-              简报
+              重点
             </button>
             <button onclick="runConvertCard(this, 'rewrite')"
               class="trend-rewrite min-h-11 text-white py-1.5 rounded-lg font-bold transition text-center flex items-center justify-center gap-1">
-              <span>AI 爆款</span>
+              <span>热点追踪</span>
             </button>
           </div>
         </div>
@@ -937,29 +976,49 @@
         : `${minutes}:${String(rest).padStart(2, '0')}`;
     }
 
+    function formatTrendViews(value) {
+      if (value >= 100000000) return `${(value / 100000000).toFixed(1).replace(/\.0$/, '')}亿`;
+      if (value >= 10000) return `${(value / 10000).toFixed(1).replace(/\.0$/, '')}万`;
+      return new Intl.NumberFormat('zh-CN').format(value);
+    }
+
+    function trendDisplayCategory(item) {
+      if (item.platform === 'bilibili' && /下饭|快递怎么寄|美食|烹饪|做菜|食谱|料理|穿搭|健身|收纳|家居|旅行|露营|手工|生活技巧/.test(item.title || '')) return 'lifestyle';
+      return item.category;
+    }
+
     function filterAndRenderTrends() {
       const grid = document.getElementById('trendsGrid');
+      const university = document.getElementById('universityCourses');
+      const isUniversity = currentCategory === 'university';
+      grid.classList.toggle('hidden', isUniversity);
+      university.classList.toggle('hidden', !isUniversity);
+      if (isUniversity) return;
       let filtered = allTrendsList;
       if (currentPlatform !== 'all') {
         filtered = filtered.filter(item => (item.platform || 'youtube').toLowerCase() === currentPlatform.toLowerCase());
       }
       if (currentCategory !== 'all') {
-        filtered = filtered.filter(item => item.category === currentCategory);
+        filtered = filtered.filter(item => trendDisplayCategory(item) === currentCategory);
       }
       const cards = filtered.map(renderCardHtml).filter(Boolean);
       if (cards.length === 0) {
-        grid.innerHTML = '<div class="text-xs text-stone-400 col-span-3 py-12 text-center">当前平台暂无已同步的榜单内容，可切换平台或直接粘贴链接。</div>';
+        grid.innerHTML = currentCategory === 'lifestyle'
+          ? '<div class="col-span-3 overflow-hidden rounded-2xl border border-stone-200 bg-white sm:grid sm:grid-cols-2"><img src="assets/lifestyle-empty.png" alt="生活方式场景插画" class="h-44 w-full object-cover sm:h-56"><div class="flex flex-col justify-center p-6 sm:p-8"><h3 class="text-lg font-bold text-stone-900">生活方式与技能</h3><p class="mt-2 text-sm leading-relaxed text-stone-600">本期暂无已核验的内容。你也可以粘贴美食、旅行或实用技巧视频链接，直接开始整理。</p></div></div>'
+          : '<div class="text-xs text-stone-400 col-span-3 py-12 text-center">当前平台暂无已同步的榜单内容，可切换平台或直接粘贴链接。</div>';
       } else {
         grid.innerHTML = cards.join('');
       }
     }
 
     let trendInitialRetries = 0;
-    async function loadAllTrends() {
+    async function loadAllTrends({ silent = false } = {}) {
       const grid = document.getElementById('trendsGrid');
       const status = document.getElementById('trendSyncStatus');
-      grid.style.opacity = '0.5';
-      grid.style.pointerEvents = 'none';
+      if (!silent) {
+        grid.style.opacity = '0.5';
+        grid.style.pointerEvents = 'none';
+      }
 
       try {
         const [res, statusRes] = await Promise.all([
@@ -989,7 +1048,7 @@
       } catch (err) {
         console.error('loadAllTrends error:', err);
         status.textContent = '同步状态暂不可用';
-        grid.innerHTML = '<div class="text-xs text-stone-400 col-span-3 py-12 text-center">热点数据加载异常，请稍后刷新重试</div>';
+        if (!silent || !allTrendsList.length) grid.innerHTML = '<div class="text-xs text-stone-400 col-span-3 py-12 text-center">热点数据加载异常，请稍后刷新重试</div>';
       } finally {
         grid.style.opacity = '1';
         grid.style.pointerEvents = 'auto';

@@ -224,6 +224,8 @@ if (!trendColumns.has('duration')) db.exec('ALTER TABLE trends ADD COLUMN durati
 if (!trendColumns.has('intro')) db.exec('ALTER TABLE trends ADD COLUMN intro TEXT');
 if (!trendColumns.has('hot_badge')) db.exec('ALTER TABLE trends ADD COLUMN hot_badge TEXT');
 if (!trendColumns.has('source')) db.exec('ALTER TABLE trends ADD COLUMN source TEXT');
+if (!trendColumns.has('views_count')) db.exec('ALTER TABLE trends ADD COLUMN views_count INTEGER');
+if (!trendColumns.has('views_updated_at')) db.exec('ALTER TABLE trends ADD COLUMN views_updated_at INTEGER');
 db.exec(`
   CREATE TABLE IF NOT EXISTS trend_sync (
     platform TEXT PRIMARY KEY,
@@ -236,8 +238,8 @@ db.exec(`
 // ---------------- 每两小时同步可核验的平台榜单 ----------------
 const TREND_INTERVAL_MS = 2 * 60 * 60 * 1000;
 const trendInsert = db.prepare(`
-  INSERT INTO trends (platform, category, video_id, title, title_cn, cover_url, updated_at, duration, intro, hot_badge, source)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  INSERT INTO trends (platform, category, video_id, title, title_cn, cover_url, updated_at, duration, intro, hot_badge, source, views_count, views_updated_at)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `);
 
 function trendCategory(name = '') {
@@ -258,6 +260,7 @@ async function fetchBilibiliTrends() {
       platform: 'bilibili', category: trendCategory(item.tname), video_id: item.bvid,
       title: item.title, cover_url: (item.pic || '').replace(/^http:/, 'https:'),
       duration: Number.isSafeInteger(item.duration) && item.duration > 0 ? item.duration : null,
+      views_count: Number.isSafeInteger(item.stat?.view) && item.stat.view >= 0 ? item.stat.view : null,
       intro: item.tname || '', source: 'bilibili-knowledge-ranking'
     }));
 }
@@ -317,7 +320,8 @@ async function updateTrendsJob() {
         db.prepare('DELETE FROM trends WHERE platform = ?').run(platform);
         for (const item of validItems) {
           trendInsert.run(item.platform, item.category, item.video_id, item.title, null,
-            item.cover_url, syncedAt, item.duration || '', item.intro, '', item.source);
+            item.cover_url, syncedAt, item.duration || '', item.intro, '', item.source,
+            item.views_count ?? null, item.views_count != null ? item.views_updated_at || syncedAt : null);
         }
         db.prepare(`INSERT INTO trend_sync (platform, attempted_at, succeeded_at, status)
           VALUES (?, ?, ?, 'ok') ON CONFLICT(platform) DO UPDATE SET
@@ -334,7 +338,40 @@ async function updateTrendsJob() {
 }
 cron.schedule('0 */2 * * *', updateTrendsJob);
 
+// 只刷新已收录视频的播放量；单次 B 站榜单请求和本地雷达读取，不启动浏览器。
+async function updateTrendViewsJob() {
+  const update = db.prepare(`UPDATE trends SET views_count = ?, views_updated_at = ?
+    WHERE platform = ? AND video_id = ? AND source = ?
+      AND (views_count IS NULL OR views_count <> ?)`);
+  try {
+    const items = await fetchBilibiliTrends();
+    const checkedAt = Date.now();
+    db.transaction(() => {
+      for (const item of items) {
+        if (item.views_count != null) update.run(item.views_count, checkedAt,
+          'bilibili', item.video_id, item.source, item.views_count);
+      }
+    })();
+  } catch (error) {
+    console.warn(`[Trends] B站播放量暂未更新: ${error.response?.status || error.code || 'SOURCE_ERROR'}`);
+  }
+  try {
+    const items = readRadarTrends();
+    db.transaction(() => {
+      for (const item of items) {
+        if (item.views_count != null) update.run(item.views_count,
+          item.views_updated_at || Date.now(), 'youtube', item.video_id,
+          item.source, item.views_count);
+      }
+    })();
+  } catch (error) {
+    console.warn(`[Trends] YouTube 播放量暂未更新: ${error.code || 'SOURCE_ERROR'}`);
+  }
+}
+cron.schedule('*/15 * * * *', updateTrendViewsJob);
+
 app.get('/api/trends', (req, res) => {
+  res.set('Cache-Control', 'public, max-age=60');
   const category = req.query.category || 'all';
   const platform = req.query.platform || 'all';
   let query = 'SELECT * FROM trends WHERE source IS NOT NULL AND updated_at >= ?';

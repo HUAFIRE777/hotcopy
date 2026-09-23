@@ -76,6 +76,7 @@ function readRadarTrends({ dbPath = process.env.ADDONS_DB_PATH || path.join(__di
       WITH ranked AS (
         SELECT v.video_id, v.channel_id, v.title, v.video_url, v.thumbnail_url,
           v.category, v.latest_views, v.published_at, v.first_seen_at, c.channel_name,
+          c.last_success_at AS views_updated_at,
           ${hasDuration ? 'v.duration_seconds' : 'NULL AS duration_seconds'},
           ROW_NUMBER() OVER (PARTITION BY v.channel_id
             ORDER BY COALESCE(NULLIF(v.published_at, 0), v.first_seen_at) DESC,
@@ -108,6 +109,9 @@ function readRadarTrends({ dbPath = process.env.ADDONS_DB_PATH || path.join(__di
           ? row.thumbnail_url : `https://i.ytimg.com/vi/${row.video_id}/hqdefault.jpg`,
         duration: Number.isSafeInteger(row.duration_seconds) && row.duration_seconds > 0
           ? row.duration_seconds : null,
+        views_count: Number.isSafeInteger(row.latest_views) && row.latest_views >= 0
+          ? row.latest_views : null,
+        views_updated_at: row.views_updated_at || null,
         intro: row.channel_name,
         source: LIVE_TREND_SOURCES.youtube
       }));
