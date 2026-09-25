@@ -383,6 +383,7 @@
             </span>
           </div>
           <div id="cookieSlotStatus" class="grid gap-3 sm:grid-cols-3" aria-live="polite"></div>
+          <div id="cookieCriticalAlert" role="alert" class="hidden rounded-xl border border-rose-300 bg-rose-50 p-4 text-sm font-semibold text-rose-800"></div>
 
           <div>
             <label for="cookieSlotSelect" class="block text-xs font-bold text-stone-800 mb-2">选择要更新的位置</label>
@@ -662,6 +663,9 @@
 
         document.getElementById('loginGate').classList.add('hidden');
         loadCookiesStatus();
+        if (!cookieStatusPolling) cookieStatusPolling = setInterval(() => {
+          if (document.visibilityState === 'visible') loadCookiesStatus();
+        }, 60 * 1000);
         loadProductStatus();
         return true;
       } catch (e) {
@@ -901,6 +905,7 @@
     }
 
     let cookieProbeRunning = false;
+    let cookieStatusPolling = null;
     const cookieStateLabels = {
       available: '探测通过', untested: '待检测', missing: '未配置',
       auth_failed: '认证失败', rate_limited: '请求受限',
@@ -913,7 +918,7 @@
       container.replaceChildren();
       slots.forEach(slot => {
         const card = document.createElement('div');
-        card.className = 'rounded-xl border border-stone-200 bg-stone-50 p-3 text-xs space-y-1';
+        card.className = `rounded-xl border p-3 text-xs space-y-1 ${['missing', 'auth_failed', 'rate_limited', 'probe_failed'].includes(slot.status) ? 'border-rose-300 bg-rose-50' : 'border-stone-200 bg-stone-50'}`;
         const name = document.createElement('div');
         name.className = 'font-bold text-stone-900';
         name.textContent = `${slot.label || slot.name}${slot.active ? ' · 上次使用' : ''}`;
@@ -923,7 +928,7 @@
         state.textContent = cookieStateLabels[slot.status] || '状态未知';
         const detail = document.createElement('div');
         detail.className = 'text-stone-500 leading-relaxed';
-        detail.textContent = slot.lastCheckedAt ? `上次检测：${new Date(slot.lastCheckedAt).toLocaleString()}` :
+        detail.textContent = slot.lastCheckedAt ? `上次检测：${new Date(slot.lastCheckedAt).toLocaleString()} · 当前任务 ${slot.inFlight || 0}` :
           slot.updatedAt ? `文件更新：${new Date(slot.updatedAt).toLocaleString()}` : '尚未上传凭证';
         card.append(name, state, detail);
         container.appendChild(card);
@@ -931,12 +936,18 @@
       const active = slots.find(slot => slot.name === data.activeSlot);
       const badge = document.getElementById('cookieBadgeStatus');
       const info = document.getElementById('cookieStatusDetails');
-      const healthy = active?.status === 'available';
-      badge.className = `text-xs px-2.5 py-1 rounded-full font-semibold ${healthy ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`;
-      badge.textContent = healthy ? '公开视频探测通过' : '需要检查';
-      info.textContent = `上次使用：${data.activeSlot === 'public' ? '公开模式' : active?.label || '尚无'}。${data.lastSwitchAt ? `上次切换：${new Date(data.lastSwitchAt).toLocaleString()}。` : '尚未发生自动切换。'}状态仅代表测试视频访问结果。`;
+      const failing = slots.filter(slot => ['missing', 'auth_failed', 'rate_limited', 'probe_failed'].includes(slot.status));
+      const stale = slots.filter(slot => slot.status === 'available' && Date.now() - Number(slot.lastCheckedAt || 0) > 45 * 60 * 1000);
+      const healthy = failing.length === 0 && stale.length === 0 && slots.every(slot => slot.status === 'available');
+      const critical = failing.length > 0;
+      badge.className = `text-xs px-2.5 py-1 rounded-full font-semibold ${critical ? 'bg-rose-100 text-rose-800' : healthy ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`;
+      badge.textContent = critical ? `${failing.length} 套凭证异常` : healthy ? '三套凭证探测通过' : '凭证待检查';
+      info.textContent = `最近使用：${data.activeSlot === 'public' ? '公开模式' : active?.label || '尚无'}。${data.lastSwitchAt ? `上次切换：${new Date(data.lastSwitchAt).toLocaleString()}。` : '尚未发生自动切换。'}每套最多并行 2 项，状态为服务器测试结果。`;
+      const alert = document.getElementById('cookieCriticalAlert');
+      alert.classList.toggle('hidden', !critical);
+      if (critical) alert.textContent = `红色警报：${failing.map(slot => `${slot.label || slot.name} ${cookieStateLabels[slot.status] || '异常'}`).join('、')}。系统会尝试其他可用凭证；请检测或更新异常账号。`;
       const dot = document.getElementById('navCookieDot');
-      dot.className = `w-2 h-2 rounded-full ${healthy ? 'bg-emerald-500' : 'bg-amber-500'}`;
+      dot.className = `w-2 h-2 rounded-full ${critical ? 'bg-rose-600' : healthy ? 'bg-emerald-500' : 'bg-amber-500'}`;
     }
 
     async function loadCookiesStatus() {

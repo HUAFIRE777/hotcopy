@@ -54,7 +54,8 @@ test('只有明确的认证错误才切换到备用；普通错误立即抛出',
       otherCalls.push(name);
       throw new Error('Video unavailable');
     }, { env: context.env }), /Video unavailable/);
-    assert.deepEqual(otherCalls, ['backup1']);
+    assert.equal(otherCalls.length, 1);
+    assert.ok(['backup1', 'backup2'].includes(otherCalls[0]));
     assert.equal(isAuthenticationError(new Error('Sign in to confirm your age')), false);
   } finally { context.close(); }
 });
@@ -71,6 +72,30 @@ test('主备均认证失败时仍可尝试公开视频模式', async () => {
     }, { env: context.env });
     assert.equal(result, 'public captions');
     assert.deepEqual(calls, ['primary', 'backup1', 'backup2', 'public']);
+  } finally { context.close(); }
+});
+
+test('三套凭证轮流处理请求，429 时尝试下一套并记录红色告警', async () => {
+  const context = fixture();
+  try {
+    for (const slot of cookieSlots(context.env)) fs.writeFileSync(slot.path, validContent);
+    const picked = [];
+    for (let i = 0; i < 3; i++) {
+      await runWithCookieFailover(async (_filePath, name) => { picked.push(name); return 'ok'; }, { env: context.env });
+    }
+    assert.deepEqual(new Set(picked), new Set(['primary', 'backup1', 'backup2']));
+    const failing = picked[0];
+    const attempts = [];
+    await runWithCookieFailover(async (_filePath, name) => {
+      attempts.push(name);
+      if (name === failing) throw Object.assign(new Error('HTTP Error 429: Too Many Requests'), { stderr: 'HTTP Error 429' });
+      return 'ok';
+    }, { env: context.env });
+    assert.deepEqual(attempts.length, 2);
+    assert.equal(attempts[0], failing);
+    const status = getCookieStatus({ env: context.env });
+    assert.equal(status.slots.find(slot => slot.name === failing).status, 'rate_limited');
+    assert.ok(status.alert.slots.includes(failing));
   } finally { context.close(); }
 });
 

@@ -6,10 +6,15 @@ const { promisify } = require('util');
 const runFile = promisify(execFile);
 const PROBE_VIDEO_ID = 'TbkUKCm3CHQ';
 const AUTH_COOLDOWN_MS = 30 * 60 * 1000;
-const PROBE_INTERVAL_MS = 6 * 60 * 60 * 1000;
+const RATE_COOLDOWN_MS = 10 * 60 * 1000;
+const MAX_SLOT_IN_FLIGHT = 2;
+const PROBE_INTERVAL_MS = 30 * 60 * 1000;
 const SLOT_NAMES = ['primary', 'backup1', 'backup2'];
 const LABELS = { primary: '主用', backup1: '备用一', backup2: '备用二' };
 const state = new Map();
+const inFlight = new Map();
+const lastSelected = new Map();
+let selectionSequence = 0;
 let activeSlot = 'primary';
 let lastSwitchAt = null;
 
@@ -68,42 +73,57 @@ function getCookieStatus({ env = process.env, fileSystem = fs, now = Date.now() 
       updatedAt: info?.updatedAt || null, size: info?.size || null,
       lastCheckedAt: fresh ? previous.lastCheckedAt : null,
       lastSuccessAt: fresh ? previous.lastSuccessAt : null,
-      active: activeSlot === slot.name
+      active: activeSlot === slot.name,
+      inFlight: inFlight.get(slot.name) || 0,
+      coolingDownUntil: fresh && ['auth_failed', 'rate_limited'].includes(previous.status)
+        ? previous.lastCheckedAt + (previous.status === 'rate_limited' ? RATE_COOLDOWN_MS : AUTH_COOLDOWN_MS) : null
     };
   });
-  return { activeSlot, lastSwitchAt, checkedAt: now, slots };
+  const failing = slots.filter(slot => !['available', 'untested'].includes(slot.status));
+  return { activeSlot, lastSwitchAt, checkedAt: now, slots,
+    alert: failing.length ? { level: 'critical', slots: failing.map(slot => slot.name) } : null };
 }
 
 async function runWithCookieFailover(task, { env = process.env, fileSystem = fs, now = Date.now } = {}) {
-  const slots = cookieSlots(env);
+  const slots = cookieSlots(env).filter(slot => {
+    const info = fileInfo(slot.path, fileSystem);
+    if (!info) return false;
+    const previous = state.get(slot.name);
+    if (previous?.fingerprint === info.fingerprint &&
+        ((previous.status === 'auth_failed' && now() - previous.lastCheckedAt < AUTH_COOLDOWN_MS) ||
+         (previous.status === 'rate_limited' && now() - previous.lastCheckedAt < RATE_COOLDOWN_MS))) return false;
+    return true;
+  }).sort((a, b) => (inFlight.get(a.name) || 0) - (inFlight.get(b.name) || 0) ||
+    (lastSelected.get(a.name) || 0) - (lastSelected.get(b.name) || 0));
   let lastAuthError;
   for (const slot of slots) {
-    const info = fileInfo(slot.path, fileSystem);
-    if (!info) continue;
-    const previous = state.get(slot.name);
-    if (previous?.fingerprint === info.fingerprint && previous.status === 'auth_failed' &&
-        now() - previous.lastCheckedAt < AUTH_COOLDOWN_MS) continue;
+    if ((inFlight.get(slot.name) || 0) >= MAX_SLOT_IN_FLIGHT) continue;
+    inFlight.set(slot.name, (inFlight.get(slot.name) || 0) + 1);
+    lastSelected.set(slot.name, ++selectionSequence);
     try {
       const result = await task(slot.path, slot.name);
       recordResult(slot.name, slot.path, 'available', now(), fileSystem, true);
       return result;
     } catch (error) {
-      if (!isAuthenticationError(error)) {
-        if (classifyError(error) === 'rate_limited') {
-          recordResult(slot.name, slot.path, 'rate_limited', now(), fileSystem);
-        }
-        throw error;
-      }
-      recordResult(slot.name, slot.path, 'auth_failed', now(), fileSystem);
+      const status = classifyError(error);
+      if (!['auth_failed', 'rate_limited'].includes(status)) throw error;
+      recordResult(slot.name, slot.path, status, now(), fileSystem);
       lastAuthError = error;
+    } finally {
+      inFlight.set(slot.name, Math.max(0, (inFlight.get(slot.name) || 1) - 1));
     }
   }
+  if ((inFlight.get('public') || 0) >= MAX_SLOT_IN_FLIGHT) {
+    throw Object.assign(new Error('YouTube 提取任务繁忙，请稍后重试'), { code: 'YOUTUBE_BUSY' });
+  }
+  inFlight.set('public', (inFlight.get('public') || 0) + 1);
   try {
     const result = await task(null, 'public');
     if (activeSlot !== 'public') { activeSlot = 'public'; lastSwitchAt = now(); }
     return result;
   }
   catch (publicError) { throw publicError || lastAuthError; }
+  finally { inFlight.set('public', Math.max(0, (inFlight.get('public') || 1) - 1)); }
 }
 
 async function probeCookieFile(filePath, {
