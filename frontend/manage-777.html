@@ -158,7 +158,7 @@
         <div class="flex flex-wrap justify-between items-start gap-3">
           <div>
             <h1 class="text-2xl font-bold text-stone-900 tracking-tight">运营总览</h1>
-            <p class="text-xs text-stone-500 mt-1">会员、生成量与收入估算 · 数据来自核心服务</p>
+            <p class="text-xs text-stone-500 mt-1">会员、处理量与新任务成本记录 · 数据来自核心服务</p>
           </div>
           <button onclick="refreshAllData()" class="bg-white border border-stone-200 hover:bg-stone-50 text-stone-700 text-xs px-3.5 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5 shadow-2xs">
             <svg class="w-3.5 h-3.5 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
@@ -169,21 +169,21 @@
         <!-- 4 核心财务卡片 -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div class="bg-white border border-stone-200/80 p-5 rounded-2xl shadow-2xs">
-            <div class="text-[11px] font-semibold text-stone-400 uppercase tracking-wider">按当前会员数估算月收入</div>
-            <div class="text-2xl font-black mt-2 text-stone-900" id="cardMrrUSD">$0.00</div>
-            <div class="text-[11px] text-stone-500 mt-1" id="cardMrrCNY">折合 ¥0.00 元</div>
+            <div class="text-[11px] font-semibold text-stone-400 uppercase tracking-wider">实际月收入</div>
+            <div class="text-2xl font-black mt-2 text-stone-900" id="cardMrrUSD">待核算</div>
+            <div class="text-[11px] text-stone-500 mt-1" id="cardMrrCNY">等待支付流水接入</div>
           </div>
 
           <div class="bg-white border border-stone-200/80 p-5 rounded-2xl shadow-2xs">
-            <div class="text-[11px] font-semibold text-stone-400 uppercase tracking-wider">月收入日均折算</div>
-            <div class="text-2xl font-black mt-2 text-emerald-600" id="cardDailyRevenue">$0.00</div>
-            <div class="text-[11px] text-emerald-700/80 mt-1" id="cardDailyRevenueCNY">日均估算 ¥0.00</div>
+            <div class="text-[11px] font-semibold text-stone-400 uppercase tracking-wider">实际利润</div>
+            <div class="text-2xl font-black mt-2 text-emerald-600" id="cardDailyRevenue">待核算</div>
+            <div class="text-[11px] text-emerald-700/80 mt-1" id="cardDailyRevenueCNY">还需代理、VPS 与支付成本</div>
           </div>
 
           <div class="bg-white border border-stone-200/80 p-5 rounded-2xl shadow-2xs">
-            <div class="text-[11px] font-semibold text-stone-400 uppercase tracking-wider">日成本粗估</div>
-            <div class="text-2xl font-black mt-2 text-stone-700" id="cardDailyCost">$0.80</div>
-            <div class="text-[11px] text-stone-400 mt-1">按现有固定公式，非实际账单</div>
+            <div class="text-[11px] font-semibold text-stone-400 uppercase tracking-wider">近期模型与听写估算</div>
+            <div class="text-2xl font-black mt-2 text-stone-700" id="cardDailyCost">—</div>
+            <div class="text-[11px] text-stone-400 mt-1">最近 100 条任务；不含代理、服务器与支付费用</div>
           </div>
 
           <div class="bg-white border border-stone-200/80 p-5 rounded-2xl shadow-2xs bg-gradient-to-br from-white to-rose-50/30">
@@ -280,7 +280,13 @@
           </div>
         </div>
 
-        <div class="rounded-2xl border border-stone-200 bg-white p-5 text-xs leading-relaxed text-stone-600">实际成本请以 Groq、模型服务和服务器账单核对；旧版固定利润率表没有真实计费依据，已从工作台移除。</div>
+        <div class="rounded-2xl border border-stone-200 bg-white p-5 text-xs leading-relaxed text-stone-600">下表记录新任务的模型 Token、听写秒数和提供商标价估算。代理流量、VPS、支付手续费及退款尚未进入总成本；旧缓存无法反推历史调用。</div>
+        <div class="admin-table-scroll bg-white border border-stone-200 rounded-2xl overflow-x-auto">
+          <table class="w-full text-xs text-left min-w-[700px]">
+            <thead class="bg-[#fafaf9] text-stone-500"><tr><th class="p-3">时间 / 任务</th><th class="p-3">状态</th><th class="p-3">时长 / 扣次</th><th class="p-3">模型 Token</th><th class="p-3">听写</th><th class="p-3">提供商估算</th></tr></thead>
+            <tbody id="jobUsageRows"><tr><td colspan="6" class="p-4 text-stone-400">尚无新任务记录</td></tr></tbody>
+          </table>
+        </div>
       </div>
 
       <!-- ================= 标签页 4：用户与会员管控 ================= -->
@@ -646,6 +652,7 @@
         if (!res.ok) return false;
         const data = await res.json();
         renderDashboard(data);
+        loadJobUsage();
 
         // 获取管理员最新个人信息
         try {
@@ -747,13 +754,39 @@
       }
     }
 
+    async function loadJobUsage() {
+      const body = document.getElementById('jobUsageRows');
+      try {
+        const response = await fetch(`${API}/api/admin/jobs/usage?limit=100`, {
+          headers: getAuthHeaders(), cache: 'no-store' });
+        if (!response.ok) throw new Error('无法读取任务成本账本');
+        const data = await response.json();
+        const rows = data.rows || [];
+        const total = rows.reduce((sum, row) => sum + (row.usage?.provider_cost_estimate_usd || 0), 0);
+        document.getElementById('cardDailyCost').textContent = rows.length ? `$${total.toFixed(4)}` : '暂无数据';
+        body.innerHTML = rows.length ? rows.map(row => {
+          const usage = row.usage || {};
+          const input = (usage.llm_calls || []).reduce((sum, call) => sum + (call.input_tokens || 0), 0);
+          const output = (usage.llm_calls || []).reduce((sum, call) => sum + (call.output_tokens || 0), 0);
+          const audio = (usage.whisper_calls || []).reduce((sum, call) => sum + (call.audio_sec || 0), 0);
+          const cost = Number(usage.provider_cost_estimate_usd || 0);
+          return `<tr class="border-t border-stone-100">
+            <td class="p-3 font-mono">${escapeHtml(new Date(row.created_at).toLocaleString())}<br>${escapeHtml(row.job_id.slice(0, 8))}</td>
+            <td class="p-3">${row.status === 'succeeded' ? '完成' : row.status === 'cancelled' ? '取消' : row.status === 'expired' ? '确认过期' : '失败'}</td>
+            <td class="p-3">${Math.ceil((row.duration_sec || 0) / 60)} 分钟 / ${row.credits} 次</td>
+            <td class="p-3">${input} 入 / ${output} 出</td>
+            <td class="p-3">${audio ? Math.round(audio) + ' 秒' : '未调用'}</td>
+            <td class="p-3">$${cost.toFixed(5)}${usage.provider_cost_complete ? '' : ' · 不完整'}</td>
+          </tr>`;
+        }).join('') : '<tr><td colspan="6" class="p-4 text-stone-400">尚无新任务记录</td></tr>';
+      } catch (error) {
+        body.innerHTML = `<tr><td colspan="6" class="p-4 text-rose-700">${escapeHtml(error.message)}</td></tr>`;
+      }
+    }
+
     function renderDashboard(data) {
-      // 财务卡片
-      document.getElementById('cardMrrUSD').innerText = `$${(data.financials?.mrrUSD || 0).toFixed(2)}`;
-      document.getElementById('cardMrrCNY').innerText = `折合 ¥${data.financials?.mrrCNY || '0.00'} 元`;
-      document.getElementById('cardDailyRevenue').innerText = `$${(data.financials?.dailyRevenueUSD || 0).toFixed(2)}`;
-      document.getElementById('cardDailyRevenueCNY').innerText = `日均估算 ¥${data.financials?.dailyRevenueCNY || '0.00'}`;
-      document.getElementById('cardDailyCost').innerText = `$${(data.financials?.dailyCostUSD || 0).toFixed(2)}`;
+      document.getElementById('cardMrrUSD').innerText = '待核算';
+      document.getElementById('cardDailyRevenue').innerText = '待核算';
       document.getElementById('cardPaidUsers').innerText = data.paidUsers || 0;
 
       // 统计指标
@@ -909,16 +942,28 @@
     const cookieStateLabels = {
       available: '探测通过', untested: '待检测', missing: '未配置',
       auth_failed: '认证失败', rate_limited: '请求受限',
-      video_unavailable: '探针视频不可用', probe_failed: '探测失败'
+      video_unavailable: '探针视频不可用', probe_failed: '探测失败', proxy_failed: '出口代理异常'
     };
 
     function renderCookieStatus(data) {
       const slots = Array.isArray(data.slots) ? data.slots : [];
+      const selector = document.getElementById('cookieSlotSelect');
+      if (selector && slots.length) {
+        const selected = selector.value;
+        selector.replaceChildren();
+        slots.forEach(slot => {
+          const option = document.createElement('option');
+          option.value = slot.name;
+          option.textContent = slot.label || slot.name;
+          selector.appendChild(option);
+        });
+        if (slots.some(slot => slot.name === selected)) selector.value = selected;
+      }
       const container = document.getElementById('cookieSlotStatus');
       container.replaceChildren();
       slots.forEach(slot => {
         const card = document.createElement('div');
-        card.className = `rounded-xl border p-3 text-xs space-y-1 ${['missing', 'auth_failed', 'rate_limited', 'probe_failed'].includes(slot.status) ? 'border-rose-300 bg-rose-50' : 'border-stone-200 bg-stone-50'}`;
+        card.className = `rounded-xl border p-3 text-xs space-y-1 ${['missing', 'auth_failed', 'rate_limited', 'probe_failed', 'proxy_failed'].includes(slot.status) ? 'border-rose-300 bg-rose-50' : 'border-stone-200 bg-stone-50'}`;
         const name = document.createElement('div');
         name.className = 'font-bold text-stone-900';
         name.textContent = `${slot.label || slot.name}${slot.active ? ' · 上次使用' : ''}`;
@@ -936,13 +981,13 @@
       const active = slots.find(slot => slot.name === data.activeSlot);
       const badge = document.getElementById('cookieBadgeStatus');
       const info = document.getElementById('cookieStatusDetails');
-      const failing = slots.filter(slot => ['missing', 'auth_failed', 'rate_limited', 'probe_failed'].includes(slot.status));
+      const failing = slots.filter(slot => ['missing', 'auth_failed', 'rate_limited', 'probe_failed', 'proxy_failed'].includes(slot.status));
       const stale = slots.filter(slot => slot.status === 'available' && Date.now() - Number(slot.lastCheckedAt || 0) > 45 * 60 * 1000);
       const healthy = failing.length === 0 && stale.length === 0 && slots.every(slot => slot.status === 'available');
       const critical = failing.length > 0;
       badge.className = `text-xs px-2.5 py-1 rounded-full font-semibold ${critical ? 'bg-rose-100 text-rose-800' : healthy ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`;
-      badge.textContent = critical ? `${failing.length} 套凭证异常` : healthy ? '三套凭证探测通过' : '凭证待检查';
-      info.textContent = `最近使用：${data.activeSlot === 'public' ? '公开模式' : active?.label || '尚无'}。${data.lastSwitchAt ? `上次切换：${new Date(data.lastSwitchAt).toLocaleString()}。` : '尚未发生自动切换。'}每套最多并行 2 项，状态为服务器测试结果。`;
+      badge.textContent = critical ? `${failing.length} 套凭证异常` : healthy ? `${slots.length} 套凭证探测通过` : '凭证待检查';
+      info.textContent = `最近使用：${data.activeSlot === 'public' ? '公开模式' : active?.label || '尚无'}。${data.lastSwitchAt ? `上次切换：${new Date(data.lastSwitchAt).toLocaleString()}。` : '尚未发生自动切换。'}${new Set(slots.map(slot => slot.group).filter(Boolean)).size ? `${new Set(slots.map(slot => slot.group).filter(Boolean)).size} 个出口组；` : ''}每套最多并行 2 项，状态为服务器测试结果。`;
       const alert = document.getElementById('cookieCriticalAlert');
       alert.classList.toggle('hidden', !critical);
       if (critical) alert.textContent = `红色警报：${failing.map(slot => `${slot.label || slot.name} ${cookieStateLabels[slot.status] || '异常'}`).join('、')}。系统会尝试其他可用凭证；请检测或更新异常账号。`;
@@ -985,7 +1030,7 @@
       cookieProbeRunning = true;
       try {
         for (const slot of ['primary', 'backup1', 'backup2']) {
-          document.getElementById('cookieStatusDetails').textContent = `正在检测 ${slot === 'primary' ? '主用' : slot === 'backup1' ? '备用一' : '备用二'}…`;
+          document.getElementById('cookieStatusDetails').textContent = `正在检测 ${document.querySelector(`#cookieSlotSelect option[value="${slot}"]`)?.textContent || slot}…`;
           const res = await fetch(`${API}/api/admin/cookies-probe`, {
             method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ slot })
           });

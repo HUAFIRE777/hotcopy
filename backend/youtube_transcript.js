@@ -4,6 +4,7 @@ const path = require('path');
 const { execFile } = require('child_process');
 const { promisify } = require('util');
 const { runWithCookieFailover } = require('./youtube_cookie_pool');
+const { fetchYouTubeCaptionsInnerTube } = require('./youtube_innertube');
 
 const runFile = promisify(execFile);
 const VIDEO_ID = /^[A-Za-z0-9_-]{11}$/;
@@ -83,19 +84,20 @@ async function fetchYouTubeCaptionsFast(videoId, options = {}) {
   const runner = options.run || runFile;
   const tmpDir = await fileSystem.promises.mkdtemp(path.join(options.tmpRoot || os.tmpdir(), 'hotcopy-yt-sub-'));
   try {
-    const attempt = async cookiesPath => {
+    const attempt = async (cookiesPath, _slot, proxyUrl) => {
       for (const name of await fileSystem.promises.readdir(tmpDir)) {
         await fileSystem.promises.unlink(path.join(tmpDir, name));
       }
       const args = [];
+      if (proxyUrl) args.push('--proxy', proxyUrl);
       if (cookiesPath) args.push('--cookies', cookiesPath);
       args.push('--write-subs', '--write-auto-subs', '--sub-langs', SUBTITLE_LANGUAGES,
         '--sub-format', 'vtt', '--skip-download', '--no-playlist', '--no-progress',
-        '--retries', '1', '--fragment-retries', '1', '--socket-timeout', '8',
+        '--retries', '1', '--fragment-retries', '1', '--socket-timeout', '15',
         '--no-simulate', '--print', '%(language)s', '-o', path.join(tmpDir, '%(id)s.%(ext)s'),
         `https://www.youtube.com/watch?v=${videoId}`);
       const { stdout = '' } = await runner(options.binary || process.env.YTDLP_BIN || 'yt-dlp', args, {
-        timeout: options.timeoutMs || 30000,
+        timeout: options.timeoutMs || 90000,
         maxBuffer: 2 * 1024 * 1024,
         shell: false
       });
@@ -111,17 +113,19 @@ async function fetchYouTubeCaptionsFast(videoId, options = {}) {
     };
     if (Object.hasOwn(options, 'cookiesPath')) {
       if (options.cookiesPath && !fileSystem.existsSync(options.cookiesPath)) throw new Error('字幕 Cookie 文件不可用');
-      return attempt(options.cookiesPath);
+      return await attempt(options.cookiesPath);
     }
-    return runWithCookieFailover(attempt);
+    return await runWithCookieFailover(attempt);
   } finally {
     await fileSystem.promises.rm(tmpDir, { recursive: true, force: true });
   }
 }
 
-async function getYouTubeTranscript(videoId, { captions = fetchYouTubeCaptionsFast, legacy, whisper, onFallback = () => {} }) {
+async function getYouTubeTranscript(videoId, { innerTube = fetchYouTubeCaptionsInnerTube,
+  captions = fetchYouTubeCaptionsFast, legacy, whisper, onFallback = () => {} }) {
   if (!VIDEO_ID.test(videoId || '')) throw new Error('无效的 YouTube 视频 ID');
-  for (const [stage, fetcher] of [['yt-dlp 字幕', captions], ['备用字幕', legacy], ['音频听译', whisper]]) {
+  for (const [stage, fetcher] of [['InnerTube 字幕', innerTube], ['yt-dlp 字幕', captions],
+    ['备用字幕', legacy], ['音频听译', whisper]]) {
     if (typeof fetcher !== 'function') continue;
     try {
       const result = await fetcher(videoId);

@@ -13,11 +13,21 @@ const crypto = require('crypto');
 const { YoutubeTranscript } = require('youtube-transcript');
 const { validTrend, readRadarTrends, TREND_MAX_AGE_MS } = require('./trends_live');
 const { extractYouTubeId, getYouTubeTranscript } = require('./youtube_transcript');
+const { modelCatalog, selectedRewriteModel } = require('./core/model_catalog');
+const { createJobQueue } = require('./core/job_queue');
+const { createJobWorker } = require('./core/job_worker');
+const { SUPPORTED_MODES, parseSource, cacheMode, parseDuration, youtubeDuration, ffprobeLocalDuration } = require('./core/media_info');
+const { downloadSafeAudio } = require('./core/safe_audio');
+const { generateText, generateScript } = require('./core/llm');
+const { PLATFORMS, FORMATS, selectedPoints } = require('./core/points');
+const { recordWhisper, recordFileBytes, recordSourceBytes } = require('./core/usage_context');
 const { runWithCookieFailover, getCookieStatus, probeSlot, updateCookieSlot, startCookieMonitoring } = require('./youtube_cookie_pool');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
+if (!process.env.JWT_SECRET) console.warn('[Auth] JWT_SECRET 未配置；重启后需重新登录');
 const db = new Database('database.sqlite');
 
 // 初始化数据库表
@@ -69,19 +79,41 @@ db.exec(`
     updated_at INTEGER
   );
 `);
+db.exec(`CREATE TABLE IF NOT EXISTS media_meta (
+  video_id TEXT PRIMARY KEY, platform TEXT NOT NULL, duration_sec INTEGER NOT NULL,
+  title TEXT, updated_at INTEGER NOT NULL
+);`);
+const userColumns = new Set(db.prepare('PRAGMA table_info(users)').all().map(column => column.name));
+if (!userColumns.has('billing_scheme')) db.exec("ALTER TABLE users ADD COLUMN billing_scheme TEXT NOT NULL DEFAULT 'legacy'");
+function boundedWorkerSetting(name, fallback, maximum) {
+  const value = Number(process.env[name]);
+  return Number.isInteger(value) && value >= 1 && value <= maximum ? value : fallback;
+}
+const jobQueue = createJobQueue(db, {
+  maxRunning: boundedWorkerSetting('HOTCOPY_MAX_RUNNING', 2, 16)
+});
 
 // 初始化默认管理员 (如果尚未存在)
 try {
   const existingAdmin = db.prepare('SELECT * FROM admin_auth WHERE id = 1').get();
-  if (!existingAdmin) {
+  if (!existingAdmin && process.env.ADMIN_KEY) {
     const defaultUser = 'huafire';
-    const defaultPass = process.env.ADMIN_KEY || 'hotcopy_super_admin_pass_8888';
-    const hash = bcrypt.hashSync(defaultPass, 10);
+    const hash = bcrypt.hashSync(process.env.ADMIN_KEY, 10);
     db.prepare(`
       INSERT INTO admin_auth (id, username, password_hash, updated_at)
       VALUES (1, ?, ?, ?)
     `).run(defaultUser, hash, Date.now());
-    console.log(`[Admin] 初始化默认超级管理员成功: 用户名=${defaultUser}`);
+    console.log(`[Admin] 初始化管理员成功: 用户名=${defaultUser}`);
+  } else if (!existingAdmin) {
+    console.warn('[Admin] ADMIN_KEY 未配置；管理员账号未初始化');
+  } else if (bcrypt.compareSync('hotcopy_super_admin_pass_8888', existingAdmin.password_hash)) {
+    if (process.env.ADMIN_KEY) {
+      db.prepare('UPDATE admin_auth SET password_hash=?,updated_at=? WHERE id=1')
+        .run(bcrypt.hashSync(process.env.ADMIN_KEY, 10), Date.now());
+      console.warn('[Admin] 旧版公开初始密码已替换为 ADMIN_KEY');
+    } else {
+      console.warn('[Admin] 旧版公开初始密码已禁用；配置 ADMIN_KEY 后重启以轮换');
+    }
   }
 } catch (e) {
   console.error('[Admin] 初始化管理员表失败:', e.message);
@@ -101,7 +133,7 @@ function authenticate(req, res, next) {
   const token = authHeader && authHeader.split(' ')[1];
   if (!token) return res.status(401).json({ error: '请先登录' });
 
-  jwt.verify(token, process.env.JWT_SECRET || 'hotcopy_default_secret_9999', (err, decoded) => {
+  jwt.verify(token, JWT_SECRET, (err, decoded) => {
     if (err) return res.status(403).json({ error: '登录凭证已失效，请重新登录' });
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(decoded.id);
     if (!user) return res.status(404).json({ error: '用户不存在' });
@@ -113,11 +145,10 @@ function authenticate(req, res, next) {
 // 中间件：管理员鉴权 (支持 JWT Token 与直接 Admin-Key 双通道鉴权)
 function requireAdmin(req, res, next) {
   const token = req.headers['x-admin-token'] || 
-                req.query['token'] || 
                 (req.headers['authorization'] && req.headers['authorization'].replace(/^Bearer\s+/i, ''));
   if (token) {
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'hotcopy_default_secret_9999');
+      const decoded = jwt.verify(token, JWT_SECRET);
       if (decoded && decoded.role === 'admin') {
         req.adminUser = decoded.username || 'huafire';
         return next();
@@ -127,8 +158,8 @@ function requireAdmin(req, res, next) {
     }
   }
 
-  const secret = req.headers['x-admin-key'] || req.query['x-admin-key'];
-  if (secret && (secret === process.env.ADMIN_KEY || secret === 'hotcopy_super_admin_pass_8888')) {
+  const secret = req.headers['x-admin-key'];
+  if (process.env.ADMIN_KEY && secret === process.env.ADMIN_KEY) {
     req.adminUser = 'huafire';
     return next();
   }
@@ -141,7 +172,7 @@ function requireAdminSession(req, res, next) {
   const token = req.headers['x-admin-token'];
   if (typeof token !== 'string') return res.status(403).json({ error: '请先登录管理员后台' });
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'hotcopy_default_secret_9999');
+    const decoded = jwt.verify(token, JWT_SECRET);
     if (decoded?.role === 'admin') return next();
   } catch {}
   return res.status(403).json({ error: '管理员登录已失效，请重新登录' });
@@ -164,13 +195,14 @@ app.post('/api/auth/register', async (req, res) => {
 
   try {
     const hash = await bcrypt.hash(password, 10);
+    const billingScheme = process.env.HOTCOPY_ENABLE_UNIT_BILLING === '1' ? 'units' : 'legacy';
     const stmt = db.prepare(`
-      INSERT INTO users (email, password_hash, plan, monthly_limit, used_count, expires_at, created_at)
-      VALUES (?, ?, 'free', 3, 0, ?, ?)
+      INSERT INTO users (email, password_hash, plan, monthly_limit, used_count, expires_at, created_at, billing_scheme)
+      VALUES (?, ?, 'free', 3, 0, ?, ?, ?)
     `);
-    const info = stmt.run(email, hash, Date.now() + 30 * 86400000, Date.now());
-    const token = jwt.sign({ id: info.lastInsertRowid }, process.env.JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, plan: 'free', used_count: 0, monthly_limit: 3 });
+    const info = stmt.run(email, hash, Date.now() + 30 * 86400000, Date.now(), billingScheme);
+    const token = jwt.sign({ id: info.lastInsertRowid }, JWT_SECRET, { expiresIn: '7d' });
+    res.json({ token, plan: 'free', used_count: 0, monthly_limit: 3, billing_scheme: billingScheme });
   } catch (err) {
     res.status(400).json({ error: '该邮箱已被注册' });
   }
@@ -184,13 +216,14 @@ app.post('/api/auth/login', async (req, res) => {
   const valid = await bcrypt.compare(password, user.password_hash);
   if (!valid) return res.status(400).json({ error: '密码错误' });
 
-  const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+  const token = jwt.sign({ id: user.id }, JWT_SECRET, { expiresIn: '7d' });
   res.json({
     token,
     email: user.email,
     plan: user.plan,
     used_count: user.used_count,
     monthly_limit: user.monthly_limit,
+    billing_scheme: user.billing_scheme,
     expires_at: user.expires_at
   });
 });
@@ -201,6 +234,7 @@ app.get('/api/auth/me', authenticate, (req, res) => {
     plan: req.user.plan,
     used_count: req.user.used_count,
     monthly_limit: req.user.monthly_limit,
+    billing_scheme: req.user.billing_scheme,
     expires_at: req.user.expires_at
   });
 });
@@ -405,8 +439,16 @@ function getGroqApiKeys() {
 
 async function sendFileToWhisper(filePath, maxRetries = 1) {
   const keys = getGroqApiKeys();
-  const models = ['whisper-large-v3', 'whisper-large-v3-turbo'];
+  const models = ['whisper-large-v3-turbo', 'whisper-large-v3'];
   let lastErr = null;
+  let audioSec = null;
+  try {
+    const { stdout } = await new Promise((resolve, reject) => execFile('ffprobe',
+      ['-v', 'error', '-show_entries', 'format=duration', '-of', 'default=noprint_wrappers=1:nokey=1', filePath],
+      { timeout: 10000 }, (err, stdout, stderr) => err ? reject(err) : resolve({ stdout, stderr })));
+    const parsed = Number(String(stdout).trim());
+    if (Number.isFinite(parsed) && parsed > 0) audioSec = parsed;
+  } catch {}
 
   for (const apiKey of keys) {
     for (const model of models) {
@@ -422,7 +464,9 @@ async function sendFileToWhisper(filePath, maxRetries = 1) {
             },
             timeout: 120000
           });
-          return res.data?.text || '';
+          if (!res.data?.text?.trim()) throw new Error('听写服务未返回有效对白');
+          recordWhisper(model, audioSec);
+          return res.data.text;
         } catch (err) {
           lastErr = err;
           const errMsg = err.response?.data?.error?.message || err.message;
@@ -452,7 +496,9 @@ async function sendFileToWhisper(filePath, maxRetries = 1) {
         },
         timeout: 120000
       });
-      return res.data?.text || '';
+      if (!res.data?.text?.trim()) throw new Error('听写服务未返回有效对白');
+      recordWhisper('openai/whisper-1', audioSec);
+      return res.data.text;
     } catch (oaErr) {
       console.error('[OpenAI Whisper 兜底失败]:', oaErr.message);
     }
@@ -467,22 +513,22 @@ async function sendFileToWhisper(filePath, maxRetries = 1) {
 
 // ---------------- 工业级长音频处理管道 (自动轻量化压缩 + 超长分片保障) ----------------
 async function transcribeLongAudio(audioSourceUrl, identifier, customHeaders = {}) {
-  const tmpId = `${identifier}_${Date.now()}`;
+  const tmpId = crypto.randomUUID();
   const compressedPath = `/tmp/hc_${tmpId}.mp3`;
   const chunkPrefix = `/tmp/hc_${tmpId}_chk`;
 
-  let headerArg = '';
+  const headerArgs = [];
   if (customHeaders && Object.keys(customHeaders).length > 0) {
     const headerStr = Object.entries(customHeaders).map(([k, v]) => `${k}: ${v}`).join('\r\n') + '\r\n';
-    headerArg = `-headers "${headerStr}"`;
+    headerArgs.push('-headers', headerStr);
   }
 
   console.log(`[Audio Engine] 正在下载并轻量化压缩音频: ${identifier}...`);
   // 16kHz mono 32kbps：约 14.4MB / 小时
-  const cmd = `ffmpeg -y ${headerArg} -i "${audioSourceUrl}" -vn -ar 16000 -ac 1 -b:a 32k "${compressedPath}"`;
+  const args = ['-y', ...headerArgs, '-i', audioSourceUrl, '-vn', '-ar', '16000', '-ac', '1', '-b:a', '32k', compressedPath];
 
   await new Promise((resolve, reject) => {
-    exec(cmd, { maxBuffer: 10 * 1024 * 1024, timeout: 600000 }, (err, stdout, stderr) => {
+    execFile('ffmpeg', args, { maxBuffer: 10 * 1024 * 1024, timeout: 600000 }, (err, stdout, stderr) => {
       if (err) return reject(new Error('音频提取/压缩失败: ' + (stderr || err.message).slice(-200)));
       resolve();
     });
@@ -505,9 +551,9 @@ async function transcribeLongAudio(audioSourceUrl, identifier, customHeaders = {
     } else {
       // 超长音频 (> 24MB，约 1.5~3小时+)，启动 40 分钟无损时间切片
       console.log(`[Audio Engine] 音频超过 24MB，启用 40 分钟时间切片容灾分段...`);
-      const chunkCmd = `ffmpeg -y -i "${compressedPath}" -f segment -segment_time 2400 -c copy "${chunkPrefix}_%03d.mp3"`;
       await new Promise((resolve, reject) => {
-        exec(chunkCmd, { timeout: 120000 }, (err, stdout, stderr) => {
+        execFile('ffmpeg', ['-y', '-i', compressedPath, '-f', 'segment', '-segment_time', '2400',
+          '-c', 'copy', `${chunkPrefix}_%03d.mp3`], { timeout: 120000 }, (err, stdout, stderr) => {
           if (err) return reject(new Error('长音频切片失败: ' + (stderr || err.message)));
           resolve();
         });
@@ -533,7 +579,9 @@ async function transcribeLongAudio(audioSourceUrl, identifier, customHeaders = {
     }
   } finally {
     try { if (fs.existsSync(compressedPath)) fs.unlinkSync(compressedPath); } catch (e) {}
-    try { exec(`rm -f /tmp/hc_${tmpId}* 2>/dev/null`, () => {}); } catch (e) {}
+    for (const name of fs.readdirSync('/tmp').filter(file => file.startsWith(`hc_${tmpId}_chk_`))) {
+      try { fs.unlinkSync(path.join('/tmp', name)); } catch {}
+    }
   }
 
   return fullTranscript;
@@ -545,9 +593,10 @@ function fetchYouTubeWhisperTranscript(videoId) {
     const audioPath = `/tmp/yt_${videoId}_${Date.now()}.mp3`;
     const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
     console.log(`[Groq Whisper] 正在为 YouTube 视频 ${videoId} 提取音频流并进行轻量化压缩...`);
-    runWithCookieFailover(cookiesPath => new Promise((downloadResolve, downloadReject) => {
+    runWithCookieFailover((cookiesPath, _slot, proxyUrl) => new Promise((downloadResolve, downloadReject) => {
       try { fs.unlinkSync(audioPath); } catch {}
       const args = [];
+      if (proxyUrl) args.push('--proxy', proxyUrl);
       if (cookiesPath) args.push('--cookies', cookiesPath);
       args.push('-f', 'ba[ext=m4a]/ba', '--extract-audio', '--audio-format', 'mp3',
         '--postprocessor-args', '-ar 16000 -ac 1 -b:a 32k', '-o', audioPath, videoUrl);
@@ -566,6 +615,7 @@ function fetchYouTubeWhisperTranscript(videoId) {
         }
 
         const stat = fs.statSync(audioPath);
+        recordFileBytes(stat.size);
         console.log(`[YouTube Whisper] 音频下载完成，文件大小: ${(stat.size / (1024 * 1024)).toFixed(2)} MB`);
 
         let transcript = '';
@@ -870,239 +920,253 @@ async function fetchTikTokTranscript(url) {
     timeout: 30000
   });
 
+  recordWhisper('whisper-large-v3', null);
   return whisperRes.data.text;
 }
 
 // ---------------- 磁盘与缓存超限自愈保护机制 ----------------
 function pruneExcessCache() {
   try {
-    db.prepare(`
-      DELETE FROM copies_cache 
-      WHERE rowid NOT IN (SELECT rowid FROM copies_cache ORDER BY created_at DESC LIMIT 200)
-    `).run();
+    const now = Date.now();
+    db.prepare(`DELETE FROM copies_cache WHERE
+      (mode = 'raw' AND created_at < ?) OR (mode != 'raw' AND created_at < ?)`)
+      .run(now - 60 * 86400000, now - 30 * 86400000);
   } catch (e) {}
 }
 
-// 每 30 分钟定时清理 /tmp 下所有的音视频碎片文件，确保硬盘 0 冗余
+// 只删除 HotCopy 自己创建、且已超过六小时的临时文件；运行中任务不能被清理。
 setInterval(() => {
   pruneExcessCache();
-  exec("rm -f /tmp/yt_*.mp3 /tmp/hc_*.mp3 /tmp/test_*.mp3 /tmp/*.webm /tmp/*.part 2>/dev/null", () => {});
+  for (const name of fs.readdirSync('/tmp').filter(file => /^(?:yt_|yt_chk_|hc_)[A-Za-z0-9_-]+(?:\.mp3|_chk_\d+\.mp3)$/.test(file))) {
+    try {
+      const target = path.join('/tmp', name);
+      const stat = fs.lstatSync(target);
+      if (stat.isFile() && Date.now() - stat.mtimeMs > 6 * 3600000) fs.unlinkSync(target);
+    } catch {}
+  }
 }, 1800000);
 
-// ---------------- 核心生成与数据双写 ----------------
-const PROMPT_REWRITE = `你是一位顶级自媒体爆款内容操盘手。请将提供的视频转录逐字稿，改写为符合中文互联网习惯的爆款文案：
-1. 拟定 3 个抓人眼球的黄金前 3 秒爆款标题。
-2. 提炼核心主干逻辑，分点阐述，消除机翻味，保留原作者真实意图。
-3. 排版美观适度增加 Emoji，文末附带 3 个热门 Tag 标签。`;
-
-const PROMPT_SUMMARY = `你是一位高阶认知与商业情报提炼专家。请将提供的音视频转录内容，提炼为一份高信息密度的核心干货速读简报：
-1. 【一句话精髓】：用一句话高度概括视频最核心的主旨与突破性观点。
-2. 【3-5 个核心论点与关键事实】：按逻辑分点列出作者的核心推导论述、实证案例或具体数据支撑，剔除一切客套话与口癖。
-3. 【实操建议 / 核心启示】：提炼对读者最具落地实操指导价值的金句或执行建议。
-排版简洁精炼，适度搭配 Emoji。`;
-
-const PROMPT_TRANSLATE = `你是一位专业翻译官。请将提供的音视频原文转录内容，翻译成自然流畅、准确严谨的中文，保留时间脉络与段落结构。`;
-
-app.post('/api/generate', authenticate, async (req, res) => {
-  const { url, mode = 'rewrite' } = req.body;
-  const user = req.user;
-
-  if (user.used_count >= user.monthly_limit) {
-    return res.status(429).json({ error: '本月生成额度已用尽，请升级会员方案' });
-  }
-
-  const cleanUrl = (url || '').trim();
-  if (!cleanUrl) {
-    return res.status(400).json({ error: '链接不能为空' });
-  }
-
-  let platform = 'youtube';
-  let videoId = null;
-  let text = '';
-
-  // 路由器识别平台
-  const ytId = extractYouTubeId(cleanUrl);
-  if (ytId) {
-    platform = 'youtube';
-    videoId = ytId;
-  } else if (cleanUrl.includes('tiktok.com')) {
-    platform = 'tiktok';
-    videoId = 'tk_' + Buffer.from(cleanUrl).toString('base64').slice(0, 16);
-  } else if (cleanUrl.includes('bilibili.com') || cleanUrl.includes('b23.tv') || /BV[0-9a-zA-Z]{10}/i.test(cleanUrl)) {
-    platform = 'bilibili';
-    const bvMatch = cleanUrl.match(/(BV[0-9a-zA-Z]{10})/i);
-    videoId = bvMatch ? ('bili_' + bvMatch[1]) : ('bili_' + Date.now());
-  } else if (cleanUrl.includes('podcasts.apple.com')) {
-    platform = 'podcast';
-    const epMatch = cleanUrl.match(/[?&]i=(\d+)/);
-    const podMatch = cleanUrl.match(/\/id(\d+)/);
-    videoId = 'apple_' + (epMatch ? epMatch[1] : (podMatch ? podMatch[1] : Date.now()));
-  } else if (cleanUrl.includes('xiaoyuzhoufm.com')) {
-    platform = 'podcast';
-    const epMatch = cleanUrl.match(/episode\/([a-zA-Z0-9]+)/);
-    videoId = 'xyz_' + (epMatch ? epMatch[1] : Date.now());
-  } else if (/\.(mp3|m4a|wav|aac|ogg)(\?.*)?$/i.test(cleanUrl)) {
-    platform = 'audio_direct';
-    videoId = 'audio_' + crypto.createHash('md5').update(cleanUrl).digest('hex').slice(0, 12);
-  } else {
-    return res.status(400).json({ error: '无效链接，仅支持：YouTube、Apple Podcasts、小宇宙播客、B站、音频直链' });
-  }
-
-  // 缓存优先命中
-  const cached = db.prepare('SELECT content FROM copies_cache WHERE video_id = ? AND mode = ?').get(videoId, mode);
-  if (cached) {
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    return res.send(cached.content);
-  }
-
-  try {
-    // 核心提速与降本：先检查是否已存在该音视频的底层 raw 原声逐字稿
-    const rawCached = db.prepare('SELECT content FROM copies_cache WHERE video_id = ? AND mode = ?').get(videoId, 'raw');
-    if (rawCached && rawCached.content && rawCached.content.trim().length > 0) {
-      console.log(`[Cache Hit] 视频/音频 ${videoId} 命中底层原声逐字稿缓存，直接复用！`);
-      text = rawCached.content;
-    } else {
-      if (platform === 'youtube') {
-        const transcript = await getYouTubeTranscript(videoId, {
-          legacy: async id => {
-            const items = await YoutubeTranscript.fetchTranscript(id);
-            return Array.isArray(items) ? items.map(item => item.text || '').join(' ') : '';
-          },
-          whisper: fetchYouTubeWhisperTranscript,
-          onFallback: stage => console.warn(`[YouTube] ${stage} 未取得对白，尝试下一级`)
-        });
-        text = transcript.text;
-        console.log(`[YouTube] 视频 ${videoId} 使用 ${transcript.source} 提取完成`);
-      } else if (platform === 'tiktok') {
-        text = await fetchTikTokTranscript(cleanUrl);
-      } else if (platform === 'bilibili') {
-        const biliRes = await fetchBilibiliTranscript(cleanUrl);
-        text = biliRes.text;
-      } else if (platform === 'podcast' || platform === 'audio_direct') {
-        const podRes = await fetchPodcastAudio(cleanUrl);
-        text = await transcribeLongAudio(podRes.audioUrl, podRes.id);
-      }
-
-      if (!text || text.trim().length === 0) {
-        throw new Error('未获取到该音视频的有效文本或对白内容');
-      }
-
-      // 首次提取成功后，立即把清洗后的逐字稿永久存入 raw 模式缓存
-      const initialCleaned = cleanRawTranscript(text.slice(0, 300000));
-      db.prepare('INSERT OR REPLACE INTO copies_cache (video_id, mode, content, created_at) VALUES (?, ?, ?, ?)')
-        .run(videoId, 'raw', initialCleaned, Date.now());
-      text = initialCleaned;
+// ---------------- 持久化任务链 ----------------
+async function inspectQueuedMedia(job) {
+  const cached = db.prepare('SELECT duration_sec FROM media_meta WHERE video_id=?').get(job.video_id);
+  if (cached?.duration_sec) return cached.duration_sec;
+  const source = parseSource(job.source_url);
+  let durationSec;
+  if (source.platform === 'youtube') {
+    durationSec = await youtubeDuration(source.videoId);
+  } else if (source.platform === 'bilibili') {
+    let bvid = source.url.match(/BV[A-Za-z0-9]{10}/)?.[0];
+    if (!bvid && new URL(source.url).hostname === 'b23.tv') {
+      const response = await axios.get(source.url, { maxRedirects: 0,
+        validateStatus: status => status >= 300 && status < 400, timeout: 10000 });
+      bvid = response.headers.location?.match(/BV[A-Za-z0-9]{10}/)?.[0];
     }
-
-    const cleanedInput = text.startsWith('[') || text.length > 20 ? cleanRawTranscript(text.slice(0, 300000)) : text;
-
-    if (mode === 'raw') {
-      db.prepare('UPDATE users SET used_count = used_count + 1 WHERE id = ?').run(user.id);
-      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-      return res.send(cleanedInput);
+    if (!bvid) throw new Error('未识别到 B站视频编号');
+    const response = await axios.get('https://api.bilibili.com/x/web-interface/view', {
+      params: { bvid }, timeout: 12000 });
+    durationSec = parseDuration(response.data?.data?.duration);
+  } else if (source.platform === 'tiktok') {
+    const response = await axios.post('https://www.tikwm.com/api/', { url: source.url }, { timeout: 12000 });
+    durationSec = parseDuration(response.data?.data?.duration);
+  } else if (source.platform === 'podcast') {
+    const audio = await fetchPodcastAudio(source.url);
+    const downloaded = await downloadSafeAudio(audio.audioUrl);
+    try {
+      recordSourceBytes(downloaded.bytes);
+      durationSec = await ffprobeLocalDuration(downloaded.file);
     }
+    finally { downloaded.cleanup(); }
+  }
+  db.prepare(`INSERT OR REPLACE INTO media_meta
+    (video_id,platform,duration_sec,title,updated_at) VALUES (?,?,?,?,?)`)
+    .run(job.video_id, source.platform, durationSec, '', Date.now());
+  return durationSec;
+}
 
-    const systemPrompt = mode === 'rewrite' ? PROMPT_REWRITE : mode === 'summary' ? PROMPT_SUMMARY : PROMPT_TRANSLATE;
-
-    const candidateModels = [
-      process.env.LLM_MODEL,
-      'openai/gpt-oss-120b',
-      'openai/gpt-oss-20b',
-      'qwen/qwen3.8-27b'
-    ].filter((m, idx, arr) => m && arr.indexOf(m) === idx);
-
-    let aiResp = null;
-    let selectedModel = candidateModels[0];
-
-    for (const m of candidateModels) {
+async function processQueuedMedia(job, usage) {
+  const source = parseSource(job.source_url);
+  const options = JSON.parse(job.options_json || '{}');
+  const pointsRow = job.mode === 'script' ? db.prepare("SELECT content FROM copies_cache WHERE video_id=? AND mode='points'")
+    .get(job.video_id) : null;
+  const storedPoints = pointsRow ? JSON.parse(pointsRow.content) : null;
+  if (job.mode === 'script' && options.point_ids?.length && !storedPoints) {
+    throw new Error('该来源尚未生成可选重点');
+  }
+  if (job.mode === 'script' && storedPoints) {
+    const selected = options.point_ids?.length ? selectedPoints(storedPoints.points, options.point_ids) : storedPoints.points;
+    const result = await generateScript('', { platform: options.platform, format: options.format,
+      points: selected, model: job.model, calls: usage.llm_calls });
+    usage.llm_calls = result.calls;
+    usage.transcript_source = 'shared_points_cache';
+    return { text: result.text };
+  }
+  const rawCached = db.prepare("SELECT content FROM copies_cache WHERE video_id=? AND mode='raw'")
+    .get(job.video_id);
+  let text = rawCached?.content;
+  if (text) usage.transcript_source = 'shared_raw_cache';
+  if (!text) {
+    if (source.platform === 'youtube') {
+      const transcript = await getYouTubeTranscript(source.videoId, {
+        legacy: process.env.YTDLP_EGRESS_CONFIG ? undefined : async id => {
+          const items = await YoutubeTranscript.fetchTranscript(id);
+          return Array.isArray(items) ? items.map(item => item.text || '').join(' ') : '';
+        },
+        whisper: fetchYouTubeWhisperTranscript,
+        onFallback: stage => console.warn(`[Job YouTube] ${stage} 回退`)
+      });
+      text = transcript.text;
+      usage.transcript_source = transcript.source;
+    } else if (source.platform === 'bilibili') {
+      const result = await fetchBilibiliTranscript(source.url);
+      text = result.text;
+      usage.transcript_source = 'bilibili';
+    } else if (source.platform === 'tiktok') {
+      text = await fetchTikTokTranscript(source.url);
+      usage.transcript_source = 'tiktok_whisper';
+    } else if (source.platform === 'podcast') {
+      const result = await fetchPodcastAudio(source.url);
+      const downloaded = await downloadSafeAudio(result.audioUrl);
       try {
-        const resp = await fetch(`${process.env.LLM_BASE_URL}/chat/completions`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.LLM_API_KEY}`
-          },
-          body: JSON.stringify({
-            model: m,
-            stream: true,
-            max_tokens: 2500,
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: `原文本内容如下：\n\n${cleanedInput.slice(0, 40000)}` }
-            ]
-          })
-        });
+        recordSourceBytes(downloaded.bytes);
+        text = await transcribeLongAudio(downloaded.file, job.video_id);
+      } finally { downloaded.cleanup(); }
+      usage.transcript_source = 'podcast_whisper';
+    }
+    if (!text?.trim()) throw new Error('未获取到有效原文');
+    text = cleanRawTranscript(text);
+    db.prepare(`INSERT OR IGNORE INTO copies_cache (video_id,mode,content,created_at)
+      VALUES (?,'raw',?,?)`).run(job.video_id, text, Date.now());
+  }
+  if (job.mode === 'raw') return { text };
+  if (job.mode === 'script') {
+    const result = await generateScript(text, { platform: options.platform,
+      format: options.format, model: job.model, calls: usage.llm_calls });
+    usage.llm_calls = result.calls;
+    db.prepare(`INSERT OR IGNORE INTO copies_cache (video_id,mode,content,created_at)
+      VALUES (?,'points',?,?)`).run(job.video_id,
+      JSON.stringify({ essence: result.points.essence, points: result.points.points }), Date.now());
+    return { text: result.text };
+  }
+  const result = await generateText(text, job.mode, { model: job.model, calls: usage.llm_calls });
+  usage.llm_calls = result.calls;
+  return { text: result.text };
+}
 
-        if (resp.ok) {
-          aiResp = resp;
-          selectedModel = m;
-          break;
-        } else {
-          const errData = await resp.text().catch(() => '');
-          console.warn(`[LLM Failover] 模型 ${m} 返回状态 ${resp.status}: ${errData.slice(0, 120)}，自动切换备选模型...`);
-        }
-      } catch (callErr) {
-        console.warn(`[LLM Failover] 模型 ${m} 调用异常: ${callErr.message}，自动切换备选模型...`);
+const jobWorker = createJobWorker(jobQueue, {
+  localConcurrency: boundedWorkerSetting('HOTCOPY_LOCAL_CONCURRENCY', 1, 8),
+  inspect: async job => {
+    const duration = await inspectQueuedMedia(job);
+    if (job.mode === 'translate' && duration > 1800) throw new Error('中文翻译仅支持 30 分钟以内的内容');
+    return duration;
+  },
+  process: processQueuedMedia,
+  cacheMode
+});
+
+function submitJob(req, res) {
+  try {
+    const mode = req.body?.mode || 'rewrite';
+    if (!SUPPORTED_MODES.has(mode) && mode !== 'script') return res.status(400).json({ error: '不支持的处理模式' });
+    if (req.body?.model !== undefined && !['rewrite', 'script'].includes(mode)) {
+      return res.status(400).json({ error: '仅 AI改成支持选择模型' });
+    }
+    const model = selectedRewriteModel(req.body?.model);
+    const options = mode === 'script' ? scriptOptions(req.body) : {};
+    const source = parseSource(req.body?.url);
+    const job = jobQueue.submit({ userId: req.user.id, sourceUrl: source.url,
+      videoId: source.videoId, mode, model, options });
+    res.status(202).json(job);
+  } catch (error) { res.status(error.status || 400).json({ error: error.message }); }
+}
+
+app.post('/api/jobs', authenticate, submitJob);
+app.post('/api/script', authenticate, (req, res) => {
+  req.body = { ...req.body, mode: 'script' };
+  submitJob(req, res);
+});
+
+function scriptOptions(body) {
+  const platform = body?.platform;
+  const format = body?.format;
+  if (!PLATFORMS[platform] || !FORMATS[format]) throw new Error('请选择支持的平台和成稿形式');
+  const ids = body?.point_ids;
+  if (ids !== undefined && (!Array.isArray(ids) || ids.length < 1 || ids.length > 6 ||
+      !ids.every(id => typeof id === 'string' && /^[a-f0-9]{12}$/.test(id)))) {
+    throw new Error('重点选择无效');
+  }
+  return { platform, format, point_ids: ids ? [...new Set(ids)].sort() : [] };
+}
+
+app.get('/api/script/points', authenticate, (req, res) => {
+  try {
+    const source = parseSource(req.query.url);
+    const unlocked = db.prepare('SELECT 1 FROM user_unlocks WHERE user_id=? AND video_id=? LIMIT 1')
+      .get(req.user.id, source.videoId);
+    if (!unlocked) return res.status(403).json({ error: '请先处理该来源' });
+    const row = db.prepare("SELECT content FROM copies_cache WHERE video_id=? AND mode='points'")
+      .get(source.videoId);
+    if (!row) return res.status(404).json({ error: '该来源尚无重点' });
+    res.json(JSON.parse(row.content));
+  } catch (error) { res.status(400).json({ error: error.message }); }
+});
+
+app.get('/api/jobs/:id', authenticate, (req, res) => {
+  const job = jobQueue.getForUser(req.params.id, req.user.id);
+  if (!job) return res.status(404).json({ error: '任务不存在' });
+  res.json(job);
+});
+
+app.post('/api/jobs/:id/confirm', authenticate, (req, res) => {
+  const job = jobQueue.confirm(req.params.id, req.user.id);
+  if (!job) return res.status(409).json({ error: '任务无需确认或已结束' });
+  res.status(202).json(job);
+});
+
+app.post('/api/jobs/:id/cancel', authenticate, (req, res) => {
+  if (!jobQueue.cancel(req.params.id, req.user.id)) {
+    return res.status(409).json({ error: '任务已经开始或已结束，无法取消' });
+  }
+  res.json({ success: true });
+});
+
+app.get('/api/admin/jobs/usage', requireAdminSession, (req, res) => {
+  res.json({ rows: jobQueue.recentUsage(Number(req.query.limit) || 100),
+    note: 'provider_cost_estimate_usd 不含代理、VPS、支付和退款，不代表总成本或利润' });
+});
+
+app.get('/api/models', (_req, res) => res.json(modelCatalog()));
+
+// 兼容旧客户端：同一持久化任务链，避免绕过按时长扣退和并发闸门。
+app.post('/api/generate', authenticate, async (req, res) => {
+  try {
+    const mode = req.body?.mode || 'rewrite';
+    if (!SUPPORTED_MODES.has(mode)) return res.status(400).json({ error: '不支持的处理模式' });
+    if (req.body?.model !== undefined && mode !== 'rewrite') {
+      return res.status(400).json({ error: '仅 AI改成支持选择模型' });
+    }
+    const model = selectedRewriteModel(req.body?.model);
+    const source = parseSource(req.body?.url);
+    let job = jobQueue.submit({ userId: req.user.id, sourceUrl: source.url,
+      videoId: source.videoId, mode, model });
+    const deadline = Date.now() + 10 * 60_000;
+    while (Date.now() < deadline && !res.destroyed) {
+      job = jobQueue.getForUser(job.id, req.user.id);
+      if (job.status === 'needs_confirm') {
+        if (req.body?.confirm) { jobQueue.confirm(job.id, req.user.id); }
+        else return res.status(409).json({ needs_confirm: true, credits: job.credits,
+          duration_minutes: Math.ceil(job.duration_sec / 60), job_id: job.id });
+      } else if (job.status === 'succeeded') {
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        res.setHeader('X-Credits-Charged', String(job.credits));
+        return res.send(job.result);
+      } else if (job.status === 'failed') {
+        return res.status(500).json({ error: job.error || '任务失败，次数已退回' });
       }
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
-
-    if (!aiResp || !aiResp.ok) {
-      throw new Error('AI 生成服务节点暂时繁忙，请稍后重试');
-    }
-
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-    res.setHeader('Transfer-Encoding', 'chunked');
-
-    const reader = aiResp.body.getReader();
-    const decoder = new TextDecoder();
-    let fullOutput = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split('\n').filter(l => l.trim() !== '');
-
-      for (const line of lines) {
-        if (line.includes('[DONE]')) continue;
-        if (line.startsWith('data: ')) {
-          try {
-            const data = JSON.parse(line.slice(6));
-            const token = data.choices[0]?.delta?.content || '';
-            fullOutput += token;
-            res.write(token);
-          } catch (e) {}
-        }
-      }
-    }
-
-    db.prepare('UPDATE users SET used_count = used_count + 1 WHERE id = ?').run(user.id);
-    if (fullOutput) {
-      db.prepare('INSERT OR REPLACE INTO copies_cache (video_id, mode, content, created_at) VALUES (?, ?, ?, ?)')
-        .run(videoId, mode, fullOutput, Date.now());
-
-      if (mode === 'rewrite' && cleanedInput.length > 200) {
-        const defaultInstruction = "请根据以下海外/国内优质长音频与视频转录内容，提炼核心事实并重构为地道、引人入胜的中文爆款图文脚本。";
-        db.prepare(`
-          INSERT INTO dataset_sft (source_platform, source_id, instruction, cleaned_input, target_output, created_at)
-          VALUES (?, ?, ?, ?, ?, ?)
-        `).run(platform, videoId, defaultInstruction, cleanedInput, fullOutput, Date.now());
-      }
-    }
-
-    res.end();
-  } catch (err) {
-    console.error('生成失败:', err.message);
-    let errMsg = err.message || '生成失败，请检查链接是否有效';
-    if (errMsg.includes('Transcript is disabled') || errMsg.includes('未发现可用字幕轨')) {
-      errMsg = '该视频原作者未开启公开字幕功能（或平台未生成字幕轨），建议换一个有字幕的视频或直接点击下方热点卡片！';
-    }
-    if (!res.headersSent) {
-      res.status(500).json({ error: errMsg });
-    } else {
-      res.write(`\n\n处理中断: ${errMsg}`);
-      res.end();
-    }
+    if (!res.destroyed) res.status(202).json({ job_id: job.id, status: job.status });
+  } catch (error) {
+    if (!res.headersSent) res.status(error.status || 400).json({ error: error.message });
   }
 });
 
@@ -1263,55 +1327,17 @@ app.get('/api/admin/stats', requireAdmin, (req, res) => {
   const rawTranscripts = db.prepare("SELECT count(*) as count FROM copies_cache WHERE mode = 'raw'").get().count;
   const llmGenerations = db.prepare("SELECT count(*) as count FROM copies_cache WHERE mode != 'raw'").get().count;
   
-  // 财务核算 (美元 & 人民币汇率按 7.2)
-  const monthlyRevenueUSD = (basicCount * 4.9) + (proCount * 9.9) + (premiumCount * 19.9);
-  const dailyRevenueUSD = Number((monthlyRevenueUSD / 30).toFixed(2));
-  const dailyRevenueCNY = Number((dailyRevenueUSD * 7.2).toFixed(2));
-  
-  // 成本折算 (Groq 免费/超低，预估每次转录 $0.005，3台服务器每日折算平摊约 $0.8)
-  const estimatedDailyCostUSD = Number((0.8 + (todayCopiesCount * 0.005)).toFixed(2));
-  const estimatedDailyProfitUSD = Number((dailyRevenueUSD - estimatedDailyCostUSD).toFixed(2));
-  
-  // 3 台服务器指标
+  // 收入和利润必须来自支付流水与完整成本，当前未接入这两项。
+  // 仅展示当前进程所在机器的系统指标。
   const memUsed = Math.round((os.totalmem() - os.freemem()) / 1024 / 1024);
   const memTotal = Math.round(os.totalmem() / 1024 / 1024);
   const loadAvg = os.loadavg().map(v => v.toFixed(2));
   
-  const servers = [
-    {
-      name: 'Server 1 (主控机)',
-      ip: '139.180.190.183',
-      region: '新加坡 (Singapore)',
-      role: 'HotCopy 核心 API & 音视频转录处理',
-      status: 'online',
+  const servers = [{
+      name: '核心 API 所在服务器',
       cpu: `${loadAvg[0]} load`,
-      memory: `${memUsed}MB / ${memTotal}MB`,
-      disk: '13G / 23G (可用 9.5G)',
-      ping: '12ms'
-    },
-    {
-      name: 'Server 2 (业务机)',
-      ip: '207.246.82.12',
-      region: '美国 (United States)',
-      role: 'EazyOPC / TikTok US 业务解析矩阵',
-      status: 'online',
-      cpu: '0.04 load',
-      memory: '480MB / 956MB',
-      disk: '9G / 25G (可用 16G)',
-      ping: '28ms'
-    },
-    {
-      name: 'Server 3 (辅助机)',
-      ip: '45.77.173.164',
-      region: '美国 (United States)',
-      role: '微调数据流备份与监控看门狗',
-      status: 'online',
-      cpu: '0.01 load',
-      memory: '310MB / 956MB',
-      disk: '6G / 25G (可用 19G)',
-      ping: '35ms'
-    }
-  ];
+      memory: `${memUsed}MB / ${memTotal}MB`
+    }];
 
   const users = db.prepare('SELECT id, email, plan, used_count, monthly_limit, expires_at, created_at FROM users ORDER BY id DESC LIMIT 100').all();
   
@@ -1328,15 +1354,8 @@ app.get('/api/admin/stats', requireAdmin, (req, res) => {
       llmCalls: llmGenerations,
       estimatedTokens: (llmGenerations * 2500)
     },
-    financials: {
-      mrrUSD: monthlyRevenueUSD,
-      mrrCNY: (monthlyRevenueUSD * 7.2).toFixed(2),
-      dailyRevenueUSD,
-      dailyRevenueCNY,
-      dailyCostUSD: estimatedDailyCostUSD,
-      dailyProfitUSD: estimatedDailyProfitUSD > 0 ? estimatedDailyProfitUSD : 0,
-      margin: monthlyRevenueUSD > 0 ? '92.5%' : '95.0%'
-    },
+    financials: { mrrUSD: null, dailyRevenueUSD: null, totalCostUSD: null,
+      profitUSD: null, note: '支付收入与代理/VPS 全成本尚未核算' },
     servers
   });
 });
@@ -1403,6 +1422,9 @@ app.post('/api/admin/login', (req, res) => {
   if (!admin) {
     return res.status(500).json({ error: '管理员配置异常，请联系系统维护者' });
   }
+  if (bcrypt.compareSync('hotcopy_super_admin_pass_8888', admin.password_hash)) {
+    return res.status(503).json({ error: '管理员旧版初始密码已禁用；请配置 ADMIN_KEY 并重启服务' });
+  }
 
   // 账号名比对 (不区分大小写)
   if (username.trim().toLowerCase() !== admin.username.toLowerCase()) {
@@ -1424,7 +1446,7 @@ app.post('/api/admin/login', (req, res) => {
   // 签发 7 天管理权限 Token
   const token = jwt.sign(
     { role: 'admin', username: admin.username },
-    process.env.JWT_SECRET || 'hotcopy_default_secret_9999',
+    JWT_SECRET,
     { expiresIn: '7d' }
   );
 
@@ -1460,7 +1482,7 @@ app.post('/api/admin/change-credentials', requireAdmin, (req, res) => {
   }
 
   const valid = bcrypt.compareSync(currentPassword, admin.password_hash);
-  if (!valid && currentPassword !== process.env.ADMIN_KEY && currentPassword !== 'hotcopy_super_admin_pass_8888') {
+  if (!valid && (!process.env.ADMIN_KEY || currentPassword !== process.env.ADMIN_KEY)) {
     return res.status(400).json({ error: '当前原密码验证错误，无法修改' });
   }
 
@@ -1491,7 +1513,7 @@ app.post('/api/admin/change-credentials', requireAdmin, (req, res) => {
   // 重新签发新 Token
   const newToken = jwt.sign(
     { role: 'admin', username: finalUsername },
-    process.env.JWT_SECRET || 'hotcopy_default_secret_9999',
+    JWT_SECRET,
     { expiresIn: '7d' }
   );
 
@@ -1506,6 +1528,7 @@ app.post('/api/admin/change-credentials', requireAdmin, (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`HotCopy Core Backend running on port ${PORT}`);
+  jobWorker.start();
   startCookieMonitoring();
-  updateTrendsJob();
+  if (process.env.HOTCOPY_DISABLE_TREND_SYNC !== '1') updateTrendsJob();
 });

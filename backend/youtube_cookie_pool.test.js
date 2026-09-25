@@ -33,18 +33,19 @@ test('三套凭证路径独立，文件存在只标待检测', () => {
   } finally { context.close(); }
 });
 
-test('只有明确的认证错误才切换到备用；普通错误立即抛出', async () => {
+test('匿名认证失败才使用 Cookie，同组认证失败再切备用', async () => {
   const context = fixture();
   try {
     for (const slot of cookieSlots(context.env)) fs.writeFileSync(slot.path, validContent);
     const calls = [];
     const result = await runWithCookieFailover(async (filePath, name) => {
       calls.push(name);
+      if (name === 'public') throw new Error("Sign in to confirm you're not a bot");
       if (name === 'primary') throw Object.assign(new Error('yt-dlp failed'), { stderr: "Sign in to confirm you're not a bot" });
       return 'caption';
     }, { env: context.env });
     assert.equal(result, 'caption');
-    assert.deepEqual(calls, ['primary', 'backup1']);
+    assert.deepEqual(calls, ['public', 'primary', 'backup1']);
     const status = getCookieStatus({ env: context.env });
     assert.equal(status.activeSlot, 'backup1');
     assert.equal(status.slots[0].status, 'auth_failed');
@@ -55,47 +56,122 @@ test('只有明确的认证错误才切换到备用；普通错误立即抛出',
       throw new Error('Video unavailable');
     }, { env: context.env }), /Video unavailable/);
     assert.equal(otherCalls.length, 1);
-    assert.ok(['backup1', 'backup2'].includes(otherCalls[0]));
-    assert.equal(isAuthenticationError(new Error('Sign in to confirm your age')), false);
+    assert.equal(otherCalls[0], 'public');
+    assert.equal(isAuthenticationError(new Error('Sign in to confirm your age')), true);
   } finally { context.close(); }
 });
 
-test('主备均认证失败时仍可尝试公开视频模式', async () => {
+test('匿名成功时完全不读取 Cookie', async () => {
   const context = fixture();
   try {
     for (const slot of cookieSlots(context.env)) fs.writeFileSync(slot.path, validContent);
     const calls = [];
     const result = await runWithCookieFailover(async (filePath, name) => {
       calls.push(name);
-      if (filePath) throw new Error("Sign in to confirm you're not a bot");
+      assert.equal(filePath, null);
       return 'public captions';
     }, { env: context.env });
     assert.equal(result, 'public captions');
-    assert.deepEqual(calls, ['primary', 'backup1', 'backup2', 'public']);
+    assert.deepEqual(calls, ['public']);
   } finally { context.close(); }
 });
 
-test('三套凭证轮流处理请求，429 时尝试下一套并记录红色告警', async () => {
+test('匿名 429 不再拿账号 Cookie 重试', async () => {
   const context = fixture();
   try {
     for (const slot of cookieSlots(context.env)) fs.writeFileSync(slot.path, validContent);
-    const picked = [];
-    for (let i = 0; i < 3; i++) {
-      await runWithCookieFailover(async (_filePath, name) => { picked.push(name); return 'ok'; }, { env: context.env });
-    }
-    assert.deepEqual(new Set(picked), new Set(['primary', 'backup1', 'backup2']));
-    const failing = picked[0];
     const attempts = [];
-    await runWithCookieFailover(async (_filePath, name) => {
+    await assert.rejects(runWithCookieFailover(async (_filePath, name) => {
       attempts.push(name);
-      if (name === failing) throw Object.assign(new Error('HTTP Error 429: Too Many Requests'), { stderr: 'HTTP Error 429' });
-      return 'ok';
-    }, { env: context.env });
-    assert.deepEqual(attempts.length, 2);
-    assert.equal(attempts[0], failing);
+      throw Object.assign(new Error('HTTP Error 429: Too Many Requests'), { stderr: 'HTTP Error 429' });
+    }, { env: context.env }), /429/);
+    assert.deepEqual(attempts, ['public']);
     const status = getCookieStatus({ env: context.env });
-    assert.equal(status.slots.find(slot => slot.name === failing).status, 'rate_limited');
-    assert.ok(status.alert.slots.includes(failing));
+    assert.ok(status.slots.every(slot => slot.status === 'untested'));
+  } finally { context.close(); }
+});
+
+test('InnerTube 匿名专用模式只跨出口切换，不读取 Cookie', async () => {
+  const context = fixture();
+  try {
+    const configPath = path.join(context.directory, 'egress.json');
+    const groups = [1, 2].map(number => {
+      const cookie = path.join(context.directory, `isp-${number}.txt`);
+      fs.writeFileSync(cookie, validContent);
+      return { id: `anon${number}`, proxy: `socks5://isp-${number}.example:1080`, cookies: [cookie] };
+    });
+    fs.writeFileSync(configPath, JSON.stringify({ groups }));
+    const calls = [];
+    const result = await runWithCookieFailover(async (filePath, name) => {
+      calls.push(name);
+      assert.equal(filePath, null);
+      if (name === 'anon1_anon') throw new Error("Sign in to confirm you're not a bot");
+      return 'captions';
+    }, { env: { YTDLP_EGRESS_CONFIG: configPath }, anonymousOnly: true });
+    assert.equal(result, 'captions');
+    assert.deepEqual(calls, ['anon1_anon', 'anon2_anon']);
+    assert.ok(getCookieStatus({ env: { YTDLP_EGRESS_CONFIG: configPath } })
+      .slots.every(slot => slot.status === 'untested'));
+  } finally { context.close(); }
+});
+
+test('curl 连接失败时冷却该出口并试另一条匿名出口', async () => {
+  const context = fixture();
+  try {
+    const configPath = path.join(context.directory, 'egress.json');
+    const groups = [1, 2].map(number => {
+      const cookie = path.join(context.directory, `curl-${number}.txt`);
+      fs.writeFileSync(cookie, validContent);
+      return { id: `curl${number}`, proxy: `socks5://curl-${number}.example:1080`, cookies: [cookie] };
+    });
+    fs.writeFileSync(configPath, JSON.stringify({ groups }));
+    const calls = [];
+    const result = await runWithCookieFailover(async (filePath, name) => {
+      calls.push(name);
+      assert.equal(filePath, null);
+      if (name === 'curl1_anon') throw Object.assign(new Error('curl connection failed'), { code: 7 });
+      return 'captions';
+    }, { env: { YTDLP_EGRESS_CONFIG: configPath }, anonymousOnly: true });
+    assert.equal(result, 'captions');
+    assert.deepEqual(calls, ['curl1_anon', 'curl2_anon']);
+  } finally { context.close(); }
+});
+
+test('每个 ISP 只配置一份 Cookie 时，匿名成功不读取凭证', async () => {
+  const context = fixture();
+  try {
+    const configPath = path.join(context.directory, 'egress.json');
+    const cookie = path.join(context.directory, 'isp-cookie.txt');
+    fs.writeFileSync(cookie, validContent);
+    fs.writeFileSync(configPath, JSON.stringify({ groups: [{ id: 'isp1', proxy: 'socks5://isp.example:1080', cookies: [cookie] }] }));
+    const env = { YTDLP_EGRESS_CONFIG: configPath };
+    assert.deepEqual(cookieSlots(env).map(slot => slot.name), ['isp1_1']);
+    const calls = [];
+    const result = await runWithCookieFailover(async (filePath, name, proxy) => {
+      calls.push([filePath, name, proxy]);
+      return 'public transcript';
+    }, { env });
+    assert.equal(result, 'public transcript');
+    assert.deepEqual(calls, [[null, 'isp1_anon', 'socks5://isp.example:1080']]);
+  } finally { context.close(); }
+});
+
+test('代理失败时抛出的错误不包含代理账号密码', async () => {
+  const context = fixture();
+  try {
+    const configPath = path.join(context.directory, 'egress.json');
+    const proxy = 'socks5://private-user:private-password@isp.example:1080';
+    const cookie = path.join(context.directory, 'isp-cookie.txt');
+    fs.writeFileSync(cookie, validContent);
+    fs.writeFileSync(configPath, JSON.stringify({ groups: [{ id: 'secure1', proxy, cookies: [cookie] }] }));
+    await assert.rejects(runWithCookieFailover(async () => {
+      const error = new Error(`yt-dlp --proxy ${proxy} timed out`);
+      error.killed = true;
+      throw error;
+    }, { env: { YTDLP_EGRESS_CONFIG: configPath } }), error => {
+      assert.equal(error.message.includes('private-password'), false);
+      return true;
+    });
   } finally { context.close(); }
 });
 
@@ -136,5 +212,75 @@ test('无效上传保留原文件；探针通过后原子替换并限制为 0600
     assert.equal(fs.readFileSync(target, 'utf8'), newContent);
     assert.equal(fs.statSync(target).mode & 0o777, 0o600);
     assert.equal(status.slots[0].status, 'available');
+  } finally { context.close(); }
+});
+
+test('固定出口先逐条匿名；均需认证后才用同组 Cookie', async () => {
+  const context = fixture();
+  try {
+    const configPath = path.join(context.directory, 'egress.json');
+    const groups = ['us', 'jp'].map(id => ({
+      id, country: id.toUpperCase(), proxy: `http://${id}.example:8000`,
+      cookies: [1, 2].map(n => path.join(context.directory, `${id}-${n}.txt`))
+    }));
+    fs.writeFileSync(configPath, JSON.stringify({ groups }));
+    for (const group of groups) for (const cookie of group.cookies) fs.writeFileSync(cookie, validContent);
+    const env = { YTDLP_EGRESS_CONFIG: configPath };
+    const attempts = [];
+    const result = await runWithCookieFailover(async (filePath, name, proxy) => {
+      attempts.push([name, proxy, Boolean(filePath)]);
+      if (name.endsWith('_anon')) throw new Error("Sign in to confirm you're not a bot");
+      if (name === 'us_1') throw new Error("Sign in to confirm you're not a bot");
+      return 'ok';
+    }, { env });
+    assert.equal(result, 'ok');
+    assert.deepEqual(attempts.map(item => item[0]), ['us_anon', 'jp_anon', 'us_1', 'us_2']);
+    assert.deepEqual(attempts.map(item => item[2]), [false, false, true, true]);
+    assert.equal(attempts[1][1], 'http://jp.example:8000');
+    assert.equal(getCookieStatus({ env }).slots.find(slot => slot.name === 'us_1').status, 'auth_failed');
+    assert.equal(getCookieStatus({ env }).slots[2].country, 'JP');
+    assert.equal(attempts.some(item => item[0] === 'public'), false);
+  } finally { context.close(); }
+});
+
+test('匿名 403 后优先试另一出口的匿名请求', async () => {
+  const context = fixture();
+  try {
+    const configPath = path.join(context.directory, 'egress.json');
+    const groups = ['de', 'ca'].map(id => ({ id, proxy: `http://${id}.example:8000`,
+      cookies: [1, 2].map(n => path.join(context.directory, `${id}-${n}.txt`)) }));
+    fs.writeFileSync(configPath, JSON.stringify({ groups }));
+    for (const group of groups) for (const cookie of group.cookies) fs.writeFileSync(cookie, validContent);
+    const seen = [];
+    const result = await runWithCookieFailover(async (_path, name) => {
+      seen.push(name);
+      if (name === 'de_anon') throw Object.assign(new Error('Forbidden'), { stderr: 'HTTP Error 403: Forbidden' });
+      return 'ok';
+    }, { env: { YTDLP_EGRESS_CONFIG: configPath } });
+    assert.equal(result, 'ok');
+    assert.deepEqual(seen, ['de_anon', 'ca_anon']);
+  } finally { context.close(); }
+});
+
+test('匿名代理超时跳到另一出口，不拿 Cookie 重试坏代理', async () => {
+  const context = fixture();
+  try {
+    const configPath = path.join(context.directory, 'egress.json');
+    const groups = ['us1', 'us2'].map(id => ({ id, proxy: `http://${id}.example:8000`,
+      cookies: [1, 2].map(n => path.join(context.directory, `${id}-${n}.txt`)) }));
+    fs.writeFileSync(configPath, JSON.stringify({ groups }));
+    for (const group of groups) for (const cookie of group.cookies) fs.writeFileSync(cookie, validContent);
+    const env = { YTDLP_EGRESS_CONFIG: configPath };
+    const attempts = [];
+    const result = await runWithCookieFailover(async (_filePath, name) => {
+      attempts.push(name);
+      if (name === 'us1_anon') throw Object.assign(new Error('yt-dlp timed out'), { killed: true, signal: 'SIGTERM' });
+      return 'caption';
+    }, { env });
+    assert.equal(result, 'caption');
+    assert.deepEqual(attempts, ['us1_anon', 'us2_anon']);
+    const status = getCookieStatus({ env });
+    assert.equal(status.slots.find(slot => slot.name === 'us1_1').status, 'untested');
+    assert.equal(status.activeSlot, 'us2_anon');
   } finally { context.close(); }
 });

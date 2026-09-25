@@ -61,9 +61,27 @@ test('指定 Cookie 不可用时不静默裸连，临时目录仍被清理', asy
   assert.equal(called, false);
 });
 
-test('三级链路按字幕、备用库、Whisper 顺序降级，失败返回友好错误', async () => {
+test('异步字幕写入完成前保留临时目录，结束后清理', async () => {
+  let directory;
+  const text = await fetchYouTubeCaptionsFast('TbkUKCm3CHQ', {
+    cookiesPath: null,
+    run: async (_binary, args) => {
+      directory = require('path').dirname(args[args.indexOf('-o') + 1]);
+      await new Promise(resolve => setTimeout(resolve, 10));
+      assert.equal(fs.existsSync(directory), true);
+      fs.writeFileSync(require('path').join(directory, 'TbkUKCm3CHQ.en.vtt'),
+        'WEBVTT\n\n00:00:00.000 --> 00:00:02.000\nDelayed English dialogue');
+      return { stdout: 'en\n' };
+    }
+  });
+  assert.equal(text, 'Delayed English dialogue');
+  assert.equal(fs.existsSync(directory), false);
+});
+
+test('字幕快速路径、yt-dlp、备用库、Whisper 依次降级，失败返回友好错误', async () => {
   const fastCalls = [];
   const fast = await getYouTubeTranscript('TbkUKCm3CHQ', {
+    innerTube: async () => '',
     captions: async () => { fastCalls.push('captions'); return '直接获得的字幕'; },
     legacy: async () => { fastCalls.push('legacy'); return ''; },
     whisper: async () => { fastCalls.push('whisper'); return ''; }
@@ -72,6 +90,7 @@ test('三级链路按字幕、备用库、Whisper 顺序降级，失败返回友
   assert.deepEqual(fast, { text: '直接获得的字幕', source: 'yt-dlp 字幕' });
   const calls = [];
   const result = await getYouTubeTranscript('TbkUKCm3CHQ', {
+    innerTube: async () => '',
     captions: async () => { calls.push('captions'); throw new Error('HTTP 429'); },
     legacy: async () => { calls.push('legacy'); return ''; },
     whisper: async () => { calls.push('whisper'); return '真实对白'; }
@@ -79,6 +98,7 @@ test('三级链路按字幕、备用库、Whisper 顺序降级，失败返回友
   assert.deepEqual(calls, ['captions', 'legacy', 'whisper']);
   assert.deepEqual(result, { text: '真实对白', source: '音频听译' });
   await assert.rejects(getYouTubeTranscript('TbkUKCm3CHQ', {
+    innerTube: async () => '',
     captions: async () => '', legacy: async () => '', whisper: async () => { throw new Error('Video unavailable'); }
   }), /已下架、设为私密或限制访问/);
 });

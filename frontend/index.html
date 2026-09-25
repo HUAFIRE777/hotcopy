@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HotCopy · 原声提取与 AI 爆款改写</title>
+  <title>HotCopy · 原声提取与 AI改成</title>
   <meta name="keywords" content="HotCopy,AI爆款改写,抖音口播文案,小红书口播文案,视频号口播文案,TikTok script,YouTube script,视频逐字稿,播客逐字稿">
   <meta name="description" content="从视频和播客提取原声，生成适合抖音、小红书、视频号、TikTok 与 YouTube 的口播文案初稿。">
   <meta name="author" content="EazyOPC" />
@@ -16,7 +16,7 @@
   <!-- Open Graph / SEO -->
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://hotcopy.eazyopc.com/" />
-  <meta property="og:title" content="HotCopy · 原声提取与 AI 爆款改写" />
+  <meta property="og:title" content="HotCopy · 原声提取与 AI改成" />
   <meta property="og:description" content="提取原声并整理成抖音、小红书、视频号、TikTok 与 YouTube 的口播文案初稿。" />
   <meta property="og:image" content="https://hotcopy.eazyopc.com/assets/hotcopy-logo-b.png" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -178,9 +178,6 @@
         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium bg-stone-50 text-stone-600 border border-stone-200">
           <img class="platform-logo" src="assets/logos/bilibili.svg" alt="">B站
         </span>
-        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium bg-stone-50 text-stone-600 border border-stone-200">
-          音频文件与直链
-        </span>
       </div>
 
       <!-- 输入栏 -->
@@ -197,12 +194,10 @@
           </button>
         </div>
         <div class="flex flex-wrap items-center justify-between gap-2 px-1 text-[11px] text-stone-500">
-          <span>支持拖入链接或音频文件</span>
+          <span>支持拖入内容链接</span>
           <div class="flex flex-wrap items-center gap-3">
             <button type="button" onclick="openProjectList()" class="min-h-11 font-semibold text-stone-700 hover:underline">我的项目</button>
-            <button type="button" onclick="document.getElementById('audioFile').click()" class="min-h-11 font-semibold text-[#294639] hover:underline">选择音频文件 ↗</button>
           </div>
-          <input id="audioFile" type="file" accept=".mp3,.m4a,.wav,.aac,.ogg,.flac,.webm,audio/*" class="hidden" onchange="uploadAudioFile(this.files[0]); this.value = ''">
         </div>
 
         <!-- 快捷链接 -->
@@ -232,25 +227,42 @@
             <span class="text-xs text-stone-500">保留语境与段落</span>
           </button>
           <button onclick="runConvert('rewrite')" class="mode-card primary flex flex-col items-start p-4 rounded-xl text-left group">
-            <span class="text-[15px] sm:text-base font-bold leading-tight mb-1">AI 爆款改写 ↗</span>
-            <span class="text-xs text-white font-medium">五个平台口播初稿</span>
+            <span class="text-[15px] sm:text-base font-bold leading-tight mb-1">AI改成 ↗</span>
+            <span class="text-xs text-white font-medium">先选平台和形式，再生成初稿</span>
           </button>
         </div>
-        <div class="flex flex-wrap items-center gap-2 pt-1 text-xs text-stone-600" aria-label="口播平台：抖音、小红书、视频号、TikTok、YouTube">
-          <span class="text-stone-500 font-medium mr-1">口播平台</span>
-          <span class="inline-flex items-center gap-1.5 rounded-md border border-stone-200 bg-white px-2.5 py-1"><img class="platform-logo" src="assets/logos/douyin.png" alt="">抖音</span>
-          <span class="inline-flex items-center gap-1.5 rounded-md border border-stone-200 bg-white px-2.5 py-1"><img class="platform-logo" src="assets/logos/xiaohongshu.svg" alt="">小红书</span>
-          <span class="inline-flex items-center gap-1.5 rounded-md border border-stone-200 bg-white px-2.5 py-1"><img class="platform-logo" src="assets/logos/shipinhao.png" alt="">视频号</span>
-          <span class="inline-flex items-center gap-1.5 rounded-md border border-stone-200 bg-white px-2.5 py-1"><img class="platform-logo" src="assets/logos/tiktok.svg" alt="">TikTok</span>
-          <span class="inline-flex items-center gap-1.5 rounded-md border border-stone-200 bg-white px-2.5 py-1"><img class="platform-logo" src="assets/logos/youtube.svg" alt="">YouTube</span>
+        <div class="flex flex-wrap gap-2 text-xs text-stone-700">
+          <label class="flex items-center gap-2">目标平台
+            <select id="scriptPlatform" class="min-h-10 rounded-lg border border-stone-200 bg-white px-3 text-stone-900">
+              <option value="douyin">抖音</option><option value="xiaohongshu">小红书</option>
+              <option value="bilibili">B站</option><option value="shipinhao">视频号</option>
+              <option value="tiktok">TikTok</option><option value="youtube">YouTube</option>
+            </select>
+          </label>
+          <label class="flex items-center gap-2">成稿形式
+            <select id="scriptFormat" class="min-h-10 rounded-lg border border-stone-200 bg-white px-3 text-stone-900">
+              <option value="spoken">口播稿</option><option value="storyboard">分镜表</option>
+            </select>
+          </label>
         </div>
+        <details class="rounded-xl border border-stone-200 bg-white px-4 py-3 text-xs text-stone-700">
+          <summary class="cursor-pointer font-medium">AI改成模型（可选，默认自动推荐）</summary>
+          <div class="flex flex-wrap items-center gap-2 pt-3">
+            <label for="rewriteModel">使用模型</label>
+            <select id="rewriteModel" onchange="updateTabBadges(activeModalUrl)" class="min-h-10 rounded-lg border border-stone-200 bg-white px-3 text-stone-900">
+              <option value="">自动推荐</option>
+            </select>
+            <button id="rerunWithModel" type="button" onclick="activeModalUrl ? runConvertDirect(activeModalUrl, 'rewrite') : showToast('请先处理一条内容')" class="hidden min-h-10 rounded-lg border border-stone-200 px-3 hover:bg-stone-50">按所选模型再生成</button>
+          </div>
+          <p class="pt-2 text-stone-500">仅显示本站已接入的模型；换模型会生成一份新稿。</p>
+        </details>
       </div>
 
       <!-- 信任标识 -->
       <div class="flex flex-wrap items-center gap-6 mt-8 pt-6 border-t border-stone-100 text-[11px] text-stone-500">
         <div class="flex items-center gap-1.5">
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-          <span>支持 YouTube / 播客 / B站 / 音频直链</span>
+          <span>支持 YouTube / 播客 / B站 / TikTok 链接</span>
         </div>
         <div class="flex items-center gap-1.5">
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
@@ -445,7 +457,7 @@
           </div>
           <div class="p-4 rounded-xl bg-[#fafaf9] border border-stone-200">
             <h4 class="font-bold text-stone-900 mb-1">可以上传本地音频吗？</h4>
-            <p>可以。支持常见音频格式，单个文件不超过 40 MB。上传后先生成原声全文，再按需要切换其他整理模式。</p>
+            <p>当前任务队列先支持内容链接；本地音频上传完成接入和测试后再开放。</p>
           </div>
           <div class="p-4 rounded-xl bg-[#fafaf9] border border-stone-200">
             <h4 class="font-bold text-stone-900 mb-1">付费开通后如何享受去广告权益？</h4>
@@ -501,7 +513,7 @@
           中文翻译 <span id="badge_translate" class="hidden text-[9px] px-1 py-0.2 rounded bg-emerald-100 text-emerald-700 font-mono font-bold">已存</span>
         </button>
         <button id="modalTab_rewrite" onclick="switchModalTab('rewrite')" class="flex-1 min-w-[76px] py-1.5 px-2 rounded-lg font-medium text-center transition flex items-center justify-center gap-1 text-stone-600 hover:text-stone-900 hover:bg-stone-200/60">
-          AI 爆款改写 <span id="badge_rewrite" class="hidden text-[9px] px-1 py-0.2 rounded bg-emerald-100 text-emerald-700 font-mono font-bold">已存</span>
+          AI改成 <span id="badge_rewrite" class="hidden text-[9px] px-1 py-0.2 rounded bg-emerald-100 text-emerald-700 font-mono font-bold">已存</span>
         </button>
       </div>
 
@@ -561,6 +573,11 @@
       </div>
       <div id="resultText" class="reading-pane flex-1 min-h-[180px] overflow-y-auto bg-[#fafaf9] px-5 py-4 mb-4 rounded-xl border border-stone-200 select-text">
         结果会显示在这里。
+      </div>
+      <div id="scriptPointsPanel" class="hidden mb-3 rounded-xl border border-stone-200 bg-white p-3 text-xs">
+        <div class="font-semibold text-stone-900">依据这些重点再生成</div>
+        <div id="scriptPointChoices" class="mt-2 space-y-2"></div>
+        <button type="button" onclick="rerunSelectedPoints()" class="mt-3 min-h-10 rounded-lg border border-stone-300 px-3 font-semibold text-stone-800">用勾选重点再生成</button>
       </div>
 
       <!-- 弹窗广告位 (免费用户展示) -->
@@ -625,7 +642,7 @@
             <div class="text-2xl font-black mt-2 mb-3 text-stone-900">$9.9 <span class="text-xs font-normal text-stone-400">/月</span></div>
             <ul class="text-xs text-stone-600 space-y-2">
               <li>✓ <strong>每月 100 次</strong>生成额度</li>
-              <li>✓ <strong>开放 AI 爆款改写</strong></li>
+              <li>✓ <strong>开放 AI改成</strong></li>
               <li>✓ 抖音、小红书、视频号及海外平台口播初稿</li>
               <li>✓ 优先处理通道</li>
               <li>✓ 永久纯净无广告</li>
@@ -644,7 +661,7 @@
             <ul class="text-xs text-stone-600 space-y-2">
               <li>✓ <strong>每月 300 次</strong>大额度</li>
               <li>✓ 全功能模型权限</li>
-              <li>✓ 优先高并发通道</li>
+              <li>✓ 后台任务队列处理</li>
               <li>✓ 纯净无广告体验</li>
             </ul>
           </div>
@@ -1171,7 +1188,7 @@
         event.preventDefault();
         zone.classList.remove('drop-active');
         if (event.dataTransfer.files.length) {
-          uploadAudioFile(event.dataTransfer.files[0]);
+          showToast('当前请拖入内容链接；本地音频上传尚未开放');
           return;
         }
         const value = event.dataTransfer.getData('text/uri-list') || event.dataTransfer.getData('text/plain');
@@ -1183,52 +1200,6 @@
     }
 
     const sourceLabels = {};
-
-    async function uploadAudioFile(file) {
-      if (!file) return;
-      if (!/\.(mp3|m4a|wav|aac|ogg|flac|webm)$/i.test(file.name)) return showToast('支持 MP3、M4A、WAV、AAC、OGG、FLAC 和 WebM 音频');
-      if (file.size > 40 * 1024 * 1024) return showToast('音频文件不能超过 40 MB');
-      if (!token) { openAuthModal('login'); return showToast('登录后可上传音频'); }
-      if (typeof cancelAssetGeneration === 'function') cancelAssetGeneration();
-      if (typeof closeAssetResult === 'function') closeAssetResult();
-      if (activeRequest) activeRequest.abort();
-      activeRequest = new AbortController();
-      const version = ++requestVersion;
-      const modal = document.getElementById('resultModal');
-      modal.classList.remove('hidden');
-      initModalAd();
-      activeModalUrl = '';
-      currentConvertedText = '';
-      document.getElementById('resultTitle').textContent = '上传音频';
-      document.getElementById('resultMeta').textContent = `${file.name} · 最多 40 MB`;
-      document.getElementById('resultText').textContent = '';
-      setResultActionsEnabled(false);
-      setProgress(1, '正在上传并转录音频');
-      try {
-        const response = await fetch(`${API_BASE}/api/upload-audio`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/octet-stream' },
-          body: file,
-          signal: activeRequest.signal
-        });
-        if (version !== requestVersion) return;
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || '上传失败');
-        sourceLabels[data.source] = file.name;
-        clientCache[data.source + '::raw'] = data.content;
-        try { sessionStorage.setItem('hc_client_cache', JSON.stringify(clientCache)); } catch (e) {}
-        runConvertDirect(data.source, 'raw');
-        checkAuth();
-      } catch (error) {
-        if (error.name === 'AbortError' || version !== requestVersion) return;
-        document.getElementById('progressPanel').classList.add('hidden');
-        document.getElementById('resultText').textContent = `音频未处理完成：${error.message}`;
-        document.getElementById('resultMeta').textContent = '上传或转录失败';
-        setResultActionsEnabled(true);
-      } finally {
-        if (version === requestVersion) activeRequest = null;
-      }
-    }
 
     function initResultSheet() {
       const handle = document.getElementById('sheetHandle');
@@ -1270,6 +1241,39 @@
     const clientCache = {};
     let activeRequest = null;
     let requestVersion = 0;
+
+    function selectedRewriteModel() {
+      return document.getElementById('rewriteModel')?.value || '';
+    }
+
+    function clientResultKey(url, mode, model = selectedRewriteModel(), pointIds = []) {
+      if (mode === 'rewrite') return [url, mode, document.getElementById('scriptPlatform').value,
+        document.getElementById('scriptFormat').value, model || 'auto', [...pointIds].sort().join(',') || 'all'].join('::');
+      return url + '::' + mode;
+    }
+
+    async function loadRewriteModels() {
+      try {
+        const response = await fetch(`${API_BASE}/api/models`);
+        if (!response.ok) return;
+        const data = await response.json();
+        const select = document.getElementById('rewriteModel');
+        for (const choice of data.choices || []) {
+          if (typeof choice.id !== 'string' || typeof choice.label !== 'string') continue;
+          select.add(new Option(choice.label, choice.id));
+        }
+        document.getElementById('rerunWithModel').classList.toggle('hidden', select.options.length < 2);
+      } catch (error) {
+        console.warn('暂时无法加载改写模型列表');
+      }
+    }
+    loadRewriteModels();
+    for (const id of ['scriptPlatform', 'scriptFormat']) {
+      const select = document.getElementById(id);
+      const saved = localStorage.getItem(`hc_${id}`);
+      if (saved && [...select.options].some(option => option.value === saved)) select.value = saved;
+      select.addEventListener('change', () => localStorage.setItem(`hc_${id}`, select.value));
+    }
 
     function escapeHtml(value) {
       return value.replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
@@ -1350,7 +1354,7 @@
       ['raw', 'summary', 'translate', 'rewrite'].forEach(m => {
         const badge = document.getElementById('badge_' + m);
         if (badge) {
-          if (clientCache[url + '::' + m]) {
+          if (clientCache[clientResultKey(url, m)]) {
             badge.classList.remove('hidden');
           } else {
             badge.classList.add('hidden');
@@ -1362,7 +1366,40 @@
     function switchModalTab(targetMode) {
       if (!activeModalUrl) return;
       if (activeModalMode === targetMode) return;
+      if (targetMode !== 'rewrite') document.getElementById('scriptPointsPanel').classList.add('hidden');
       runConvertDirect(activeModalUrl, targetMode);
+    }
+
+    async function loadScriptPoints(url) {
+      const panel = document.getElementById('scriptPointsPanel');
+      panel.classList.add('hidden');
+      try {
+        const response = await fetch(`${API_BASE}/api/script/points?url=${encodeURIComponent(url)}`, {
+          headers: { 'Authorization': `Bearer ${token}` } });
+        if (!response.ok || activeModalUrl !== url || activeModalMode !== 'rewrite') return;
+        const data = await response.json();
+        const choices = document.getElementById('scriptPointChoices');
+        choices.replaceChildren();
+        for (const point of data.points || []) {
+          const label = document.createElement('label');
+          label.className = 'flex items-start gap-2';
+          const input = document.createElement('input');
+          input.type = 'checkbox'; input.value = point.id; input.checked = true;
+          input.className = 'script-point-checkbox mt-0.5';
+          const text = document.createElement('span');
+          text.textContent = point.text;
+          label.append(input, text);
+          choices.append(label);
+        }
+        panel.classList.toggle('hidden', !choices.children.length);
+      } catch {}
+    }
+
+    function rerunSelectedPoints() {
+      const ids = [...document.querySelectorAll('.script-point-checkbox:checked')].map(item => item.value);
+      if (!ids.length) return showToast('请至少勾选一条重点');
+      if (!activeModalUrl) return;
+      runConvertDirect(activeModalUrl, 'rewrite', false, ids);
     }
 
     function runConvert(mode) {
@@ -1371,8 +1408,13 @@
       runConvertDirect(url, mode);
     }
 
-    async function runConvertDirect(url, mode, fromTrendCard = false) {
+    async function runConvertDirect(url, mode, fromTrendCard = false, pointIds = []) {
       if (!token) return openAuthModal('login');
+      if (sessionStorage.getItem('hc_client_cache_owner') !== token) {
+        for (const key of Object.keys(clientCache)) delete clientCache[key];
+        sessionStorage.removeItem('hc_client_cache');
+        sessionStorage.setItem('hc_client_cache_owner', token);
+      }
       if (typeof cancelAssetGeneration === 'function') cancelAssetGeneration();
       if (typeof closeAssetResult === 'function') closeAssetResult();
       if (activeRequest) activeRequest.abort();
@@ -1381,6 +1423,7 @@
       
       activeModalUrl = url;
       activeModalMode = mode;
+      document.getElementById('scriptPointsPanel').classList.add('hidden');
       if (typeof onAddonSourceChange === 'function') onAddonSourceChange(url);
       updateActiveTabUI(mode);
       updateTabBadges(url);
@@ -1393,83 +1436,89 @@
       modal.classList.remove('hidden');
       initModalAd();
 
-      const modeName = { raw: '原声全文', summary: '核心要点', translate: '中文翻译', rewrite: 'AI 爆款改写' }[mode] || '处理结果';
+      const modeName = { raw: '原声全文', summary: '核心要点', translate: '中文翻译', rewrite: 'AI改成' }[mode] || '处理结果';
       title.textContent = modeName;
 
       // 1. 命中浏览器前端高速缓存 (0 毫秒即显，无需再调模型或网络！)
-      const cacheKey = url + '::' + mode;
+      const requestedModel = mode === 'rewrite' ? selectedRewriteModel() : '';
+      const cacheKey = clientResultKey(url, mode, requestedModel, pointIds);
       if (clientCache[cacheKey]) {
         currentConvertedText = clientCache[cacheKey];
         showResult(currentConvertedText);
         setResultActionsEnabled(true);
         meta.textContent = `${sourceLabels[url] ? sourceLabels[url] + ' · ' : ''}已保存于本次浏览 · ${currentConvertedText.length} 字`;
+        if (mode === 'rewrite') loadScriptPoints(url);
         return;
       }
 
-      // 2. 未命中前端缓存：调用云端节点（底层音频仅提取一次，后续各模式秒级直出）
+      // 后端任务持久化；关闭页面后重新打开同一来源仍可取回处理结果。
       box.textContent = '';
       setResultActionsEnabled(false);
       setProgress(1, '正在读取来源并整理原声');
-      meta.textContent = '正在处理，请保持页面开启';
+      meta.textContent = '任务已提交，关闭页面后仍会继续处理';
       currentConvertedText = '';
 
       try {
-        const res = await fetch(`${API_BASE}/api/generate`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ url, mode }),
-          signal: activeRequest.signal
-        });
-        if (version !== requestVersion) return;
-
-        if (!res.ok) {
-          let errorMsg = '请求异常';
-          try {
-            const errJson = await res.json();
-            errorMsg = errJson.error || errorMsg;
-          } catch {
-            const textErr = await res.text().catch(() => '');
-            if (textErr) errorMsg = textErr.replace(/^生成中断:\s*/, '');
+        const request = async (path, options = {}) => {
+          const response = await fetch(`${API_BASE}${path}`, {
+            ...options, signal: activeRequest.signal,
+            headers: { 'Authorization': `Bearer ${token}`,
+              ...(options.body ? { 'Content-Type': 'application/json' } : {}) }
+          });
+          const data = await response.json();
+          if (!response.ok) {
+            const error = new Error(data.error || '任务请求失败');
+            error.status = response.status;
+            throw error;
           }
-          if (res.status === 429 || res.status === 403) {
-            closeModal('resultModal');
-            openPricing();
-          }
-          throw new Error(errorMsg);
+          return data;
+        };
+        const jobStorageKey = `hc_job_${cacheKey}`;
+        let job = null;
+        const savedId = sessionStorage.getItem(jobStorageKey);
+        if (savedId) {
+          try { job = await request(`/api/jobs/${encodeURIComponent(savedId)}`); }
+          catch (error) { if (error.status !== 404) throw error; sessionStorage.removeItem(jobStorageKey); }
         }
-
-        setProgress(2, '正在准备结果');
-
-        const contentType = res.headers.get('content-type') || '';
-        if (contentType.includes('text/plain') && res.body) {
-          const reader = res.body.getReader();
-          const decoder = new TextDecoder();
-          let received = false;
-          let lastRenderAt = 0;
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            if (version !== requestVersion) { await reader.cancel(); return; }
-            const chunk = decoder.decode(value, { stream: true });
-            currentConvertedText += chunk;
-            if (!received) { setProgress(3, '正在接收结果'); received = true; }
-            if (performance.now() - lastRenderAt > 80) {
-              showResult(currentConvertedText);
-              lastRenderAt = performance.now();
+        if (!job || job.status === 'failed') {
+          job = await request('/api/jobs', { method: 'POST',
+            body: JSON.stringify({ url, mode: mode === 'rewrite' ? 'script' : mode,
+              ...(mode === 'rewrite' ? {
+                platform: document.getElementById('scriptPlatform').value,
+                format: document.getElementById('scriptFormat').value,
+                ...(pointIds.length ? { point_ids: pointIds } : {})
+              } : {}), ...(requestedModel ? { model: requestedModel } : {}) }) });
+          sessionStorage.setItem(jobStorageKey, job.id);
+        }
+        while (version === requestVersion) {
+          if (job.status === 'succeeded') {
+            currentConvertedText = job.result || '';
+            break;
+          }
+          if (job.status === 'failed') throw new Error(job.error || '任务处理失败，已退还次数');
+          if (job.status === 'needs_confirm') {
+            const minutes = Math.ceil((job.duration_sec || 0) / 60);
+            const accepted = window.confirm(`来源时长约 ${minutes} 分钟，本次需扣 ${job.credits} 次。确定继续吗？`);
+            if (!accepted) {
+              await request(`/api/jobs/${encodeURIComponent(job.id)}/cancel`, { method: 'POST' });
+              sessionStorage.removeItem(jobStorageKey);
+              throw new Error('已取消，未扣次数');
             }
+            job = await request(`/api/jobs/${encodeURIComponent(job.id)}/confirm`, { method: 'POST' });
+          } else {
+            setProgress(job.status === 'running' ? 2 : 1,
+              job.status === 'running' ? '正在整理内容与生成结果' : '等待处理');
+            await new Promise((resolve, reject) => {
+              const signal = activeRequest.signal;
+              const onAbort = () => { clearTimeout(timer); reject(new DOMException('已中止', 'AbortError')); };
+              const timer = setTimeout(() => { signal.removeEventListener('abort', onAbort); resolve(); }, 2500);
+              signal.addEventListener('abort', onAbort, { once: true });
+            });
+            job = await request(`/api/jobs/${encodeURIComponent(job.id)}`);
           }
-          currentConvertedText += decoder.decode();
-          if (/\n\n处理中断:\s*/.test(currentConvertedText)) throw new Error(currentConvertedText.split(/处理中断:\s*/).pop());
-          showResult(currentConvertedText);
-        } else {
-          const text = await res.text();
-          if (version !== requestVersion) return;
-          currentConvertedText = text;
-          showResult(text);
         }
+        if (version !== requestVersion) return;
+        showResult(currentConvertedText);
 
         if (!currentConvertedText.trim()) throw new Error('未收到有效内容，请稍后重试');
 
@@ -1482,6 +1531,7 @@
         updateTabBadges(url);
         meta.textContent = `${sourceLabels[url] ? sourceLabels[url] + ' · ' : ''}处理完成 · ${currentConvertedText.length} 字`;
         setResultActionsEnabled(true);
+        if (mode === 'rewrite') loadScriptPoints(url);
         checkAuth();
       } catch (e) {
         if (e.name === 'AbortError' || version !== requestVersion) return;
