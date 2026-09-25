@@ -19,7 +19,15 @@ node --test core/*.test.js youtube_cookie_pool.test.js youtube_transcript.test.j
 
 测试包括 SQLite 跨连接并发上限、去重、按时长扣退、确认过期、失败退款、任务所有权、HTTP 提交与查询、模型 mock 生成、重点再生成，以及 YouTube 匿名/出口/Cookie 回退。另在本地浏览器注册一次性测试账号，点击一条预置缓存的 YouTube 测试链接，看到“等待处理”变为“处理完成”、原声文本出现并计入 1 次。它们不验证真实 Groq、ISP、VPS、YouTube 的实时可用性。
 
-## 上线前实测
+## 生产部署与验收（2026-09-26）
+
+- 代码提交 `79e13c9` 已推送到 `main`，Cloudflare Pages 构建成功；`https://hotcopy.eazyopc.com/` 和 `/manage-777` 的在线文件哈希与提交版本一致。
+- 后端已部署到新加坡 VPS `/opt/hotcopy` 并由 PM2 运行。部署前备份位于 `/opt/hotcopy/.release-backups/core-20260925T170640Z/`，含旧版代码及通过完整性检查的 SQLite 数据库；线上 `.env`、Cookie 和出口配置未覆盖。
+- 生产接口 `/api/models`、`/api/trends` 返回 200；未登录访问 `/api/jobs` 和 `/api/auth/me` 返回 401。桌面与手机浏览器页面可打开、无页面脚本异常，手机页面无横向溢出。
+- 以短公开视频 `dQw4w9WgXcQ` 实际跑通原声任务（时长 213 秒，结果约 2051 字）和抖音口播 AI改成任务（结果约 801 字），两者均成功；测试账号及其任务、扣次和使用记录已清理。模型服务凭证可列出已配置的默认模型。
+- 当前前台模型选择器只显示“自动推荐”；其他模型尚未核对质量和成本，故未开放给用户。未做长音频、故障切换或高并发压测。
+
+## 下一轮实测
 
 1. 用一条 5–10 分钟公开视频测字幕路径；记录总耗时、出口、是否调用 Whisper、模型 Token 与结果准确度。
 2. 用一条无字幕且可合法处理的长视频测音频路径；记录音频字节、代理出口流量、Groq 实际账单与失败类型。
@@ -31,5 +39,5 @@ node --test core/*.test.js youtube_cookie_pool.test.js youtube_transcript.test.j
 
 - 播客音频先由服务端限制 HTTPS、公开 DNS、重定向次数和 256 MB 大小后写入临时文件，FFmpeg/ffprobe 只读取该临时文件；还需用真实 Apple Podcasts 与小宇宙单集验证兼容性。
 - 当前成本为标价估算，提供商真实账单、ISP 字节计量和 VPS 摊销尚未接入。
-- 未在生产 VPS 部署或做真实高并发压测；不能据此承诺可承载的用户数或利润。
+- 尚未做真实高并发压测；不能据此承诺可承载的用户数或利润。
 - 支付、微信与新的价格方案按用户要求放在核心链路实测之后。
