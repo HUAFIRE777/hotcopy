@@ -21,6 +21,7 @@ const { downloadSafeAudio } = require('./core/safe_audio');
 const { generateText, generateScript } = require('./core/llm');
 const { PLATFORMS, FORMATS, selectedPoints } = require('./core/points');
 const { recordWhisper, recordFileBytes, recordSourceBytes } = require('./core/usage_context');
+const { transcribeWithGroq, TURBO_MODEL } = require('./core/whisper');
 const { runWithCookieFailover, getCookieStatus, probeSlot, updateCookieSlot, startCookieMonitoring } = require('./youtube_cookie_pool');
 require('dotenv').config();
 
@@ -438,9 +439,6 @@ function getGroqApiKeys() {
 }
 
 async function sendFileToWhisper(filePath, maxRetries = 1) {
-  const keys = getGroqApiKeys();
-  const models = ['whisper-large-v3-turbo', 'whisper-large-v3'];
-  let lastErr = null;
   let audioSec = null;
   try {
     const { stdout } = await new Promise((resolve, reject) => execFile('ffprobe',
@@ -449,66 +447,8 @@ async function sendFileToWhisper(filePath, maxRetries = 1) {
     const parsed = Number(String(stdout).trim());
     if (Number.isFinite(parsed) && parsed > 0) audioSec = parsed;
   } catch {}
-
-  for (const apiKey of keys) {
-    for (const model of models) {
-      for (let attempt = 0; attempt <= maxRetries; attempt++) {
-        try {
-          const form = new FormData();
-          form.append('file', fs.createReadStream(filePath));
-          form.append('model', model);
-          const res = await axios.post('https://api.groq.com/openai/v1/audio/transcriptions', form, {
-            headers: {
-              ...form.getHeaders(),
-              'Authorization': 'Bearer ' + apiKey
-            },
-            timeout: 120000
-          });
-          if (!res.data?.text?.trim()) throw new Error('听写服务未返回有效对白');
-          recordWhisper(model, audioSec);
-          return res.data.text;
-        } catch (err) {
-          lastErr = err;
-          const errMsg = err.response?.data?.error?.message || err.message;
-          console.warn(`[Groq Whisper - ${model}] Key(..${apiKey.slice(-6)}) 第 ${attempt + 1} 次尝试失败: ${errMsg}`);
-          if (errMsg.includes('Rate limit reached')) {
-            break; // 触发配额上限，立即轮换下一个模型或下一个 Key
-          }
-          if (attempt < maxRetries) {
-            await new Promise(r => setTimeout(r, 1500 * (attempt + 1)));
-          }
-        }
-      }
-    }
-  }
-
-  // 备用兜底：如果配置了 OPENAI_API_KEY，且所有 Groq Key 都达到上限，降级到 OpenAI Whisper 官方接口
-  if (process.env.OPENAI_API_KEY) {
-    try {
-      console.log('[Audio Engine] Groq 额度耗尽，启用 OpenAI Whisper 官方通道兜底...');
-      const form = new FormData();
-      form.append('file', fs.createReadStream(filePath));
-      form.append('model', 'whisper-1');
-      const res = await axios.post('https://api.openai.com/v1/audio/transcriptions', form, {
-        headers: {
-          ...form.getHeaders(),
-          'Authorization': 'Bearer ' + process.env.OPENAI_API_KEY
-        },
-        timeout: 120000
-      });
-      if (!res.data?.text?.trim()) throw new Error('听写服务未返回有效对白');
-      recordWhisper('openai/whisper-1', audioSec);
-      return res.data.text;
-    } catch (oaErr) {
-      console.error('[OpenAI Whisper 兜底失败]:', oaErr.message);
-    }
-  }
-
-  const rawMsg = lastErr?.response?.data?.error?.message || lastErr?.message || '';
-  if (rawMsg.includes('Rate limit reached') || rawMsg.includes('seconds of audio per hour')) {
-    throw new Error('当前免费听写通道负载饱和（每小时转录时长已满，将在几分钟后自动恢复）。如需持续听写超长播客，可在后台配置多个 Groq 密钥或开通按量付费。');
-  }
-  throw new Error('语音转录失败: ' + rawMsg);
+  return transcribeWithGroq(filePath, { keys: getGroqApiKeys(), audioSec,
+    maxRetries, onBilled: recordWhisper });
 }
 
 // ---------------- 工业级长音频处理管道 (自动轻量化压缩 + 超长分片保障) ----------------
@@ -910,7 +850,7 @@ async function fetchTikTokTranscript(url) {
   const audioStream = await axios.get(audioUrl, { responseType: 'stream' });
   const formData = new FormData();
   formData.append('file', audioStream.data, { filename: 'audio.mp3' });
-  formData.append('model', 'whisper-large-v3');
+  formData.append('model', TURBO_MODEL);
 
   const whisperRes = await axios.post('https://api.groq.com/openai/v1/audio/transcriptions', formData, {
     headers: {
@@ -920,7 +860,7 @@ async function fetchTikTokTranscript(url) {
     timeout: 30000
   });
 
-  recordWhisper('whisper-large-v3', null);
+  recordWhisper(TURBO_MODEL, null);
   return whisperRes.data.text;
 }
 
